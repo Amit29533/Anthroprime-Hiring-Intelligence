@@ -16,3 +16,26 @@
 .login-story .brand .brand-wordmark small{font-size:10px;letter-spacing:.7px}
 @media(min-width:761px) and (max-width:1220px){.sidebar .brand-image{width:53px;height:42px}.sidebar .brand span.brand-wordmark{font-size:17px}.sidebar .brand .brand-wordmark small{font-size:7.5px;letter-spacing:.25px}}
 @media(max-width:760px){.login-story .brand-image{width:70px;height:54px}.login-story .brand span.brand-wordmark{font-size:23px}}
+
+/* Blueprint R1 additions: skill evidence editor, data-quality queues, audit lists */
+.skill-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.skill-row{display:grid;grid-template-columns:1.2fr .9fr 1fr .5fr .8fr auto;gap:8px;align-items:center;border:1px solid #e3eaee;border-radius:10px;padding:8px 10px;background:#fff}
+.skill-row-name{display:flex;flex-direction:column}
+.skill-row-name small{color:#6b7c85}
+.quality-list{display:flex;flex-direction:column}
+.quality-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 6px;border:0;border-bottom:1px solid #e7edf0;background:none;cursor:pointer;text-align:left;font:inherit;font-size:14px}
+.quality-row:hover{background:#f3f8f9}
+.velocity-list{display:flex;flex-direction:column;gap:12px}
+.velocity-list>div{display:flex;flex-direction:column}
+.velocity-list span{color:#5b6b74;font-size:13px}
+.velocity-list small{color:#8a99a1;font-size:12px}
+.audit-list{display:flex;flex-direction:column;gap:10px}
+.audit-row{display:flex;align-items:center;gap:10px;font-size:13px}
+.audit-row small{color:#8a99a1;margin-left:auto;text-align:right}
+.employment-add{margin:12px 0}
+.employment-add summary{cursor:pointer;color:#1c7a68;font-weight:600;font-size:14px}
+.employment-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.history-heading{margin:16px 0 8px;font-size:15px}
+.match-skills .nice{border-style:dashed}
+.nice-note{color:#8a99a1;font-size:12px;align-self:center}
+@media (max-width:720px){.skill-row{grid-template-columns:1fr 1fr;}.employment-form{grid-template-columns:1fr}}

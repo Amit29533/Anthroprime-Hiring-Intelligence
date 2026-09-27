@@ -1,3 +1,4 @@
+import { meetsLevel } from './taxonomy.js';
 export const STAGES = ['Identified', 'Contacted', 'Assessed', 'Enrichment', 'Submitted', 'Interview', 'Offer', 'Deployed', 'Rejected', 'Withdrawn'];
 export const WEIGHTS = { skills: 35, experience: 20, readiness: 20, availability: 10, budget: 10, location: 5 };
 export const SKILLS = ['Databricks', 'Databricks Genie', 'Unity Catalog', 'Apache Spark', 'Python', 'SQL', 'Azure', 'AWS', 'Microsoft Entra', 'IAM', 'Conditional Access', 'Cybersecurity', 'OT Security', 'React', 'TypeScript', 'Node.js', 'Power BI', 'Snowflake', 'dbt', 'Terraform', 'Kubernetes', 'Java', 'SAP', 'Figma'];
@@ -17,14 +18,21 @@ export function duplicate(candidate, people) {
 }
 export function matchCandidate(c, d, assessments = []) {
   const required = skillList(d.skills || []);
+  const niceToHave = skillList(d.niceToHave || []);
   const candidateSkills = skillList(c.skills || []);
-  const matched = required.filter(s => candidateSkills.includes(s));
-  const missing = required.filter(s => !candidateSkills.includes(s));
+  const skillRows = c.skillsDetail || [];
+  const levelOf = s => skillRows.find(x => (x.skill || '') === s);
+  const minFor = s => (d.skillMinimums && d.skillMinimums[s]) || d.minProficiency || 'Working';
+  const matched = required.filter(s => candidateSkills.includes(s) && meetsLevel(levelOf(s)?.proficiency, minFor(s)));
+  const missing = required.filter(s => !matched.includes(s));
+  const niceMatched = niceToHave.filter(s => candidateSkills.includes(s));
   const recentAssessments = assessments.filter(a => a.candidateId === c.id && (!a.demandId || a.demandId === d.id) && age(a.date) <= 180);
   const latest = recentAssessments.sort((a, b) => b.date.localeCompare(a.date))[0];
   const relevant = c.relevantExperience == null ? null : Number(c.relevantExperience);
   const compatibleLocation = d.mode === 'Remote' || d.location.toLowerCase() === c.location.toLowerCase();
   const compatibleMode = !c.mode || c.mode === 'Flexible' || c.mode === d.mode;
+  const engagementType = d.engagementType || 'Any';
+  const compatibleEngagement = engagementType === 'Any' || !c.engagement || c.engagement === engagementType;
   const scores = {
     skills: required.length ? matched.length / required.length : 1,
     experience: relevant === null ? 0 : d.minExperience > 0 ? Math.min(1, relevant / d.minExperience) : 1,
@@ -36,7 +44,7 @@ export function matchCandidate(c, d, assessments = []) {
   const weights = { ...WEIGHTS, ...(d.weights || {}) };
   const denominator = Object.values(weights).reduce((a,b) => a + Number(b), 0) || 100;
   const score = Math.round(Object.keys(scores).reduce((s,k) => s + scores[k] * Number(weights[k]), 0) / denominator * 100);
-  const blockers = [missing.length && `Missing ${missing.join(', ')}`, relevant !== null && relevant < d.minExperience && `Below ${d.minExperience} relevant years`, c.notice != null && c.notice > d.maxNotice && `${c.notice}-day notice exceeds ${d.maxNotice} days`, c.expected != null && c.expected > d.budget && 'Expected CTC above budget', !compatibleLocation && 'Location mismatch', !compatibleMode && 'Work mode mismatch'].filter(Boolean);
+  const blockers = [missing.length && `Missing ${missing.join(', ')}`, relevant !== null && relevant < d.minExperience && `Below ${d.minExperience} relevant years`, c.notice != null && c.notice > d.maxNotice && `${c.notice}-day notice exceeds ${d.maxNotice} days`, c.expected != null && c.expected > d.budget && 'Expected CTC above budget', !compatibleLocation && 'Location mismatch', !compatibleMode && 'Work mode mismatch', !compatibleEngagement && `Engagement mismatch: candidate is ${c.engagement}, demand needs ${engagementType}`].filter(Boolean);
   if(c.status === 'Unavailable') blockers.push('Candidate is currently unavailable');
   const unknowns = [c.notice == null && 'Notice period unknown', c.expected == null && 'Expected CTC unknown', relevant === null && 'Relevant experience unverified', !latest && 'No recent assessment', freshness(c.verified) === 'Stale' && 'Profile needs revalidation'].filter(Boolean);
   const details = {
@@ -47,7 +55,7 @@ export function matchCandidate(c, d, assessments = []) {
     budget: c.expected == null ? 'Expected CTC unknown' : `${money(c.expected)} · budget ${money(d.budget)}`,
     location: `${c.location} · ${c.mode || 'Mode unverified'}`
   };
-  return { score, matched, missing, blockers, unknowns, scores, weights, details, eligible: blockers.length === 0 && unknowns.length === 0 };
+  return { score, matched, missing, blockers, unknowns, scores, weights, details, niceCoverage:{ matched:niceMatched, missing:niceToHave.filter(s => !niceMatched.includes(s)) }, eligible: blockers.length === 0 && unknowns.length === 0 };
 }
 export function extractJD(text) {
   const terms = [...SKILLS, ...Object.keys(aliases)].sort((a,b) => b.length-a.length);
