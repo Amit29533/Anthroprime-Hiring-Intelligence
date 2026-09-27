@@ -35,3 +35,45 @@ export function icsFor(interviews, candidates, demands) {
 }
 
 export const icsForInterview = (iv, candidate, demand) => icsFor([iv], candidate ? [candidate] : [], demand ? [demand] : []);
+
+// --- Batch 10: inbound one-way sync — parse an external .ics file into interview drafts.
+function icsDate(v){
+ v=String(v||'').trim();
+ let m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z|[+-]\d{4})?$/.exec(v);
+ if(m){const [,Y,M,D,h,mi,s,tz]=m;
+  const iso=(tz==='Z'||!tz)?`${Y}-${M}-${D}T${h}:${mi}:${s}Z`:`${Y}-${M}-${D}T${h}:${mi}:${s}${tz.slice(0,3)}:${tz.slice(3)}`;
+  const d=new Date(iso);return isNaN(d.getTime())?null:d.toISOString();}
+ m=/^(\d{4})(\d{2})(\d{2})$/.exec(v);
+ if(m){const d=new Date(`${m[1]}-${m[2]}-${m[3]}T09:00:00Z`);return isNaN(d.getTime())?null:d.toISOString();}
+ return null;
+}
+const icsUnescape=s=>String(s||'').replace(/\\n/gi,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\');
+export function parseICS(text){
+ const raw=String(text||'').replace(/\r\n/g,'\n').split('\n');
+ const lines=[];
+ for(const ln of raw){if((ln.startsWith(' ')||ln.startsWith('\t'))&&lines.length)lines[lines.length-1]+=ln.slice(1);else lines.push(ln);}
+ const events=[];let cur=null;
+ for(const ln of lines){
+  if(ln.trim()==='BEGIN:VEVENT'){cur={uid:'',summary:'',start:null,end:null,location:'',description:'',status:''};continue;}
+  if(ln.trim()==='END:VEVENT'){if(cur)events.push(cur);cur=null;continue;}
+  if(!cur)continue;
+  const c=ln.indexOf(':');if(c<0)continue;
+  const name=ln.slice(0,c).split(';')[0].trim().toUpperCase();
+  const val=ln.slice(c+1).trim();
+  if(name==='UID')cur.uid=val;
+  else if(name==='SUMMARY')cur.summary=icsUnescape(val);
+  else if(name==='DTSTART')cur.start=icsDate(val);
+  else if(name==='DTEND')cur.end=icsDate(val);
+  else if(name==='LOCATION')cur.location=icsUnescape(val);
+  else if(name==='DESCRIPTION')cur.description=icsUnescape(val);
+  else if(name==='STATUS')cur.status=val;
+ }
+ return events;
+}
+// Best-effort mapping: an event belongs to the candidate whose name appears in its summary/description.
+export function interviewDraftFromEvent(ev,candidates){
+ if(!ev||!ev.start)return {ev,candidateId:null,demandId:null};
+ const hay=`${ev.summary} ${ev.description}`.toLowerCase();
+ const cand=(candidates||[]).find(c=>c.name&&hay.includes(String(c.name).toLowerCase()));
+ return {ev,candidateId:cand?cand.id:null,demandId:null};
+}

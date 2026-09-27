@@ -1,6 +1,7 @@
 import React,{useState,useEffect,useRef} from 'react';
 import {LayoutDashboard,Users,BriefcaseBusiness,Columns3,Layers,ClipboardCheck,ChartNoAxesCombined,Settings,Search,Bell,ChevronDown,Menu,X,Activity,ShieldCheck,LoaderCircle,CalendarClock} from 'lucide-react';
 import {loadData,saveRows,cloud,supabase,emptyData,logAuditEvent} from './repository.js';
+import {actionsFor,buildActions} from './automation.js';
 import {uid,today} from './domain.js';
 import {Button,Avatar,IconButton} from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
@@ -19,7 +20,54 @@ export default function App(){
  const audit=event=>{logAuditEvent(event,dataRef.current).then(({data:next})=>{dataRef.current=next;setData(next);}).catch(()=>{});};
  const navigate=(p,filter=null)=>{setPage(p);setMobile(false);setPersonId(null);setDemandId(null);setCandidateFilter(filter);if(p!=='Candidates')setQuery('');window.scrollTo({top:0,behavior:'instant'});};
  const openDemand=id=>{setPage('Demands');setDemandId(id);setMobile(false);window.scrollTo({top:0,behavior:'instant'});};
- async function save(table,rows){if(saving.current)return false;saving.current=true;setBusy(true);try{const result=await saveRows(table,rows,dataRef.current);const next={...dataRef.current,[table]:[...result.rows,...dataRef.current[table].filter(r=>!result.rows.some(n=>n.id===r.id))],history:result.history};dataRef.current=next;setData(next);setToast(rows.length>1?`${rows.length} records saved.`:'Saved to your repository.');return true;}catch(e){setToast(`Could not save: ${e.message}`);return false;}finally{saving.current=false;setBusy(false);}}
+ const AUTOMATION_TABLES=['candidates','demands','offers','interviews'];
+ const automating=useRef(false);
+ async function save(table,rows){
+  if(saving.current)return false;saving.current=true;setBusy(true);
+  const before=rows.map(r=>dataRef.current[table].find(x=>x.id===r.id)||null);
+  let ok=false;
+  try{
+   const result=await saveRows(table,rows,dataRef.current);
+   const next={...dataRef.current,[table]:[...result.rows,...dataRef.current[table].filter(r=>!result.rows.some(n=>n.id===r.id))],history:result.history};
+   dataRef.current=next;setData(next);setToast(rows.length>1?`${rows.length} records saved.`:'Saved to your repository.');ok=true;
+  }catch(e){setToast(`Could not save: ${e.message}`);}
+  finally{saving.current=false;setBusy(false);}
+  if(ok&&!automating.current&&AUTOMATION_TABLES.includes(table))await applyAutomation(table,rows,before);
+  return ok;
+ }
+ async function applyAutomation(table,rows,before){
+  const rules=(dataRef.current.workflowRules||[]).filter(r=>r&&r.enabled);
+  if(!rules.length)return;
+  const fired=[];const updatesById={};
+  let taskRows=[],noteRows=[];
+  rows.forEach((row,i)=>{
+   const matched=actionsFor(rules,table,before[i],row);
+   if(!matched.length)return;
+   fired.push(...matched.map(m=>m.name));
+   const candidate=table==='candidates'?row:(dataRef.current.candidates.find(c=>c.id===row.candidateId)||null);
+   const demand=table==='demands'?row:(dataRef.current.demands.find(d=>d.id===row.demandId)||null);
+   const built=buildActions(matched,{candidate,demand,actor:'Automation',base:today()});
+   taskRows=taskRows.concat(built.tasks);noteRows=noteRows.concat(built.notes);
+   for(const t of built.tagUpdates){
+    const u=updatesById[t.candidateId]||(updatesById[t.candidateId]={base:dataRef.current.candidates.find(c=>c.id===t.candidateId),tags:null,nextAction:null});
+    if(u.base&&!((u.base.tags||[]).includes(t.tag)))u.tags=[...((u.tags)||u.base.tags||[]),t.tag];
+   }
+   for(const na of built.nextActions){
+    const u=updatesById[na.candidateId]||(updatesById[na.candidateId]={base:dataRef.current.candidates.find(c=>c.id===na.candidateId),tags:null,nextAction:null});
+    if(u.base)u.nextAction=na.text;
+   }
+  });
+  if(!fired.length)return;
+  automating.current=true;
+  try{
+   if(taskRows.length)await save('tasks',taskRows);
+   if(noteRows.length)await save('notes',noteRows);
+   const updates=Object.entries(updatesById).map(([id,u])=>({...u.base,tags:u.tags||u.base.tags||[],nextAction:u.nextAction||u.base.nextAction||'',updated:today()}));
+   if(updates.length)await save('candidates',updates);
+   setToast(`Automation: ${[...new Set(fired)].join(', ')} applied.`);
+   audit({entityType:table,entityId:rows[0]?.id||null,action:'updated',detail:`Automation rules applied: ${[...new Set(fired)].join(', ')}`});
+  }finally{automating.current=false;}
+ }
  async function shortlist(candidateId,demandId){if(dataRef.current.considerations.some(a=>a.candidateId===candidateId&&a.demandId===demandId)){setToast('This candidate is already in this demand’s pipeline.');return;}if(await save('considerations',[{id:uid(),candidateId,demandId,stage:'Identified',created:today(),updated:today(),reason:''}]))setToast('Candidate added to the shortlist. Find them in the hiring pipeline.');}
  function move(application,stage){if(['Rejected','Withdrawn'].includes(stage)){setModal({type:'disposition',application,stage});return;}save('considerations',[{...application,stage,updated:today(),reason:''}]);}
  const addCandidate=()=>setModal({type:'candidate'}),newDemand=()=>setModal({type:'demand'}),importCandidates=()=>setModal({type:'import'}),newAssessment=candidateId=>setModal({type:'assessment',candidateId});

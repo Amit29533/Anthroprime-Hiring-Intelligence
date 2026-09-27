@@ -82,5 +82,12 @@ export function makeSeed() {
   {id:'82000000-0000-4000-8000-000000000002',candidateId:candidates[4].id,purpose:'profile-sharing',status:'granted',noticeVersion:'v1.1',source:'Email',note:'CV sharing approved for Northstar Financial',date:stampAgo(12)},
   {id:'82000000-0000-4000-8000-000000000003',candidateId:candidates[6].id,purpose:'marketing',status:'revoked',noticeVersion:'v1.0',source:'Email',note:'Candidate opted out of newsletters',date:stampAgo(45)}
  ];
- return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[], documents:[], taxonomy:[], demandCommercials, settings, consents, interviews, offers, tasks, submissions, publicApplications };
+ const workflowRules = [
+  {id:'93000000-0000-4000-8000-000000000001',name:'Offer accepted → onboarding prep',triggerTable:'offers',triggerField:'status',op:'eq',value:'Accepted',enabled:true,actions:[{type:'task',title:'Start onboarding — collect ID documents and bank details',dueDays:2},{type:'tag',tag:'Onboarding'},{type:'note',text:'Offer accepted. Begin the onboarding checklist.'}],created:dateAgo(9)},
+  {id:'93000000-0000-4000-8000-000000000002',name:'Strong hire → prepare offer',triggerTable:'interviews',triggerField:'recommendation',op:'eq',value:'Strong hire',enabled:true,actions:[{type:'task',title:'Prepare the offer pack for the strong hire',dueDays:1},{type:'nextAction',text:'Prepare offer package'}],created:dateAgo(8)},
+  {id:'93000000-0000-4000-8000-000000000003',name:'Offer stage → budget check before the call',triggerTable:'candidates',triggerField:'stage',op:'eq',value:'Offer',enabled:true,actions:[{type:'task',title:'Confirm budget and approvals before the offer call',dueDays:1}],created:dateAgo(7)},
+  {id:'93000000-0000-4000-8000-000000000004',name:'Example — paused rule (demand opens → call sources)',triggerTable:'demands',triggerField:'stage',op:'eq',value:'Sourcing',enabled:false,actions:[{type:'note',text:'Demand opened for sourcing — line up the bench.'}],created:dateAgo(6)}
+ ];
+
+ return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[], documents:[], taxonomy:[], demandCommercials, settings, consents, interviews, offers, tasks, submissions, publicApplications, workflowRules }
 }

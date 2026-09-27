@@ -1,7 +1,7 @@
 // Shared data shape for demo and cloud modes, kept dependency-free so tests can import it.
 import { setCustomTaxonomy } from './taxonomy.js';
 import { setStageLabels } from './domain.js';
-export const TABLES = ['candidates','demands','considerations','assessments','notes','enrichment','history','employmentHistory','compensationHistory','availabilityHistory','auditEvents','documents','taxonomy','demandCommercials','settings','consents','interviews','offers','tasks','submissions','publicApplications'];
+export const TABLES = ['candidates','demands','considerations','assessments','notes','enrichment','history','employmentHistory','compensationHistory','availabilityHistory','auditEvents','documents','taxonomy','demandCommercials','settings','consents','interviews','offers','tasks','submissions','publicApplications','workflowRules'];
 export const emptyData = () => Object.fromEntries(TABLES.map(t=>[t,[]]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
 // taxonomy extensions, and hide profiles merged into another record.
@@ -16,6 +16,8 @@ export function normalizeData(data){
  out.offers = out.offers||[];
  for(const o of out.offers){ o.status = o.status||'Draft'; o.role = o.role||''; o.location = o.location||''; o.notes = o.notes||''; o.ctc = o.ctc==null?null:Number(o.ctc); }
  out.tasks = out.tasks||[];
+ out.workflowRules = out.workflowRules||[];
+ for(const r of out.workflowRules){ r.name=r.name||''; r.triggerTable=r.triggerTable||'candidates'; r.triggerField=r.triggerField||'stage'; r.op=r.op||'eq'; r.value=r.value==null?'':String(r.value); r.actions=Array.isArray(r.actions)?r.actions:[]; r.enabled=r.enabled!==false; }
  for(const t of out.tasks){ t.title = t.title||''; t.done = !!t.done; t.due = t.due||''; t.owner = t.owner||''; t.candidateId = t.candidateId||null; t.demandId = t.demandId||null; }
  out.submissions = out.submissions||[];
  for(const sub of out.submissions){ sub.clientContact = sub.clientContact||''; sub.method = sub.method||'Email'; sub.notes = sub.notes||''; sub.pack = sub.pack&&typeof sub.pack==='object'&&!Array.isArray(sub.pack)?sub.pack:{}; sub.clientStatus = sub.clientStatus||'Pending'; sub.clientComment = sub.clientComment||''; sub.decidedOn = sub.decidedOn||null; }

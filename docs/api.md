@@ -71,6 +71,21 @@ for (;;) {
 }
 ```
 
+## `POST /rest/v1/rpc/api_public_application_status` — candidate status lookup (public, `anon`)
+
+Careers-page "Check your application status". Returns minimal, non-sensitive fields for
+every application whose email exactly matches (case- and whitespace-insensitive), newest
+first: `[{ ref, role, location, status, submittedOn }]` — `ref` is the first 8 characters
+of the application id, `status` is `pending` / `accepted` / `dismissed`. No contact
+details, messages or consent answers are returned. Unknown emails get `[]`.
+
+```js
+const { data } = await supabase.rpc('api_public_application_status', { p_email: 'you@example.com' });
+```
+
+> Honest scope: the email acts as a bare capability check. A token sent to the applicant
+> (or a real candidate account) would be the proper gate — that needs a server.
+
 ## Not yet provided (honest scope)
 
 Write endpoints beyond the public apply, per-table REST resources, and cursor-based

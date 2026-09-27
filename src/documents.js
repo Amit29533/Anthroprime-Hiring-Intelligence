@@ -133,3 +133,19 @@ export async function contentSignatureOk(file, ext) {
     return true; // txt/md/csv are text; extraction validates readability anyway
   } catch { return true; }
 }
+// Batch 10 — resume-inbox groundwork: pull the readable body out of a forwarded
+// application email (headers stripped, HTML reduced to text). IMAP/POP inbox
+// ingestion remains server-side work.
+export function emailBodyText(raw){
+ const s=String(raw||'').replace(/\r\n/g,'\n');
+ const cut=s.indexOf('\n\n');
+ let body=cut>=0?s.slice(cut+2):s;
+ const plain=body.match(/Content-Type:\s*text\/plain[\s\S]*?\n\n([\s\S]*?)(?:\n--\s|\n*$)/i);
+ if(plain)body=plain[1];
+ else if(/<[a-z!][\s\S]*>/i.test(body)){
+  body=body.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'')
+   .replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|tr|h\d)>/gi,'\n')
+   .replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+ }
+ return body.replace(/\n{3,}/g,'\n\n').trim();
+}

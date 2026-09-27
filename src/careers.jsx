@@ -8,6 +8,7 @@ import {BriefcaseBusiness,MapPin,Clock,Send,CheckCircle2,ShieldCheck} from 'luci
 import {cloud,supabase} from './repository.js';
 import {makeSeed} from './seed.js';
 import {normalizeData} from './schema.js';
+import './workspace.css';
 
 const APPS_KEY='ecod-careers-applications';
 const WS_KEY='ecod-careers-workspace';
@@ -75,6 +76,27 @@ function ApplyForm({role,onDone}){
  </form>;
 }
 
+function StatusCheck(){
+ const [email,setEmail]=useState('');
+ const [results,setResults]=useState(null);
+ const [busy,setBusy]=useState(false);
+ async function check(e){
+  e.preventDefault();if(!email.trim())return;
+  setBusy(true);setResults(null);
+  try{
+   if(cloud){const {data,error}=await supabase.rpc('api_public_application_status',{p_email:email.trim()});if(error)throw error;setResults(data||[]);}
+   else{const list=JSON.parse(localStorage.getItem(APPS_KEY)||'[]');setResults(list.filter(a=>String(a.email||'').toLowerCase()===email.trim().toLowerCase()).map((a,i)=>({ref:String(a.ref||10000000+i).slice(0,8),role:a.demandTitle||'General application',location:'',status:a.status||'pending',submittedOn:String(a.created||'').slice(0,10)})));}
+  }catch(err){setResults([]);}
+  setBusy(false);
+ }
+ const label={pending:'Received — in review',accepted:'Accepted — our team will contact you',dismissed:'Not moving forward'}; 
+ return <section className="careers-status"><h2>Check your application status</h2>
+  <p>Enter the email you applied with — we&rsquo;ll show where things stand. No account needed.</p>
+  <form className="status-form" onSubmit={check}><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" aria-label="Your email"/><button className="apply-btn" disabled={busy}>{busy?'Checking…':'Check status'}</button></form>
+  {results&&<div className="status-results">{results.length?results.map(r=><div key={r.ref} className="status-row"><strong>{r.role}</strong><span>{r.location?`${r.location} · `:''}{r.submittedOn}</span><span className={`status-pill ${r.status}`}>{label[r.status]||r.status}</span></div>):<p className="careers-loading">No applications found for that email yet.</p>}</div>}
+ </section>;
+}
+
 export function CareersApp(){
  const {loading,roles,error}=useOpenRoles();
  const [applying,setApplying]=useState(null);
@@ -96,6 +118,7 @@ export function CareersApp(){
     {applying===r.id&&<ApplyForm role={r}/>}
    </section>)}</div>
   </main>
+  <StatusCheck/>
   <footer className="careers-footer"><span>AnthroPrime · ECOD Talent Intelligence</span><span>Applications are handled by people, not algorithms.</span></footer>
  </div>;
 }

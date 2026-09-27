@@ -6,7 +6,7 @@ import {ROUNDS,MODES,INTERVIEW_STATUSES,RECOMMENDATIONS,RECOMMENDATION_TONES,cri
 import {interviewAnalytics} from './analytics.js';
 import {OFFER_STATUSES,OFFER_TONES,offersSummary} from './offers.js';
 import {downloadFile} from './Candidates.jsx';
-import {icsFor,icsForInterview} from './calendar.js';
+import {icsFor,icsForInterview,parseICS,interviewDraftFromEvent} from './calendar.js';
 import {offerLetterText} from './offerLetter.js';
 
 const fmtDT = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
@@ -123,7 +123,7 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
  };
  return <>
   <PageHeader eyebrow="SCREENING & INTERVIEWS" title="Interviews & offers" description="Schedule panels, keep outcomes structured and comparable, keep the feedback bar honest, and track offers to acceptance.">
-   <Button icon={Plus} onClick={()=>setModal({type:'schedule'})}>Schedule interview</Button><Button variant="secondary" onClick={()=>{downloadFile(icsFor(data.interviews,data.candidates,data.demands),'ecod-interviews.ics','text/calendar');notify&&notify('Calendar file downloaded - opens in Google/Outlook/Apple Calendar.');}}>Export calendar (.ics)</Button>
+   <Button icon={Plus} onClick={()=>setModal({type:'schedule'})}>Schedule interview</Button><Button variant="secondary" onClick={()=>{downloadFile(icsFor(data.interviews,data.candidates,data.demands),'ecod-interviews.ics','text/calendar');notify&&notify('Calendar file downloaded - opens in Google/Outlook/Apple Calendar.');}}>Export calendar (.ics)</Button><label className="button secondary">Import .ics<input type="file" hidden accept=".ics,.ical,text/calendar" onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const events=parseICS(await file.text()).filter(ev=>ev.start&&ev.status!=='CANCELLED');const drafts=events.map(ev=>interviewDraftFromEvent(ev,data.candidates));setModal({type:'ics',drafts});}}/></label>
   </PageHeader>
   <div className="stats-grid"><Stat label="Upcoming" value={stats.upcoming} detail="Scheduled interviews ahead of the panel" icon={Clock}/>
   <Stat label="Completed" value={stats.completed} detail={`${stats.recommended} recommended (${stats.recommendRate==null?'—':stats.recommendRate+'%'})`} icon={CheckCircle2}/>
@@ -138,6 +138,7 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
   {modal?.type==='feedback'&&<FeedbackModal interview={modal.interview} candidate={person(modal.interview.candidateId)} demand={demandOf(modal.interview.demandId)} settings={data.settings} onClose={()=>setModal(null)} onSave={onSave} notify={notify} audit={audit}/>}
   {modal?.type==='offer'&&<OfferModal onClose={()=>setModal(null)} onSave={onSave} offer={modal.offer} candidates={data.candidates} demands={data.demands.filter(d=>d.status==='Open')} preselect={modal.preselect||{}} notify={notify} audit={audit}/>}
   {modal?.type==='letter'&&<LetterModal offer={modal.offer} data={data} onClose={()=>setModal(null)} notify={notify}/>}
+  {modal?.type==='ics'&&<IcsModal drafts={modal.drafts} data={data} onClose={()=>setModal(null)} onSave={onSave} notify={notify} audit={audit}/>}
  </>;
 }
 
@@ -218,5 +219,29 @@ function LetterModal({offer,data,onClose,notify}){
    <a className="button ghost" href={`mailto:${candidate?.email||''}?subject=${encodeURIComponent(`Your offer from AnthroPrime — ${offer.role||'the role'}`)}&body=${encodeURIComponent(letter)}`} onClick={()=>notify&&notify('Email draft opened in your mail client.')}>Open email draft</a>
    <Button variant="secondary" onClick={onClose}>Close</Button>
   </div>
+ </Modal>;
+}
+
+function IcsModal({drafts,data,onClose,onSave,notify,audit}){
+ const [rows,setRows]=useState(()=>drafts.map(d=>({...d,include:Boolean(d.candidateId)})));
+ const [busy,setBusy]=useState(false);
+ const picked=rows.filter(r=>r.include&&r.candidateId);
+ async function importEvents(){
+  setBusy(true);
+  const records=picked.map(({ev,candidateId})=>({id:uid(),candidateId,demandId:null,round:'Round 1',mode:'Video',scheduledAt:ev.start,durationMins:45,interviewers:[],status:'Scheduled',recommendation:null,feedback:{},notes:`Imported from calendar file: ${ev.summary||'event'}${ev.location?` — ${ev.location}`:''}`,created:today()}));
+  if(await onSave('interviews',records)){notify&&notify(`${records.length} interview${records.length===1?'':'s'} imported from the calendar file.`);audit&&audit({entityType:'interviews',entityId:null,action:'created',detail:`Imported ${records.length} interviews from an .ics file`});onClose();}
+  setBusy(false);
+ }
+ return <Modal title="Import calendar events" subtitle="One-way sync in: events from an external .ics become scheduled interviews. Match each event to a candidate — events you can't match stay unimported." onClose={onClose} wide>
+  <div className="modal-body"><div className="import-preview table-scroll"><table><thead><tr><th></th><th>Event</th><th>When</th><th>Candidate</th></tr></thead><tbody>
+   {rows.map((r,i)=><tr key={i}>
+    <td><input type="checkbox" aria-label={`Import ${r.ev.summary||'event'}`} checked={r.include} disabled={!r.candidateId} onChange={e=>setRows(rows.map((x,j)=>j===i?{...x,include:e.target.checked}:x))}/></td>
+    <td>{r.ev.summary||'(untitled)'}<small className="block">{r.ev.location||''}</small></td>
+    <td><small>{new Date(r.ev.start).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</small></td>
+    <td><select value={r.candidateId||''} onChange={e=>setRows(rows.map((x,j)=>j===i?{...x,candidateId:e.target.value||null,include:e.target.value?x.include:false}:x))}><option value="">— match a candidate —</option>{data.candidates.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></td>
+   </tr>)}
+  </tbody></table></div>
+  {!rows.length&&<p className="supporting-text">No importable events (with a date and not cancelled) were found in that file.</p>}</div>
+  <div className="modal-actions"><Button variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={!picked.length||busy} onClick={importEvents}>{busy?'Importing…':`Import ${picked.length} interview${picked.length===1?'':'s'}`}</Button></div>
  </Modal>;
 }

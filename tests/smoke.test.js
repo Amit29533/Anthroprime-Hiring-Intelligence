@@ -123,7 +123,7 @@ test('Careers portal renders open roles with the consent-gated application form;
   await init();
   const CAREERS = await server.ssrLoadModule('/src/careers.jsx');
   const html = renderToString(React.createElement(CAREERS.CareersApp, {}));
-  for (const marker of ['Open roles', 'Senior Databricks Architect', 'Apply'])
+  for (const marker of ['Open roles', 'Senior Databricks Architect', 'Apply', 'Check your application status'])
     assert.ok(html.includes(marker), `careers page missing marker: ${marker}`);
   const acts = await render('Activities', { onOpen: noop, onSave: save, busy: false, notify: noop, audit: noop });
   for (const marker of ['Career applications', 'Devika Nair', 'contact consent', 'sharing consent', 'Accept into repository'])
