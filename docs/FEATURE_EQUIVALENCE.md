@@ -2,7 +2,7 @@
 
 Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anthroprime-hiring-intelligenc`)
 
-> **⚠️ About the blueprint file:** `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` is **not present in this repository** (never committed, not in the working tree). This analysis reconstructs the blueprint's scope from the two places the repo references it: the README's *"Not implemented"* list and `docs/PRODUCT_PLAN.md` (*"Subsequent releases"*). **Please attach the .docx to the chat** and this matrix will be reconciled against the authoritative document.
+> **Blueprint source:** `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` (v1.0, 18 September 2026) lives on the repository's `main` branch (commit `910ece0`). The full text was extracted and reconciled section-by-section in matrix section N below.
 
 **Method:** Zoho Recruit's feature inventory was taken from Zoho's own plan-comparison page (full module/feature matrix), Zoho's staffing-agency feature pages, Zoho help documentation (resume parser, calendar sync, sourcing bot) and independent 2026 reviews. Each Zoho/blueprint capability was then checked against actual code in `src/`, `supabase/` and `tests/` — not against marketing claims.
 
@@ -34,6 +34,15 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 6. **No customization layer** — custom fields, custom views, tags, custom modules, layout editor.
 7. **No staffing-agency CRM depth** — client/contact records, submit-to-client with feedback, offers/e-sign, placements.
 8. **No Zia-style AI** — semantic matching, AI profile summaries, AI JD/email writing, sourcing chatbot (ECOD deliberately ships deterministic matching instead).
+
+**The largest gaps vs. the ECOD Blueprint (beyond what R1 already delivers):**
+1. **Skills intelligence model (§6)** — no proficiency scale, per-skill evidence/years/last-used/confidence; skills are flat arrays. This underpins gap-mapping and smarter matching.
+2. **Structured history entities (§7)** — EmploymentHistory / CompensationHistory / AvailabilityHistory; today only before-update snapshots exist.
+3. **Documents & CV upload (§4.1, §11)** — no file storage; blocks CV parsing, the "200 CVs + spreadsheet" acceptance scenario and the R1 exit condition.
+4. **Gap map + gap-linked enrichment (§3 stage 4)** — enrichment plans exist but are not connected to a demand-vs-candidate gap matrix.
+5. **Demand richness (§4.2)** — no nice-to-have skills, per-skill minimums, engagement type, commercial margin fields, per-demand configurable stages.
+6. **Admin console & governance (§8, §12)** — no user/role/taxonomy/stage administration, no view/export audit, no consent/retention workflows, no backup strategy.
+7. **Analytics depth (§17)** — no time-to-shortlist, time-to-ready, conversion, or rediscovery metrics (the highest-value ECOD measures).
 
 ---
 
@@ -218,25 +227,208 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 | M7 | De-duplicate data tooling | Import-time + form-time detection; no bulk merge | 🟡 |
 | M8 | Multi-tenant isolation | Workspace membership + RLS + composite FKs blocking cross-workspace links — verified by PGlite integration test | ✅ |
 
-### N. Blueprint-specific items (README "Not implemented" / PRODUCT_PLAN "Subsequent releases")
+### N. Blueprint cross-check — `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` v1.0 (18 Sep 2026)
 
-| # | Blueprint item | Status | Where covered above |
+Reconciled against the authoritative document fetched from `origin/main` (commit `910ece0`). Every numbered requirement below maps to a blueprint section.
+
+#### N.1 — Blueprint §3: the ECOD lifecycle
+
+| # | Blueprint requirement | ECOD today | Status |
 |---|---|---|---|
-| N1 | CV PDF/DOCX storage, parsing, scanning | ❌ Missing | E1–E7 |
-| N2 | Semantic retrieval | ❌ Missing | L6 |
-| N3 | Per-skill proficiency/evidence taxonomy administration | ❌ Missing — skills are flat canonical strings | A1 |
-| N4 | Structured full employment histories | ❌ Missing — profile snapshots exist instead | A11 |
-| N5 | Granular compensation / client-commercial permissions | ❌ Missing | M2 |
-| N6 | Read/export audit events | ❌ Missing — write audit exists | M3 |
-| N7 | Saved custom pools/searches | ❌ Missing — 6 fixed dynamic pools exist | A12 |
-| N8 | Email/calendar/WhatsApp integration | ❌ Missing | L3–L4, F7 |
-| N9 | Consent/retention/data-subject workflows | ❌ Missing | M4 |
-| N10 | SSO/MFA administration | ❌ Missing | M5 |
-| N11 | Automated backups/restore verification | ❌ Missing | M6 |
+| N1 | Stage 1 Demand: client, role, quantity, must/nice-to-have skills, experience, budget, location, engagement type, notice, target date | Demand has client/role/positions/skills/experience/budget/location/mode/notice/target; **no nice-to-have skills, no engagement type, no per-skill minimums** | 🟡 |
+| N2 | Stage 2 Discover: internal search first, Boolean filters + semantic search | Multi-term Boolean-style search + exact filters; semantic is correctly deferred (blueprint marks it Phase 1.5) | 🟡 |
+| N3 | Stage 3 Assess: technical/communication/role-specific assessments with assessor, date, evidence | Append-only assessments with title, score 0–100, assessor, evidence, date, demand scoping, 180-day expiry | ✅ |
+| N4 | Stage 4 Gap Map: gaps classified critical / trainable / contextual | Match shows missing/blocking requirements, but there is **no gap entity, no classification, no per-demand gap matrix** | ❌ |
+| N5 | Stage 5 Enrich: training, labs, mentoring, certification, project exercises | Enrichment plans exist (action, description, owner, due, status) but are **not linked to a gap or demand** | 🟡 |
+| N6 | Stage 6 Validate: reassess after enrichment, evidence expiry/freshness → readiness | 180-day assessment expiry + profile freshness; readiness deliberately recruiter-confirmed | ✅ |
+| N7 | Stage 7 Deliver: submit to client, interviews, feedback, offer, deployment, commercial outcome | Internal pipeline runs to Deployed; **no client submission, interviews, offers or commercial outcome** | 🟡 |
+| N8 | Stage 8 Re-engage: retain relationship, refresh facts, rediscover | "Rediscover & reconnect" stale pool + freshness badges; no re-engagement workflow/nurture | 🟡 |
+
+#### N.2 — Blueprint §4.1: Candidate 360 data domains
+
+| # | Blueprint domain | ECOD today | Status |
+|---|---|---|---|
+| N9 | Identity: ID, name, email(s), phone(s), LinkedIn, city, timezone, source, owner | Name, single email/phone, LinkedIn, location, source, owner; no timezone, no multiple emails/phones | 🟡 |
+| N10 | Employment: current employer/title **plus complete dated employment history** | Current employer/title only; change snapshots exist but no structured history entity | ❌ |
+| N11 | Compensation: current CTC/rate, currency, fixed/variable, expected, last verified | Current + expected CTC + verified date; no currency choice, no fixed/variable split, no rate basis | 🟡 |
+| N12 | Experience: total years, relevant years **by skill/domain**, industries, project exposure | Total + relevant years; no per-skill/domain split, industries or project exposure | 🟡 |
+| N13 | Skills: canonical skill, proficiency, years, last-used, evidence source, confidence, validation | Canonical names + alias normalization only; **no proficiency, years, last-used, evidence or confidence per skill** | 🟡 |
+| N14 | Availability: notice, earliest start, active/passive, remote/hybrid/onsite, preferred locations/timezone | Notice + work mode; no earliest-start, active/passive or preferences | 🟡 |
+| N15 | Engagement preference: permanent, subcontract, contract, C2H, minimum acceptable rate | Not present | ❌ |
+| N16 | Assessments: type, score/level, questions/areas, assessor, evidence, date, validity | Title, score, assessor, evidence, date, 180-day validity; no assessment types/templates or question areas | 🟡 |
+| N17 | ECOD: stage, gap map, enrichment plan, readiness, last validation, next action | Stage via considerations, enrichment list, readiness status; **no gap map, no next-action field** | 🟡 |
+| N18 | Applications: every demand, submission, outcome, **client feedback**, reason codes | Considerations with stage + structured disposition reasons; no client feedback | 🟡 |
+| N19 | Interactions: calls, email notes, WhatsApp/manual notes, consent events, next follow-up | Notes + follow-up dates; no channels, no consent events | 🟡 |
+| N20 | Documents: CV versions, certifications, assessment files, version + upload metadata | No document storage | ❌ |
+| N21 | Data governance: source, notice/consent/legal-basis metadata, retention review, access restrictions | Not present | ❌ |
+
+#### N.3 — Blueprint §4.2: Demand / role object
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N22 | Client + business unit, role title, demand owner, positions, priority, target joining date | Client, title, positions, priority, target date; no business unit or demand-owner field | 🟡 |
+| N23 | Must-have **vs nice-to-have** skills, each with minimum proficiency, minimum relevant experience, recency requirement | One mandatory skills list; no nice-to-have tier, no per-skill minimums | ❌ |
+| N24 | Experience band, location/timezone, work mode, language, certification, industry/domain, security/eligibility constraints | Experience minimum, location, work mode; no language/certification/industry/eligibility constraints | 🟡 |
+| N25 | Commercials: bill rate/budget, currency, engagement type, internal target cost, **margin visibility restricted by role** | Budget only; no currency/engagement type and no commercial field-level permissions | ❌ |
+| N26 | **Pipeline stages configurable per demand** (incl. interested, ready stages) | Fixed global 10-stage list for all demands | ❌ |
+
+#### N.4 — Blueprint §5: search & matching layers
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N27 | Exact deterministic filters (location, years, employer, CTC, notice, engagement, certification, status) | Location/experience/notice/status/freshness/skill filters + search; no employer/engagement/certification filters | 🟡 |
+| N28 | Skill taxonomy: canonical names, aliases, domain relationships | Canonical list + alias dictionary in code; no parent/domain graph | 🟡 |
+| N29 | Full-text search incl. **CV text**, role summaries, assessment notes | Profile fields + summary; no CV text, assessment notes not searched | 🟡 |
+| N30 | Semantic search ("senior Databricks architect who has built Genie spaces") | Not built — blueprint itself schedules this for Phase 1.5, not MVP | ❌ |
+| N31 | Weighted requirement-to-profile match **with evidence per criterion** | 6 weighted components, each with human-readable detail line; weights configurable per demand | ✅ |
+| N32 | Transparent component breakdown, **hard constraints visibly separated** from soft fit | Blockers (hard failures) and unknowns (unverified) are separate from the score — exactly the blueprint's design | ✅ |
+| N33 | No opaque AI score to start; "AI explanation" of match | Deterministic explanation shipped; AI-generated narrative correctly deferred (Phase 1.5) | ✅ |
+| N34 | Predictive ranking (selection/acceptance probability) | Correctly absent — blueprint says "not initially" | ✅ |
+
+#### N.5 — Blueprint §6: skills intelligence model
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N35 | Canonical Skill table + aliases (DB-backed, admin-managed) | In-code arrays; no taxonomy administration | 🟡 |
+| N36 | Parent/domain relationships (Databricks → AI/BI) | Not present | ❌ |
+| N37 | Candidate proficiency scale (Exposure → Expert) per skill | Not present — skills are flat membership arrays | ❌ |
+| N38 | Evidence source per candidate-skill (CV, recruiter, assessment, certification, project) | Not present | ❌ |
+| N39 | Relevant years + last-used per skill | Not present (single profile-level relevant-experience number) | ❌ |
+| N40 | Confidence + human-validation flag | Not present | ❌ |
+
+#### N.6 — Blueprint §7: append, don't overwrite
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N41 | EmploymentHistory entity (company, title, dates, type, verified) | Not a structured entity; before-update snapshots partially compensate | ❌ |
+| N42 | CompensationHistory entity | Same — snapshots only | ❌ |
+| N43 | AvailabilityHistory entity | Same — snapshots only | ❌ |
+| N44 | SkillEvidence versioning (never silently replace an assessment) | Assessments are append-only ✅, but per-skill evidence doesn't exist | 🟡 |
+| N45 | ProfileChangeLog: who changed what, when | Append-only history with before-snapshots and actor, DB-enforced immutability (PGlite-tested) | ✅ |
+
+#### N.7 — Blueprint §8: key screens
+
+| # | Blueprint screen | ECOD today | Status |
+|---|---|---|---|
+| N46 | Dashboard: open demands, ready talent, stale profiles, follow-ups, assessments due, conversion funnel | All present except conversion funnel (stage distribution shown instead, deliberately) | 🟡 |
+| N47 | People: saved views, filters, bulk actions, column chooser, export permission | Table + filters + multi-select export; no saved views, column chooser, mass update or export permission | 🟡 |
+| N48 | Candidate 360 tabs: Overview, Skills, Employment, ECOD, Applications, Interactions, Documents, History | 5 of 8 tabs (Overview, Skills & assessments, Applications, Notes & follow-ups, History); no Employment/ECOD/Documents tabs | 🟡 |
+| N49 | Demand: requirements left, pipeline/shortlist, match reasons, bulk outreach/assignment | Requirements + ranked matches + explanations + shortlist; no bulk outreach/assignment | 🟡 |
+| N50 | Talent pools: dynamic + static groups (silver medalists, 30-day joiners…) | 6 dynamic pools incl. "Ready in 30 days"; no static/custom pools (blueprint defers saved pools) | 🟡 |
+| N51 | Assessment screen: templates, assessor workflow, structured rubric, validity | Records + validity only; no templates or rubrics | 🟡 |
+| N52 | Gap & Enrichment: demand-vs-candidate matrix, learning actions, reassessment | Enrichment list exists; gap matrix missing | 🟡 |
+| N53 | Import: CSV/XLSX + CV bulk upload, mapping, preview, duplicate resolution, error report | CSV (paste/file), mapping, preview, error report; dupes skipped only (no resolution), no XLSX/CV | 🟡 |
+| N54 | Admin: users/roles, skill taxonomy, pipeline stages, assessment templates, retention, integrations, audit log | Settings page is informational only; no admin console | ❌ |
+| N55 | Analytics: demand funnel, source quality, readiness inventory, time-to-ready/submit, conversion, talent aging | Inventory/sources/freshness/stage distribution; no time-to-ready or conversion metrics | 🟡 |
+
+#### N.8 — Blueprint §10: deduplication & data quality
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N56 | Hard duplicate checks: normalized email, phone, LinkedIn URL | Email + phone (case/whitespace-insensitive); LinkedIn not checked | 🟡 |
+| N57 | Probable duplicates (name + employer + location, fuzzy) | Not present | ❌ |
+| N58 | Never auto-merge; merge review screen with field comparison | Never merges (skips) ✅; no merge review screen | 🟡 |
+| N59 | Source + last-verified dates; freshness badges | Implemented (Fresh/Aging/Stale) | ✅ |
+| N60 | Structured disposition/rejection reason codes | Implemented, DB-enforced for Rejected/Withdrawn | ✅ |
+| N61 | Data-quality queues (missing phone/email, unparsed CV, stale comp/availability) | Partial: stale-profile pool; no missing-data queues | 🟡 |
+
+#### N.9 — Blueprint §11: AI layer (bounded, auditable)
+
+| # | Blueprint capability | ECOD today | Status |
+|---|---|---|---|
+| N62 | CV parsing into reviewable draft, preserve original | No CVs | ❌ |
+| N63 | Skill normalization with stored confidence + correction | Deterministic alias normalization; no confidence/correction flow | 🟡 |
+| N64 | Semantic retrieval (embeddings + SQL filters) | Not built (blueprint: Phase 1.5) | ❌ |
+| N65 | JD parsing → proposed requirements, recruiter confirms | Implemented: keyword extraction with explicit review-before-save notice | ✅ |
+| N66 | Match explanation: evidence-linked reasons | Implemented per component with blockers/unknowns | ✅ |
+| N67 | Gap/enrichment suggestion (human approves) | Not present | ❌ |
+| N68 | Duplicate suggestion (no autonomous merge) | Not present | ❌ |
+| N69 | Humans remain responsible for selection; no auto-rejection | Enforced by design — scores never reject | ✅ |
+
+#### N.10 — Blueprint §12: security, privacy, governance
+
+| # | Blueprint control | ECOD today | Status |
+|---|---|---|---|
+| N70 | SSO-ready authn, MFA for privileged users, secure sessions | Supabase password auth; no SSO/MFA administration | 🟡 |
+| N71 | RBAC: Admin, Recruiter, Assessor, Sales/Account, Read-only; comp restricted separately | 3 roles (admin/recruiter/viewer) via RLS; no assessor/sales roles, no comp field restriction | 🟡 |
+| N72 | Tenant/client boundaries | Workspace RLS + composite FKs blocking cross-workspace links — integration-tested | ✅ |
+| N73 | TLS in transit, encryption at rest, secrets managed | Inherited from Supabase/Netlify; no secrets in client (README warns against `VITE_` service keys) | ✅ |
+| N74 | Audit: profile **views**, exports, downloads, edits, merges, deletes, role changes | Edits only (append-only history); views/exports/merges/role changes unlogged | 🟡 |
+| N75 | Permission-controlled, watermarked/logged, rate-limited exports | Exports available to all signed-in users, unlogged | ❌ |
+| N76 | CV upload allowlist, type validation, size limits, randomized names, malware scan, storage outside webroot | No CV upload exists yet to harden | ❌ |
+| N77 | Configurable retention review + deletion/anonymisation workflow | Not present | ❌ |
+| N78 | Data-subject workflow (search/export/correct/delete, fulfillment record) | Not present | ❌ |
+| N79 | Encrypted backups, tested restore, RPO/RTO | Not present (blueprint defers to ops) | ❌ |
+| N80 | No CV/comp/PII in application logs | No server-side logging layer; demo is client-only | ✅ |
+
+#### N.11 — Blueprint §13–14: architecture & API principles
+
+| # | Blueprint requirement | ECOD today | Status |
+|---|---|---|---|
+| N81 | Backend service (TypeScript/NestJS or Python/FastAPI) | Deliberate deviation: SPA + Supabase PostgREST with RLS acting as the authorization layer — viable for R1, revisit when parsing/jobs arrive | ⚙️ |
+| N82 | PostgreSQL, normalized tables, JSONB only for flexible metadata | Supabase PostgreSQL; normalized core + JSONB weights | ✅ |
+| N83 | PostgreSQL full-text (+ pgvector later) before external search engines | Filtering/ranking done in browser memory; no PG full-text indexes | 🟡 |
+| N84 | Private S-compatible object storage, signed short-lived URLs | No object storage use | ❌ |
+| N85 | Async job queue (parsing, bulk imports, embeddings, scans, notifications) | None (synchronous client flows) | ❌ |
+| N86 | AI provider abstraction; prompt/model version stored with output | No AI layer yet | ❌ |
+| N87 | API-first REST: stable IDs, pagination, `updated_since` sync | No product API; internal Supabase queries paginate in 1000-row batches | ❌ |
+| N88 | Webhooks/event bus (profile.updated, stage_changed, assessment.completed…) | None | ❌ |
+| N89 | Idempotent bulk imports, `external_mapping_id` for integrations | Upsert-by-id is idempotent ✅; no external-mapping fields | 🟡 |
+| N90 | Soft delete + retention; destructive actions permissioned & audited | No deletes permitted at DB level (append/update only); no soft-delete flag or workflow | 🟡 |
+
+#### N.12 — Blueprint §16: MVP acceptance scenarios
+
+| # | Blueprint scenario | ECOD today | Status |
+|---|---|---|---|
+| N91 | Upload 200 CVs + spreadsheet; profiles created/updated, dupes flagged, error report | Spreadsheet path fully works (200-row test, dupes, error report); CV path missing | 🟡 |
+| N92 | Search Databricks + 7–10 yrs + India + ≤30-day notice + permanent + CTC range, configurable columns | Search/filters cover all except engagement type; columns are fixed | 🟡 |
+| N93 | Demand created from JD; structured, recruiter-approved requirements | Implemented with review-before-save extraction | ✅ |
+| N94 | Matches show exactly why each person matches or fails a hard constraint | Implemented (6-component breakdown + blockers) | ✅ |
+| N95 | Previously rejected candidate rediscovered with historical feedback visible | History tab shows snapshots + assessments persist; no per-demand interview feedback exists | 🟡 |
+| N96 | Employer/CTC change keeps old values; current shows newest verified | Implemented via history snapshots | ✅ |
+| N97 | Gap → enrichment → reassessment changes readiness without deleting the original assessment | Assessments append-only ✅; readiness is manual (not derived), gap entity missing | 🟡 |
+| N98 | Admin can determine who viewed/exported/edited sensitive info | Edit history with actor exists; views/exports are unlogged | ❌ |
+
+#### N.13 — Blueprint §17: analytics that matter
+
+| # | Blueprint metric | ECOD today | Status |
+|---|---|---|---|
+| N99 | Repository size vs usable profiles | Total counts + freshness/status splits as proxy; no "usable" definition | 🟡 |
+| N100 | Freshness distribution | Implemented (Fresh/Aging/Stale with health bar) | ✅ |
+| N101 | Demand coverage: ready / near-ready / missing per active demand | 70%+ match counts per demand; not split by readiness/missing | 🟡 |
+| N102 | Time to shortlist | Not measured | ❌ |
+| N103 | Time to ready (core ECOD measure) | Not measured | ❌ |
+| N104 | Source → ready/placement conversion | Source distribution only (deliberately no fabricated conversion rates; real conversion needs event history) | ❌ |
+| N105 | Assessment → enrichment → readiness conversion | Not measured | ❌ |
+| N106 | Rediscovery rate | Not measured | ❌ |
+| N107 | Submission → interview → offer → deployment funnel | Current-stage distribution only | 🟡 |
+| N108 | Skill inventory & gap heatmap | Skill inventory implemented; gap heatmap missing | 🟡 |
+
+#### N.14 — Blueprint §15 R1/MVP scope checklist & §18 "what not to build"
+
+| # | Blueprint R1 item | ECOD today | Status |
+|---|---|---|---|
+| N109 | Auth/RBAC | Supabase auth + 3-role RLS | ✅ |
+| N110 | People | Talent repository | ✅ |
+| N111 | Candidate 360 | Present with 5 of 8 blueprint tabs | 🟡 |
+| N112 | Employment/compensation history | Snapshots only, no structured history entities | ❌ |
+| N113 | Skills taxonomy | Alias dictionary only, no proficiency/evidence model | ❌ |
+| N114 | Demands | Implemented | ✅ |
+| N115 | Considerations / pipeline | Implemented with unique candidate+demand constraint | ✅ |
+| N116 | CV / documents | Missing | ❌ |
+| N117 | CSV import | Implemented with mapping/preview/error report | ✅ |
+| N118 | Exact / full-text search | Exact filters + multi-term search over profile text | 🟡 |
+| N119 | Notes / interactions | Notes + follow-ups; no channels/consent | 🟡 |
+| N120 | Audit basics | Write-audit with actor + snapshots; no read/export audit | 🟡 |
+| N121 | §18: no payroll/HRMS, no microservices, no black-box AI, no auto-rejection | All respected | ✅ |
+| N122 | §18: no free-form skill tags without governance | Canonical list enforced; proficiency governance absent | 🟡 |
+| N123 | §18: no single mutable current-field without history | Current fields + snapshots; structured history entities absent | 🟡 |
 
 ---
 
-## 4. Scoreboard by Zoho module area
+## 4. Scoreboard
+
+ by Zoho module area
 
 | Area | ✅ | 🟡 | ⚙️ | ❌ | Coverage |
 |---|---|---|---|---|---|
@@ -253,10 +445,32 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 | K. Analytics | 0 | 1 | 1 | 2 | 25% |
 | L. Communication & integrations | 0 | 0 | 1 | 7 | 6% |
 | M. Security & admin | 2 | 2 | 0 | 4 | 38% |
-| N. Blueprint-specific items | 0 | 0 | 0 | 11 | 0% |
-| **Overall** | **7** | **18** | **2** | **81** | **16%** |
+| **Overall (Zoho, A–M)** | **7** | **18** | **2** | **70** | **18%** |
 
 *(Coverage = weighted presence: ✅=1, 🟡/⚙️=0.5, ❌=0.)*
+
+### Blueprint verdict by section
+
+| Blueprint section | ✅ | 🟡 | ⚙️ | ❌ | Coverage |
+|---|---|---|---|---|---|
+| N.1 §3 ECOD lifecycle | 2 | 5 | 0 | 1 | 56% |
+| N.2 §4.1 Candidate 360 domains | 0 | 9 | 0 | 4 | 35% |
+| N.3 §4.2 Demand object | 0 | 2 | 0 | 3 | 20% |
+| N.4 §5 Search & matching | 4 | 3 | 0 | 1 | 69% |
+| N.5 §6 Skills intelligence | 0 | 1 | 0 | 5 | 8% |
+| N.6 §7 Append-only history | 1 | 1 | 0 | 3 | 30% |
+| N.7 §8 Key screens | 0 | 9 | 0 | 1 | 45% |
+| N.8 §10 Dedup & data quality | 2 | 3 | 0 | 1 | 58% |
+| N.9 §11 AI layer | 3 | 1 | 0 | 4 | 44% |
+| N.10 §12 Security & governance | 3 | 3 | 0 | 5 | 41% |
+| N.11 §13–14 Architecture & API | 1 | 3 | 1 | 5 | 30% |
+| N.12 §16 MVP acceptance scenarios | 3 | 4 | 0 | 1 | 62% |
+| N.13 §17 Analytics | 1 | 4 | 0 | 5 | 30% |
+| N.14 §15 R1 scope + §18 not-to-build | 6 | 6 | 0 | 3 | 60% |
+| **Blueprint total** | **26** | **54** | **1** | **42** | **43%** |
+
+**Strongest blueprint areas:** search & matching (69% — the weighted, evidence-based, hard-constraint-separated design is implemented almost exactly as specified), lifecycle stages (56%), dedup discipline (58%), acceptance scenarios (62%).
+**Weakest blueprint areas:** skills intelligence (8%), demand object richness (20%), history entities (30%), analytics depth (30%), architecture/API (30%) — these define the remaining R1/R1.5 work.
 
 **Where ECOD is genuinely at or above parity for its size:** candidate repository quality (alias-normalized skills, freshness discipline, dedup), import validation rigor, matching explainability (component scores + blockers + unknowns — Zoho shows a match score but ECOD's evidence model is more transparent), DB-level tenant isolation and audit integrity (verified by an actual-Postgres test), and honest analytics.
 
@@ -266,7 +480,25 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 
 Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one developer on this codebase.
 
-**Phase 1 — Core ATS parity (no new infrastructure)**
+**Phase 0 — Complete the Blueprint's own R1 scope** *(highest priority: the blueprint's exit condition is "run a real client demand end-to-end", which requires these)*
+
+| Item | Blueprint § | Effort |
+|---|---|---|
+| Structured EmploymentHistory / CompensationHistory / AvailabilityHistory tables + UI on the Candidate 360 | §7 | M |
+| Skills taxonomy: Skill table (canonical, aliases, domain) + PersonSkill with proficiency, years, last-used, evidence, confidence + admin editor | §6 | L |
+| Document upload (Supabase Storage, private bucket, randomized names, size/type allowlist) + Documents tab with versions | §12, §4.1 | M |
+| CV upload + heuristic parse → reviewable draft profile (no AI dependency; provider abstraction later) | §11 | L |
+| Gap entity (person × demand × requirement, severity critical/trainable/contextual) + gap-linked enrichment + reassessment → readiness | §3, §8 | M |
+| Demand enrichment: nice-to-have skills, per-skill minimums, engagement type, earliest-start/active-passive availability fields | §4.1–4.2 | M |
+| Engagement preference field on candidates (permanent/contract/C2H + minimum rate) | §4.1 | S |
+| LinkedIn duplicate check + merge-review screen (field-by-field, never auto-merge) | §10 | M |
+| Data-quality queues (missing phone/email, stale comp, unverified skills) | §10 | M |
+| Admin console: users/roles, skill taxonomy, pipeline stage labels, retention settings | §8 | M |
+| Blueprint analytics: time-to-shortlist, time-to-ready, rediscovery (from existing timestamped tables) | §17 | M |
+| View/export audit events (log profile views + CSV exports with actor) | §12 | S |
+| `updated_since`-style API endpoint + `external_mapping_id` fields (API-first groundwork) | §14 | M |
+
+**Phase 1 — Core ATS parity with Zoho (no new infrastructure)**
 | Item | Zoho module | Effort |
 |---|---|---|
 | Interviews module: schedule (candidate × demand × datetime × interviewers), status, outcome | F3, F4 | M |
@@ -319,6 +551,7 @@ Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one de
 
 ## 6. Sources
 
+- **ECOD Talent Intelligence Repository — Product & Technical Blueprint v1.0 (18 Sep 2026)**: `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` on the repository's `main` branch (commit `910ece0`) — the authoritative source for section N.
 - Zoho Recruit plan comparison (authoritative feature matrix): https://www.zoho.com/recruit/plan-comparison.html
 - Zoho Recruit staffing features (client portal, video interview, automation): https://www.zoho.com/recruit/staffing-agency-software/features.html
 - Zoho candidate management & resume inbox/parser: https://www.zoho.com/recruit/candidate-management.html
