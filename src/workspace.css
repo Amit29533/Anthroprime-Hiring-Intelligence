@@ -16,3 +16,222 @@
 .login-story .brand .brand-wordmark small{font-size:10px;letter-spacing:.7px}
 @media(min-width:761px) and (max-width:1220px){.sidebar .brand-image{width:53px;height:42px}.sidebar .brand span.brand-wordmark{font-size:17px}.sidebar .brand .brand-wordmark small{font-size:7.5px;letter-spacing:.25px}}
 @media(max-width:760px){.login-story .brand-image{width:70px;height:54px}.login-story .brand span.brand-wordmark{font-size:23px}}
+
+/* Blueprint R1 additions: skill evidence editor, data-quality queues, audit lists */
+.skill-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.skill-row{display:grid;grid-template-columns:1.2fr .9fr 1fr .5fr .8fr auto;gap:8px;align-items:center;border:1px solid #e3eaee;border-radius:10px;padding:8px 10px;background:#fff}
+.skill-row-name{display:flex;flex-direction:column}
+.skill-row-name small{color:#6b7c85}
+.quality-list{display:flex;flex-direction:column}
+.quality-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 6px;border:0;border-bottom:1px solid #e7edf0;background:none;cursor:pointer;text-align:left;font:inherit;font-size:14px}
+.quality-row:hover{background:#f3f8f9}
+.velocity-list{display:flex;flex-direction:column;gap:12px}
+.velocity-list>div{display:flex;flex-direction:column}
+.velocity-list span{color:#5b6b74;font-size:13px}
+.velocity-list small{color:#8a99a1;font-size:12px}
+.audit-list{display:flex;flex-direction:column;gap:10px}
+.audit-row{display:flex;align-items:center;gap:10px;font-size:13px}
+.audit-row small{color:#8a99a1;margin-left:auto;text-align:right}
+.employment-add{margin:12px 0}
+.employment-add summary{cursor:pointer;color:#1c7a68;font-weight:600;font-size:14px}
+.employment-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.history-heading{margin:16px 0 8px;font-size:15px}
+.match-skills .nice{border-style:dashed}
+.nice-note{color:#8a99a1;font-size:12px;align-self:center}
+@media (max-width:720px){.skill-row{grid-template-columns:1fr 1fr;}.employment-form{grid-template-columns:1fr}}
+
+/* Blueprint R1 batch 2: documents, merge review, taxonomy admin, gap map, heatmap */
+.upload-label{position:relative;cursor:pointer}
+.upload-label.disabled{opacity:.6;pointer-events:none}
+.document-row{display:flex;gap:12px;align-items:flex-start;border:1px solid #e3eaee;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff}
+.document-info{flex:1;min-width:0}
+.document-info small{color:#6b7c85}
+.heat-list{display:flex;flex-direction:column}
+.heat-row{display:grid;grid-template-columns:1.1fr 2fr auto auto;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid #e7edf0;font-size:14px}
+.heat-cells{display:flex;gap:3px;height:12px}
+.heat-cells i{border-radius:4px;min-width:2px}
+.heat-cells .critical{background:#c4554d}
+.heat-cells .trainable{background:#e0a63f}
+.heat-cells .contextual{background:#9db3bc}
+.heat-row small{color:#8a99a1}
+.merge-table td,.merge-table th{padding:6px 8px;border-bottom:1px solid #edf1f4;text-align:left;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.merge-table td.picked{background:#eef7f4;font-weight:600}
+.merge-pick{display:flex;gap:10px}
+.merge-pick label{display:flex;gap:4px;align-items:center;font-size:12px}
+.merge-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.dup-list{display:flex;flex-direction:column}
+.taxonomy-form{display:grid;grid-template-columns:1.2fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.taxonomy-list{display:flex;flex-direction:column}
+.taxonomy-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e7edf0;padding:9px 2px}
+.taxonomy-row small{color:#6b7c85}
+.gap-list table{width:100%;border-collapse:collapse;margin-top:6px}
+.gap-list th,.gap-list td{text-align:left;padding:6px 8px;border-bottom:1px solid #e7edf0;font-size:13px}
+.since-export{display:flex;flex-direction:column;gap:8px;margin-top:12px;border-top:1px solid #edf1f4;padding-top:12px}
+@media (max-width:720px){.taxonomy-form{grid-template-columns:1fr}.heat-row{grid-template-columns:1fr auto}}
+
+/* Blueprint R1 batch 3: admin console, commercials, conversions */
+.admin-chip{font-size:11px;background:#eef2f4;border:1px solid #d7e0e5;border-radius:99px;padding:1px 8px;margin-left:6px;color:#5b6b74}
+.commercials-box{border:1px solid #e3eaee;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fbfcfd}
+.commercials-box summary{cursor:pointer}
+.commercials-form{display:grid;grid-template-columns:1fr 1.6fr;gap:10px;margin-top:8px}
+.commercials-meta{display:flex;align-items:center;gap:14px;margin-top:8px}
+.stage-label-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:10px 0}
+.retention-row{display:flex;gap:14px;align-items:end;margin:10px 0}
+.retention-count{font-size:14px;color:#5b6b74}
+.retention-list{display:flex;flex-direction:column;margin-bottom:8px}
+@media (max-width:720px){.commercials-form{grid-template-columns:1fr}}
+/* --- Batch 4: saved views, column chooser, bulk status, consent & ECOD tabs, coverage, per-skill minimums --- */
+.views-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 20px 14px}
+.views-bar select{font-size:12px;max-width:220px}
+.views-label{font-size:12px;color:#8498a0}
+.views-spacer{flex:1}
+.column-chooser{display:flex;gap:12px;flex-wrap:wrap;border:1px solid #e3ebee;background:#f9fbfc;border-radius:6px;padding:9px 12px}
+.column-chooser label{display:flex;align-items:center;gap:6px;font-size:12px;color:#5f7a84;white-space:nowrap}
+.bulk-bar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#eef6f1;border-block:1px solid #d8e9dd;font-size:13px;color:#3f6b56}
+.bulk-bar select{font-size:12px}
+.consent-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:18px;border:1px solid #e0e9e6;border-radius:8px;background:#f9fbfa;align-items:end;margin-bottom:8px}
+.consent-form .button{justify-self:start}
+.consent-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 0;border-bottom:1px solid #e8edef}
+.consent-row:last-child{border-bottom:0}
+.next-action-row{display:flex;gap:10px;margin-bottom:24px}
+.next-action-row input{flex:1}
+.coverage-list{padding:4px 24px 24px}
+.coverage-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid #e9efec}
+.coverage-row:last-child{border-bottom:0}
+.coverage-cells{display:flex;gap:10px}
+.coverage-cells b{font-size:12px;font-weight:550;padding:5px 10px;border-radius:5px;white-space:nowrap}
+.cov-ready{background:#e4f1e9;color:#2c7a5c}
+.cov-near{background:#f6efdd;color:#97793d}
+.cov-missing{background:#f7e8e4;color:#a35243}
+.per-skill-min{border:1px solid #e3ebee;border-radius:8px;background:#f9fbfc;padding:16px;margin-top:4px}
+.per-skill-min>span{font-size:12px;color:#7b919c;font-weight:550}
+.per-skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.stage-set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+@media(max-width:760px){.consent-form{grid-template-columns:1fr 1fr}.coverage-row{flex-wrap:wrap}.per-skill-grid,.stage-set-grid{grid-template-columns:1fr 1fr}}
+/* --- Batch 5: interviews module, feedback forms, tags, email templates --- */
+.iv-list{display:flex;flex-direction:column;padding:6px 24px 24px}
+.iv-row{display:flex;align-items:center;gap:18px;padding:17px 0;border-bottom:1px solid #e9efec;flex-wrap:wrap}
+.iv-row:last-child{border-bottom:0}
+.iv-when{display:flex;flex-direction:column;gap:5px;min-width:150px;color:#425c66}
+.iv-when strong{font-size:13px;font-weight:550}
+.iv-when span{font-size:12px;color:#8498a0}
+.iv-who{flex:1;min-width:220px}
+.iv-who small{color:#7e919a;font-size:12px}
+.iv-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iv-meta small{color:#8498a0}
+.iv-notes{display:block;margin-top:6px;color:#95a3ab;font-size:12px;line-height:1.6}
+.iv-state{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:170px}
+.iv-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iv-row.compact{padding:14px 0}
+.feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.feedback-overall{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:7px;margin-bottom:16px;font-size:13px}
+.feedback-overall strong{font-size:22px}
+.feedback-overall.on-bar{background:#e4f1e9;color:#2c7a5c}
+.feedback-overall.below-bar{background:#f6efdd;color:#97793d}
+.tag-chip{display:inline-flex;align-items:center;border:1px solid #cfe3d9;background:#eef6f1;color:#2c7a5c;border-radius:999px;padding:3px 10px;font-size:11px;white-space:nowrap}
+.demand-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.demand-tags>span{font-size:11px;color:#8498a0;text-transform:uppercase;letter-spacing:.4px}
+.tpl-list{display:flex;flex-direction:column;gap:14px;margin:12px 0}
+.tpl-card{border:1px solid #e3ebee;border-radius:8px;padding:14px;display:grid;gap:10px;background:#f9fbfc}
+.tpl-card .field>span{font-size:11px}
+.tpl-actions{display:flex;gap:10px;margin-bottom:14px}
+@media(max-width:760px){.iv-row{flex-direction:column;align-items:flex-start}.feedback-grid{grid-template-columns:1fr}.iv-actions{width:100%}}
+/* --- Batch 6: offers, tasks, custom fields --- */
+.offer-line{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #edf1f3;font-size:13px}
+.offer-line:last-of-type{border-bottom:0}
+.task-panel{margin-top:24px}
+.task-add{display:flex;gap:10px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid #e9efec}
+.task-add input[type=text],.task-add input:not([type]){flex:2;min-width:180px}
+.task-add input[type=date]{flex:1;min-width:120px}
+.task-add select{flex:1;min-width:130px;font-size:13px}
+.task-list{display:flex;flex-direction:column}
+.task-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 24px;border-bottom:1px solid #edf1f3}
+.task-row:last-child{border-bottom:0}
+.task-row>label{display:flex;align-items:center;gap:11px;font-size:14px;color:#425c66;flex:1}
+.task-row.done>label span{text-decoration:line-through;color:#9daeb6}
+.task-meta{display:flex;align-items:center;gap:12px}
+.task-meta small{color:#8498a0;font-size:12px}
+/* --- Batch 7: client submissions, similar talent --- */
+.submission-consent{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:7px;font-size:13px;grid-column:1/-1}
+.submission-consent.ok{background:#e4f1e9;color:#2c7a5c}
+.submission-consent.warn{background:#f6efdd;color:#97793d}
+.submission-preview{border:1px solid #e3ebee;border-radius:8px;background:#f9fbfc;padding:14px}
+.submission-preview>span{font-size:11px;color:#8498a0;text-transform:uppercase;letter-spacing:.4px}
+.submission-preview pre{white-space:pre-wrap;font-size:12px;line-height:1.7;color:#425c66;max-height:260px;overflow-y:auto;margin:8px 0 0}
+.similar-list{display:flex;flex-direction:column}
+.similar-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #edf1f3}
+.similar-row:last-child{border-bottom:0}
+.similar-row b{color:#2c7a5c;font-size:14px}
+.similar-shared{font-size:12px;color:#7e919a;flex:1;text-align:right}
+/* --- Batch 8: careers portal, client decisions, application reviews --- */
+.careers-page{min-height:100dvh;background:#f6f9f8;color:#304951;font-family:inherit}
+.careers-hero{background:#112f38;color:#cfe0dd;padding:64px 8vw 48px}
+.careers-brand{display:flex;flex-direction:column;font-weight:600;font-size:19px;color:#fff;letter-spacing:-.2px}
+.careers-brand small{font-size:10px;letter-spacing:1.6px;color:#7fa398;font-weight:500;margin-top:3px}
+.careers-hero h1{font-size:44px;font-weight:500;letter-spacing:-1.2px;color:#fff;margin:38px 0 12px}
+.careers-hero p{max-width:560px;line-height:1.7;font-size:15px;color:#a9c3bc}
+.careers-main{max-width:860px;margin:0 auto;padding:40px 6vw 70px}
+.careers-loading{color:#697f89;padding:30px 0}
+.careers-list{display:flex;flex-direction:column;gap:18px}
+.careers-role{background:#fff;border:1px solid #e1e9ec;border-radius:11px;padding:26px 28px;box-shadow:0 2px 10px #0a26310a}
+.careers-role-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.careers-role-head h2{font-size:20px;font-weight:550;color:#26454e}
+.apply-btn{border:1px solid #247a66;background:#247a66;color:#fff;border-radius:7px;padding:9px 18px;font-size:14px;cursor:pointer}
+.apply-btn:hover{background:#1d674f}
+.careers-meta{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0 4px;color:#758891;font-size:13px}
+.careers-meta span{display:inline-flex;align-items:center;gap:6px}
+.careers-skills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.careers-skills span{border:1px solid #dbe7e2;background:#f2f8f5;color:#3f7a63;border-radius:5px;padding:4px 9px;font-size:12px}
+.careers-desc{font-size:14px;line-height:1.75;color:#5f7a84;margin-top:8px}
+.apply-form{margin-top:18px;border-top:1px solid #e7edef;padding-top:18px}
+.apply-form h3{font-size:15px;margin-bottom:12px}
+.apply-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.apply-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#425c66}
+.apply-grid .wide{grid-column:1/-1}
+.apply-grid input,.apply-grid textarea{border:1px solid #dce5e8;border-radius:6px;padding:10px 12px;font:inherit}
+.consent-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:#5f7a84;margin-top:14px;line-height:1.6}
+.apply-send{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:#247a66;color:#fff;border:0;border-radius:7px;padding:11px 20px;font-size:14px;cursor:pointer}
+.apply-send:disabled{opacity:.6}
+.apply-fineprint{display:flex;align-items:center;gap:6px;font-size:12px;color:#8da0a8;margin-top:12px}
+.apply-done{display:flex;gap:12px;align-items:flex-start;background:#e4f1e9;border-radius:8px;padding:16px;color:#2c7a5c;margin-top:16px}
+.apply-done p{font-size:13px;margin-top:5px;line-height:1.6}
+.careers-footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:22px 8vw;border-top:1px solid #dfe8e5;color:#8da0a8;font-size:12px}
+.app-review{display:flex;flex-direction:column}
+.app-row{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:16px 0;border-bottom:1px solid #e9efec;flex-wrap:wrap}
+.app-row:last-child{border-bottom:0}
+.app-who strong{font-size:14px;color:#36535d}
+.app-who small{display:block;margin-top:5px;color:#7e919a;font-size:12px;line-height:1.6}
+.app-msg{margin-top:8px;font-size:13px;color:#5f7a84;max-width:520px;line-height:1.6}
+.app-flags{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+@media(max-width:760px){.apply-grid{grid-template-columns:1fr}.careers-hero h1{font-size:32px}.careers-role{padding:20px}}
+/* --- Batch 9: calendar export, offer letters, backup/restore --- */
+.backup-row{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 4px}
+/* --- Batch 10: automation rules, calendar import, application status --- */
+.rules-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.rule-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--border,#e5e5e5);border-radius:10px;padding:10px 14px}
+.rule-row.paused{opacity:.55}
+.rule-main strong{font-size:14px}
+.rule-actions{display:flex;gap:8px;flex-shrink:0}
+.rule-editor{border:1px solid var(--border,#e5e5e5);border-radius:12px;padding:16px;margin:12px 0;display:flex;flex-direction:column;gap:12px}
+.rule-actions-picker{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.rule-actions-picker input[type="number"]{width:64px}
+.careers-status{max-width:720px;margin:32px auto;padding:24px;border:1px solid rgba(255,255,255,.15);border-radius:14px}
+.careers-status h2{margin:0 0 6px}
+.status-form{display:flex;gap:10px;margin:14px 0}
+.status-form input{flex:1;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:inherit}
+.status-results{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.status-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 14px;flex-wrap:wrap}
+.status-pill{padding:2px 10px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.12)}
+.status-pill.accepted{background:#1c7c43;color:#fff}
+.status-pill.dismissed{background:#8a3b2e;color:#fff}
+/* --- Batch 12: document templates --- */
+.merge-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.merge-chips .chip{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border,#d8e2df);background:#f3f7f6;color:#40605c;cursor:pointer}
+.merge-chips .chip:hover{background:#e4eeec}
+/* --- Batch 13: semantic search, domains, dupes --- */
+.sem-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}
+.sem-chips .chip{font-size:11.5px;padding:2px 10px;border-radius:999px;border:1px solid var(--border,#d8e2df);background:#f3f7f6;color:#40605c}
+.sem-chips .sem-label{font-size:12px;color:#5a726d;font-weight:600;margin-right:4px}
+.domain-groups{margin:10px 0;border-top:1px dashed var(--border,#e5e5e5);padding-top:8px}
+.domain-group{display:flex;gap:10px;font-size:13px;margin:4px 0}
+.domain-group strong{min-width:150px;color:#40605c}
