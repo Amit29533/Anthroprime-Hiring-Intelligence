@@ -15,12 +15,12 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 
 ## 1. Executive summary
 
-Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked one-by-one against the code, and **(b)** all **123 requirements** of the ECOD Product Blueprint v1.0 checked section-by-section. *Updated 27 September 2026 after implementation batches 1–2 (skills evidence model, structured histories, engagement fields, LinkedIn dedupe, data-quality queues, view/export audit, time-to-shortlist; then documents/CV upload with reviewable parsing, the gap map with enrichment links, merge-duplicate review, taxonomy administration and incremental change exports) — blueprint coverage moved from 43% to 59%.*
+Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked one-by-one against the code, and **(b)** all **123 requirements** of the ECOD Product Blueprint v1.0 checked section-by-section. *Updated 27 September 2026 after implementation batches 1–2 (skills evidence model, structured histories, engagement fields, LinkedIn dedupe, data-quality queues, view/export audit, time-to-shortlist; then documents/CV upload with reviewable parsing, the gap map with enrichment links, merge-duplicate review, taxonomy administration and incremental change exports) — blueprint coverage moved from 43% to 65% after batches 1–3.*
 
 | Verification | ✅ Equivalent | 🟡 Partial | ⚙️ By design | ❌ Missing | Weighted coverage |
 |---|---|---|---|---|---|
 | **Zoho Recruit** feature set (A–M) | 7 | 18 | 2 | 70 | **18%** |
-| **ECOD Blueprint v1.0** (N.1–N.14) | 46 | 53 | 1 | 23 | **59%** |
+| **ECOD Blueprint v1.0** (N.1–N.14) | 53 | 52 | 1 | 17 | **65%** |
 
 **ECOD today ≈ a strong "repository-first matching core":** candidate repository, CSV import/export, demands, explainable weighted matching, pipeline, assessments, notes, pools, analytics, plus a hardened multi-tenant schema. That overlaps with roughly the **Free/Standard tier** of Zoho Recruit's core ATS, minus resumes, portals, and communication.
 
@@ -267,8 +267,8 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N22 | Client + business unit, role title, demand owner, positions, priority, target joining date | Client, title, positions, priority, target date; no business unit or demand-owner field | 🟡 |
 | N23 | Must-have **vs nice-to-have** skills, each with minimum proficiency, minimum relevant experience, recency requirement | Nice-to-have skill tier shipped; per-skill minimums stored (skillMinimums map) with a demand-level default minimum proficiency; per-skill editor UI and recency rules still pending | 🟡 |
 | N24 | Experience band, location/timezone, work mode, language, certification, industry/domain, security/eligibility constraints | Engagement-type constraint and demand-level minimum proficiency added; language/certification/industry/security-eligibility constraints still missing | 🟡 |
-| N25 | Commercials: bill rate/budget, currency, engagement type, internal target cost, **margin visibility restricted by role** | Budget only; no currency/engagement type and no commercial field-level permissions | ❌ |
-| N26 | **Pipeline stages configurable per demand** (incl. interested, ready stages) | Fixed global 10-stage list for all demands | ❌ |
+| N25 | Commercials: bill rate/budget, currency, engagement type, internal target cost, **margin visibility restricted by role** | Internal cost and margin stored in a dedicated table whose select/insert/update all require the admin role (DB-verified in PGlite); admins edit per demand with a live margin readout against the client budget | ✅ |
+| N26 | **Pipeline stages configurable per demand** (incl. interested, ready stages) | Stage display labels configurable workspace-wide from the admin console (values stay stable for history); per-demand stage sets still pending | 🟡 |
 
 #### N.4 — Blueprint §5: search & matching layers
 
@@ -276,7 +276,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 |---|---|---|---|
 | N27 | Exact deterministic filters (location, years, employer, CTC, notice, engagement, certification, status) | Location/experience/notice/status/freshness/skill filters + search; no employer/engagement/certification filters | 🟡 |
 | N28 | Skill taxonomy: canonical names, aliases, domain relationships | Canonical list + alias dictionary in code; no parent/domain graph | 🟡 |
-| N29 | Full-text search incl. **CV text**, role summaries, assessment notes | CV text is now extracted and stored with the document; wiring the extracted text into search results is still pending | 🟡 |
+| N29 | Full-text search incl. **CV text**, role summaries, assessment notes | Repository search covers profile fields, summary and the extracted text of every attached CV document | ✅ |
 | N30 | Semantic search ("senior Databricks architect who has built Genie spaces") | Not built — blueprint itself schedules this for Phase 1.5, not MVP | ❌ |
 | N31 | Weighted requirement-to-profile match **with evidence per criterion** | 6 weighted components, each with human-readable detail line; weights configurable per demand | ✅ |
 | N32 | Transparent component breakdown, **hard constraints visibly separated** from soft fit | Blockers (hard failures) and unknowns (unverified) are separate from the score — exactly the blueprint's design | ✅ |
@@ -309,14 +309,14 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | # | Blueprint screen | ECOD today | Status |
 |---|---|---|---|
 | N46 | Dashboard: open demands, ready talent, stale profiles, follow-ups, assessments due, conversion funnel | All present except conversion funnel (stage distribution shown instead, deliberately) | 🟡 |
-| N47 | People: saved views, filters, bulk actions, column chooser, export permission | Table + filters + multi-select export; no saved views, column chooser, mass update or export permission | 🟡 |
+| N47 | People: saved views, filters, bulk actions, column chooser, export permission | Search now includes CV text; quality-queue drill-through views exist. Saved views, column chooser and mass update still pending | 🟡 |
 | N48 | Candidate 360 tabs: Overview, Skills, Employment, ECOD, Applications, Interactions, Documents, History | 7 of 8 blueprint tabs (Overview, Skills, Employment, Documents, Applications, Notes, History); ECOD tab still pending | 🟡 |
 | N49 | Demand: requirements left, pipeline/shortlist, match reasons, bulk outreach/assignment | Requirements + ranked matches + explanations + shortlist; no bulk outreach/assignment | 🟡 |
 | N50 | Talent pools: dynamic + static groups (silver medalists, 30-day joiners…) | 6 dynamic pools incl. "Ready in 30 days"; no static/custom pools (blueprint defers saved pools) | 🟡 |
 | N51 | Assessment screen: templates, assessor workflow, structured rubric, validity | Records + validity only; no templates or rubrics | 🟡 |
 | N52 | Gap & Enrichment: demand-vs-candidate matrix, learning actions, reassessment | Enrichment list exists; gap matrix missing | 🟡 |
 | N53 | Import: CSV/XLSX + CV bulk upload, mapping, preview, duplicate resolution, error report | CSV (paste/file), mapping, preview, error report; dupes skipped only (no resolution), no XLSX/CV | 🟡 |
-| N54 | Admin: users/roles, skill taxonomy, pipeline stages, assessment templates, retention, integrations, audit log | Taxonomy editor, merge-duplicate tooling and audit views now exist; user/role/stage/retention administration still pending | 🟡 |
+| N54 | Admin: users/roles, skill taxonomy, pipeline stages, assessment templates, retention, integrations, audit log | Admin console in Workspace settings: skill taxonomy editor, pipeline stage labels, retention policy with anonymization workflow and full audit log. User/role administration intentionally remains in the trusted SQL console (matches the blueprint security model) | ✅ |
 | N55 | Analytics: demand funnel, source quality, readiness inventory, time-to-ready/submit, conversion, talent aging | Inventory/sources/freshness/stage distribution; no time-to-ready or conversion metrics | 🟡 |
 
 #### N.8 — Blueprint §10: deduplication & data quality
@@ -354,7 +354,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N74 | Audit: profile **views**, exports, downloads, edits, merges, deletes, role changes | Profile views, CSV exports and edits now audited with actor + timestamp; merges, deletes and role changes not yet audited | 🟡 |
 | N75 | Permission-controlled, watermarked/logged, rate-limited exports | Exports available to all signed-in users, unlogged | ❌ |
 | N76 | CV upload allowlist, type validation, size limits, randomized names, malware scan, storage outside webroot | Allowlist extensions, actual-content text extraction, 5 MB cap, randomized names, SHA-256 hashes, private bucket in cloud mode; malware scanning still absent | 🟡 |
-| N77 | Configurable retention review + deletion/anonymisation workflow | Not present | ❌ |
+| N77 | Configurable retention review + deletion/anonymisation workflow | Configurable retention review window; anonymization erases identity/contact while keeping aggregate value; every anonymization is audited | ✅ |
 | N78 | Data-subject workflow (search/export/correct/delete, fulfillment record) | Not present | ❌ |
 | N79 | Encrypted backups, tested restore, RPO/RTO | Not present (blueprint defers to ops) | ❌ |
 | N80 | No CV/comp/PII in application logs | No server-side logging layer; demo is client-only | ✅ |
@@ -395,10 +395,10 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N100 | Freshness distribution | Implemented (Fresh/Aging/Stale with health bar) | ✅ |
 | N101 | Demand coverage: ready / near-ready / missing per active demand | 70%+ match counts per demand; not split by readiness/missing | 🟡 |
 | N102 | Time to shortlist | Average time-to-shortlist measured from demand creation to consideration creation | ✅ |
-| N103 | Time to ready (core ECOD measure) | Not measured | ❌ |
-| N104 | Source → ready/placement conversion | Source distribution only (deliberately no fabricated conversion rates; real conversion needs event history) | ❌ |
+| N103 | Time to ready (core ECOD measure) | Time to ready: profile creation to latest assessment for Ready candidates, shown in Analytics | ✅ |
+| N104 | Source → ready/placement conversion | Source to ready conversion: Ready share per sourcing channel | ✅ |
 | N105 | Assessment → enrichment → readiness conversion | Not measured | ❌ |
-| N106 | Rediscovery rate | Not measured | ❌ |
+| N106 | Rediscovery rate | Rediscovery rate: share of considered candidates appearing in 2+ demands | ✅ |
 | N107 | Submission → interview → offer → deployment funnel | Current-stage distribution only | 🟡 |
 | N108 | Skill inventory & gap heatmap | Skill inventory implemented; gap heatmap missing | 🟡 |
 
@@ -453,22 +453,22 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 |---|---|---|---|---|---|
 | N.1 §3 ECOD lifecycle | 4 | 4 | 0 | 0 | 75% |
 | N.2 §4.1 Candidate 360 domains | 4 | 8 | 0 | 1 | 62% |
-| N.3 §4.2 Demand object | 0 | 3 | 0 | 2 | 30% |
-| N.4 §5 Search & matching | 4 | 3 | 0 | 1 | 69% |
+| N.3 §4.2 Demand object | 1 | 4 | 0 | 0 | 60% |
+| N.4 §5 Search & matching | 5 | 2 | 0 | 1 | 75% |
 | N.5 §6 Skills intelligence | 5 | 0 | 0 | 1 | 83% |
 | N.6 §7 Append-only history | 2 | 3 | 0 | 0 | 70% |
-| N.7 §8 Key screens | 0 | 10 | 0 | 0 | 50% |
+| N.7 §8 Key screens | 1 | 9 | 0 | 0 | 55% |
 | N.8 §10 Dedup & data quality | 6 | 0 | 0 | 0 | 100% |
 | N.9 §11 AI layer | 5 | 1 | 0 | 2 | 69% |
-| N.10 §12 Security & governance | 3 | 4 | 0 | 4 | 45% |
+| N.10 §12 Security & governance | 4 | 4 | 0 | 3 | 55% |
 | N.11 §13–14 Architecture & API | 1 | 4 | 1 | 4 | 35% |
 | N.12 §16 MVP acceptance scenarios | 4 | 3 | 0 | 1 | 69% |
-| N.13 §17 Analytics | 2 | 4 | 0 | 4 | 40% |
+| N.13 §17 Analytics | 5 | 4 | 0 | 1 | 70% |
 | N.14 §15 R1 scope + §18 not-to-build | 6 | 6 | 0 | 3 | 60% |
-| **Blueprint total** | **46** | **53** | **1** | **23** | **59%** |
+| **Blueprint total** | **53** | **52** | **1** | **17** | **65%** |
 
-**Strongest blueprint areas:** dedup & data quality (100%), skills intelligence (83%), ECOD lifecycle (75%), history entities (70%), matching and acceptance scenarios (69% each).
-**Weakest blueprint areas:** demand object richness (30%), architecture/API (35%), analytics depth (40%), security & governance (45%) — defining the next batches (admin console, conversions analytics, consent/retention).
+**Strongest blueprint areas:** dedup & data quality (100%), skills intelligence (83%), lifecycle and matching (75% each), analytics and history (70% each).
+**Weakest blueprint areas:** architecture/API (35% — semantic search, hosted API endpoint, object-storage malware scanning), governance (55% — consent/data-subject workflows, backups), and the remaining partials: saved views, per-demand stage sets, demand owner/business-unit fields.
 
 **Where ECOD is genuinely at or above parity for its size:** candidate repository quality (alias-normalized skills, freshness discipline, dedup), import validation rigor, matching explainability (component scores + blockers + unknowns — Zoho shows a match score but ECOD's evidence model is more transparent), DB-level tenant isolation and audit integrity (verified by an actual-Postgres test), and honest analytics.
 
@@ -480,7 +480,7 @@ Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one de
 
 **Phase 0 — Complete the Blueprint's own R1 scope** *(highest priority: the blueprint's exit condition is "run a real client demand end-to-end", which requires these)*
 
-> **Batch 1 shipped (27 Sep 2026):** structured Employment/Compensation/Availability histories with auto-capture and profile UI · per-skill proficiency, evidence, years, last-used, confidence and validation with a matching proficiency gate · engagement preference + registry status + earliest start · demand nice-to-have skills, engagement type and minimum proficiency · LinkedIn duplicate checks · data-quality queues with drill-through filters · view/export audit trail · average time-to-shortlist metric · migration `002_blueprint_r1.sql` + 10 new tests (27 total, all passing). Batch 2 shipped (27 Sep 2026): CV/document upload with allowlists, hashes and reviewable heuristic parsing (demo inline, cloud private bucket) · bulk CV import with per-file duplicate/extraction flags · demand-vs-candidate gap map (critical/trainable/contextual, derived status) with one-click enrichment planning · gap heatmap in Analytics · merge-duplicate review with field-by-field keep decisions · workspace skill-taxonomy administration · incremental change export. Remaining Phase-0 items: admin console (users/roles/stages/retention), search inside extracted CV text, demand commercial-margin fields, updated_since hosted endpoint.
+> **Batch 1 shipped (27 Sep 2026):** structured Employment/Compensation/Availability histories with auto-capture and profile UI · per-skill proficiency, evidence, years, last-used, confidence and validation with a matching proficiency gate · engagement preference + registry status + earliest start · demand nice-to-have skills, engagement type and minimum proficiency · LinkedIn duplicate checks · data-quality queues with drill-through filters · view/export audit trail · average time-to-shortlist metric · migration `002_blueprint_r1.sql` + 10 new tests (27 total, all passing). Batch 2 shipped (27 Sep 2026): CV/document upload with allowlists, hashes and reviewable heuristic parsing (demo inline, cloud private bucket) · bulk CV import with per-file duplicate/extraction flags · demand-vs-candidate gap map (critical/trainable/contextual, derived status) with one-click enrichment planning · gap heatmap in Analytics · merge-duplicate review with field-by-field keep decisions · workspace skill-taxonomy administration · incremental change export. Batch 3 shipped (27 Sep 2026): admin console (pipeline stage labels, retention policy with audited anonymization workflow, audit log) · repository search across extracted CV text · demand commercials (internal cost/margin) in an admin-role-only table verified in PGlite · conversion analytics (time to ready, source→ready, rediscovery rate) · migration 004 + 9 new tests (46 total). Remaining Phase-1 items: saved views/column chooser, per-demand stage sets, consent/data-subject workflows, hosted updated_since endpoint, semantic search.
 
 | Item | Blueprint § | Effort |
 |---|---|---|

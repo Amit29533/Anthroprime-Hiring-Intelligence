@@ -1,6 +1,7 @@
 // Shared data shape for demo and cloud modes, kept dependency-free so tests can import it.
 import { setCustomTaxonomy } from './taxonomy.js';
-export const TABLES = ['candidates','demands','considerations','assessments','notes','enrichment','history','employmentHistory','compensationHistory','availabilityHistory','auditEvents','documents','taxonomy'];
+import { setStageLabels } from './domain.js';
+export const TABLES = ['candidates','demands','considerations','assessments','notes','enrichment','history','employmentHistory','compensationHistory','availabilityHistory','auditEvents','documents','taxonomy','demandCommercials','settings'];
 export const emptyData = () => Object.fromEntries(TABLES.map(t=>[t,[]]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
 // taxonomy extensions, and hide profiles merged into another record.
@@ -12,5 +13,7 @@ export function normalizeData(data){
  for(const d of out.demands){ d.niceToHave = d.niceToHave||[]; d.engagementType = d.engagementType||'Any'; d.minProficiency = d.minProficiency||'Working'; d.skillMinimums = d.skillMinimums||{}; }
  const tax = out.taxonomy.find(r=>r&&r.id==='workspace');
  setCustomTaxonomy((tax&&tax.custom)||{});
+ const st = out.settings.find(r=>r&&r.id==='workspace');
+ setStageLabels((st&&st.custom&&st.custom.stageLabels)||{});
  return out;
 }

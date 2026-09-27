@@ -57,5 +57,7 @@ export function makeSeed() {
   {id:'73000000-0000-4000-8000-000000000001',candidateId:candidates[0].id,notice:30,earliestStart:null,status:'Active',mode:'Hybrid',captured:dateAgo(30)},
   {id:'73000000-0000-4000-8000-000000000002',candidateId:candidates[4].id,notice:30,earliestStart:null,status:'Active',mode:'Hybrid',captured:dateAgo(12)}
  ];
- return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[] };
+ const settings = [{ id:'workspace', custom:{ stageLabels:{}, retentionMonths:12 } }];
+ const demandCommercials = [{ id:'81000000-0000-4000-8000-000000000001', demandId:demands[0].id, internalCost:32, currency:'INR', notes:'Target delivery cost for the Meridian programme', updated:dateAgo(4) }];
+ return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[], documents:[], taxonomy:[], demandCommercials, settings };
 }

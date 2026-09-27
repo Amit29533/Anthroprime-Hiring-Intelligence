@@ -6,6 +6,8 @@ const url = env.VITE_SUPABASE_URL;
 const key = env.VITE_SUPABASE_ANON_KEY;
 export const cloud = Boolean(url && key);
 export const supabase = cloud ? createClient(url, key) : null;
+let currentRole = 'admin'; // demo recruiters are workspace admins; cloud role resolves at load
+export const getRole = () => currentRole;
 export { TABLES, emptyData, normalizeData } from './schema.js';
 import { TABLES, emptyData, normalizeData } from './schema.js';
 const STORAGE = 'ecod-demo-v1';
@@ -21,6 +23,7 @@ export async function loadData() {
  const {data: membership,error:memberError}=await supabase.from('memberships').select('workspace_id,role').maybeSingle();
  if(memberError)throw memberError;
  if(!membership)throw new Error('Your account has not been assigned to a workspace. Ask your administrator to add your workspace membership.');
+ currentRole = membership.role || 'recruiter';
  await Promise.all(TABLES.map(async t=>{
   let from=0;
   while(true){

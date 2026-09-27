@@ -61,6 +61,14 @@ export function extractJD(text) {
   const notice = text.match(/(\d+)\s*[- ]?day(?:s)?\s*(?:notice|join)/i);
   return { skills, ...(years ? { minExperience: Number(years[1]) } : {}), ...(notice ? { maxNotice: Number(notice[1]) } : {}) };
 }
+let stageLabels = {};
+export const setStageLabels = map => { stageLabels = map && typeof map === 'object' ? map : {}; };
+export const stageLabelsMap = () => ({ ...stageLabels });
+export const stageLabel = s => stageLabels[s] || s;
+export function candidateSearchText(c, documents = []) {
+  return [c.name, c.title, c.company, c.location, c.email, c.summary, ...(c.skills || []),
+    ...documents.filter(d => d && d.candidateId === c.id && !d.removed && d.extracted).map(d => d.extracted)].join(' ').toLowerCase();
+}
 export function searchCandidate(c, query) {
   const text = [c.name,c.title,c.company,c.location,c.email,c.summary,...c.skills].join(' ').toLowerCase();
   const tokens = query.toLowerCase().match(/"[^"]+"|\S+/g) || [];

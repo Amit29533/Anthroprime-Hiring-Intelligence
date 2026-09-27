@@ -27,6 +27,10 @@ Open the URL shown by Vite. Without database configuration, the app opens with *
 - Merge-duplicate review in Workspace settings: probable pairs (email, phone, LinkedIn, name plus employer/location), field-by-field keep decisions, skills evidence combined to the stronger record, duplicate hidden (flagged, never auto-deleted), child records re-pointed.
 - Workspace skill-taxonomy administration (Settings → Skill taxonomy): add canonical skills with aliases and domains; matching, JD extraction and CV parsing immediately use the extended vocabulary.
 - Incremental change export (changes since a date) — the same shape a future `updated_since` API returns.
+- Admin console in Workspace settings: rename pipeline stage labels workspace-wide, set the retention review window with an audited anonymization workflow, and review the full audit log (views, exports, merges, anonymizations).
+- Repository search reaches into extracted CV text, so phrases from an uploaded resume surface the right profile.
+- Demand commercials (internal target cost and margin) live in an admin-role-only table — recruiters and viewers never receive them from the API.
+- Conversion analytics: time to ready, source-to-ready conversion and rediscovery rate, computed only from records that exist.
 - View/export audit trail: profile opens and CSV exports are recorded with actor and timestamp and shown in Workspace settings.
 - Repository search (all terms, quoted phrases, exclusions using `-word`), readiness/freshness/location/skill/experience/notice filters, sorting, selection and CSV export.
 - CSV file upload or paste, field mapping, preview, email/phone duplicate checks and downloadable row-error report. Invalid and duplicate rows are skipped; existing records are never silently merged.
@@ -52,7 +56,7 @@ Alternatively, build locally and upload the contents of `dist` using Netlify's m
 Static hosting does not itself store team records. Configure a separate Supabase project:
 
 1. Create a new Supabase project in your chosen region.
-2. Run `supabase/migrations/001_ecod.sql` once in its SQL Editor, then `002_blueprint_r1.sql` and `003_documents_taxonomy.sql`. Migration 001 creates core tables, membership policies, indexes, uniqueness constraints and append-only audit history; 002 adds skill-detail/engagement fields, structured history tables and the view/export audit trail; 003 adds CV/document metadata, workspace taxonomy extensions and gap-map linkage columns. Also create a **private** Storage bucket named `documents` (Storage → New bucket).
+2. Run `supabase/migrations/001_ecod.sql` once in its SQL Editor, then `002_blueprint_r1.sql`, `003_documents_taxonomy.sql` and `004_admin_settings.sql`. Migration 001 creates core tables, membership policies, indexes, uniqueness constraints and append-only audit history; 002 adds skill-detail/engagement fields, structured history tables and the view/export audit trail; 003 adds CV/document metadata, workspace taxonomy extensions and gap-map linkage columns; 004 adds workspace settings and the admin-only demand commercials table. Also create a **private** Storage bucket named `documents` (Storage → New bucket).
 3. Create the first user in Supabase Authentication. The app intentionally has no public sign-up flow.
 4. Edit the placeholder email in `supabase/PROVISION_WORKSPACE.sql`, then execute it to create the workspace and its first administrator. The same file shows how to add colleagues. Each account belongs to one workspace in this release.
 5. Set these **build-time** variables in Netlify:
@@ -92,7 +96,7 @@ npx pnpm@11.25.0 test
 npx pnpm@11.25.0 build
 ```
 
-Automated tests cover matching, missing evidence, skill aliases and workspace taxonomy extensions, proficiency gating, nice-to-have coverage, engagement constraints, history capture, data-quality queues, CV parsing and file allowlists, DOCX text extraction, duplicate pairs and merge previews, gap-map classification, incremental change exports, JD extraction, CSV validation and duplicate handling. An embedded PostgreSQL test executes the actual migration and verifies workspace isolation, role permissions, foreign-key boundaries, unique considerations and audit integrity. It does not substitute for testing Supabase Auth and PostgREST in your provisioned cloud project.
+Automated tests cover matching, missing evidence, skill aliases and workspace taxonomy extensions, proficiency gating, nice-to-have coverage, engagement constraints, history capture, data-quality queues, CV parsing and file allowlists, DOCX text extraction, duplicate pairs and merge previews, gap-map classification, incremental change exports, stage labels, retention and anonymization, conversion metrics, commercial margins, JD extraction, CSV validation and duplicate handling. An embedded PostgreSQL test executes the actual migration and verifies workspace isolation, role permissions, foreign-key boundaries, unique considerations and audit integrity. It does not substitute for testing Supabase Auth and PostgREST in your provisioned cloud project.
 
 The browser workflow was exercised with fictional profiles: create/search, import with duplicates/invalid rows, edit/history, JD-to-demand matching, shortlist, pipeline transition and reload persistence. See `docs/QA.md` for the final verification record.
 

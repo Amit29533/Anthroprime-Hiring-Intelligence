@@ -68,3 +68,15 @@
 .gap-list th,.gap-list td{text-align:left;padding:6px 8px;border-bottom:1px solid #e7edf0;font-size:13px}
 .since-export{display:flex;flex-direction:column;gap:8px;margin-top:12px;border-top:1px solid #edf1f4;padding-top:12px}
 @media (max-width:720px){.taxonomy-form{grid-template-columns:1fr}.heat-row{grid-template-columns:1fr auto}}
+
+/* Blueprint R1 batch 3: admin console, commercials, conversions */
+.admin-chip{font-size:11px;background:#eef2f4;border:1px solid #d7e0e5;border-radius:99px;padding:1px 8px;margin-left:6px;color:#5b6b74}
+.commercials-box{border:1px solid #e3eaee;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fbfcfd}
+.commercials-box summary{cursor:pointer}
+.commercials-form{display:grid;grid-template-columns:1fr 1.6fr;gap:10px;margin-top:8px}
+.commercials-meta{display:flex;align-items:center;gap:14px;margin-top:8px}
+.stage-label-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:10px 0}
+.retention-row{display:flex;gap:14px;align-items:end;margin:10px 0}
+.retention-count{font-size:14px;color:#5b6b74}
+.retention-list{display:flex;flex-direction:column;margin-bottom:8px}
+@media (max-width:720px){.commercials-form{grid-template-columns:1fr}}
