@@ -8,6 +8,7 @@ import {OFFER_STATUSES,OFFER_TONES,offersSummary} from './offers.js';
 import {downloadFile} from './Candidates.jsx';
 import {icsFor,icsForInterview,parseICS,interviewDraftFromEvent} from './calendar.js';
 import {offerLetterText} from './offerLetter.js';
+import {documentTemplatesFor,mergeContext,renderTemplate} from './templates.js';
 import {getRole} from './repository.js';
 
 const fmtDT = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
@@ -217,9 +218,14 @@ export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
 function LetterModal({offer,data,onClose,notify}){
  const candidate=data.candidates.find(c=>c.id===offer.candidateId);
  const demand=data.demands.find(d=>d.id===offer.demandId);
- const letter=offerLetterText(offer,candidate,demand);
- return <Modal title={`Offer letter — ${candidate?.name||'candidate'}`} subtitle="Generated from the offer record's terms. Print, attach or paste into your signing workflow — e-signature execution remains a server-side integration." onClose={onClose} wide>
-  <div className="modal-body"><div className="submission-preview wide"><span>Letter preview</span><pre>{letter}</pre></div></div>
+ const tpls=documentTemplatesFor(data.settings);
+ const [tplId,setTplId]=useState('');
+ const chosen=tpls.find(t=>t.id===tplId);
+ const letter=chosen?renderTemplate(chosen.body,mergeContext({candidate,demand,offer})):offerLetterText(offer,candidate,demand);
+ return <Modal title={`Offer letter — ${candidate?.name||'candidate'}`} subtitle="Generated from the offer record's terms — the built-in format, or an admin-managed template. E-signature execution remains a server-side integration." onClose={onClose} wide>
+  <div className="modal-body">
+   {tpls.length>0&&<Field label="Format"><select value={tplId} onChange={e=>setTplId(e.target.value)}><option value="">Built-in offer format</option>{tpls.map(t=><option key={t.id} value={t.id}>{`Template: ${t.name}`}</option>)}</select></Field>}
+   <div className="submission-preview wide"><span>Letter preview</span><pre>{letter}</pre></div></div>
   <div className="modal-actions">
    <Button variant="ghost" onClick={()=>{downloadFile(letter,`offer-letter-${(candidate?.name||'candidate').toLowerCase().replace(/\s+/g,'-')}.txt`,'text/plain');notify&&notify('Letter downloaded.');}}>Download letter</Button>
    <a className="button ghost" href={`mailto:${candidate?.email||''}?subject=${encodeURIComponent(`Your offer from AnthroPrime — ${offer.role||'the role'}`)}&body=${encodeURIComponent(letter)}`} onClick={()=>notify&&notify('Email draft opened in your mail client.')}>Open email draft</a>

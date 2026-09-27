@@ -19,6 +19,7 @@ import {TRIGGERS,describeRule,describeActions} from './automation.js';
 import {OFFER_STATUSES} from './offers.js';
 import {RECOMMENDATIONS} from './feedback.js';
 import {emailBodyText} from './documents.js';
+import {documentTemplatesFor,MERGE_FIELD_CATALOG} from './templates.js';
 export function ImportModal({data,onClose,onSave,busy}){
  const [raw,setRaw]=useState(null),[mapping,setMapping]=useState({}),[preview,setPreview]=useState(null),[error,setError]=useState(''),[text,setText]=useState('');
  const [cvRows,setCvRows]=useState(null),[cvBusy,setCvBusy]=useState(false),[emailText,setEmailText]=useState('');
@@ -258,6 +259,7 @@ function AdminPanel({data,onSave,notify,audit}){
  const [coolingDays,setCoolingDays]=useState(custom.coolingOffDays??30);
  const [approvals,setApprovals]=useState(!!custom.offerApprovals);
  const [tpls,setTpls]=useState(()=>templatesFor(data.settings).map(t=>({...t})));
+ const [docTpls,setDocTpls]=useState(()=>documentTemplatesFor(data.settings).map(t=>({...t})));
  const [busy,setBusy]=useState(false);
  const due=retentionDue(data.candidates,months);
  async function saveSettings(next){
@@ -281,6 +283,12 @@ function AdminPanel({data,onSave,notify,audit}){
  <p className="supporting-text">Drafts for invites and follow-ups, composed in your mail client. Placeholders: {'{name} {demand} {round} {mode} {date} {time}'}.</p>
  <div className="tpl-list">{tpls.map((t,i)=><div key={i} className="tpl-card"><Field label="Name"><input value={t.name} onChange={e=>{const next=[...tpls];next[i]={...t,name:e.target.value};setTpls(next);}}/></Field><Field label="Subject"><input value={t.subject} onChange={e=>{const next=[...tpls];next[i]={...t,subject:e.target.value};setTpls(next);}}/></Field><Field label="Body"><textarea rows={4} value={t.body} onChange={e=>{const next=[...tpls];next[i]={...t,body:e.target.value};setTpls(next);}}/></Field><Button variant="ghost" className="small" disabled={busy} onClick={()=>setTpls(tpls.filter((_,j)=>j!==i))}>Remove template</Button></div>)}</div>
  <div className="tpl-actions"><Button className="small" disabled={busy} onClick={()=>setTpls([...tpls,{name:'New template',subject:'',body:''}])}>Add template</Button><Button className="small" disabled={busy} onClick={async()=>{if(await onSave('settings',[{id:'workspace',custom:{...custom,emailTemplates:tpls.filter(t=>t.name.trim())}}]))notify('Email templates saved.');}}>Save templates</Button></div>
+ <h3 className="history-heading">Document templates</h3>
+ <p className="supporting-text">Merge-field letter templates used by Generate letter on profiles and the offer letter modal. Tokens like {'{{Candidate.name}}'} are replaced when the letter is generated - unknown tokens stay visible so typos are easy to spot. Click a field to append it to a template.</p>
+ <div className="tpl-list">{docTpls.map((t,i)=><div key={t.id||i} className="tpl-card"><Field label="Name"><input value={t.name} onChange={e=>{const next=[...docTpls];next[i]={...t,name:e.target.value};setDocTpls(next);}}/></Field><Field label="Letter body"><textarea rows={6} value={t.body} onChange={e=>{const next=[...docTpls];next[i]={...t,body:e.target.value};setDocTpls(next);}}/></Field>
+  <div className="merge-chips">{MERGE_FIELD_CATALOG.map(([g,f])=><button type="button" key={g+"."+f} className="chip" title={"Insert {{"+g+"."+f+"}}"} onClick={()=>setDocTpls(docTpls.map((x,j)=>j===i?{...x,body:(x.body||"")+"{{"+g+"."+f+"}}"}:x))}>{g+"."+f}</button>)}</div>
+  <Button variant="ghost" className="small" disabled={busy} onClick={()=>setDocTpls(docTpls.filter((_,j)=>j!==i))}>Remove</Button></div>)}</div>
+ <div className="tpl-actions"><Button className="small" disabled={busy} onClick={()=>setDocTpls([...docTpls,{id:uid(),name:'New letter template',body:'Dear {{Candidate.name}},\n\n'}])}>Add document template</Button><Button className="small" disabled={busy} onClick={()=>saveSettings({documentTemplates:docTpls})}>Save document templates</Button></div>
  <h3 className="history-heading">Fair-process guardrails</h3>
  <div className="retention-row"><Field label="Cooling-off after a client rejection (days)"><input type="number" min="0" max="365" value={coolingDays} onChange={e=>setCoolingDays(Number(e.target.value))}/></Field>
   <label className="consent-check"><input type="checkbox" checked={approvals} onChange={e=>setApprovals(e.target.checked)}/>Require admin approval before offers are sent</label>
