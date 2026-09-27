@@ -12,7 +12,7 @@ import {captureChanges} from './history.js';
 import {QUEUES,queueById} from './quality.js';
 import {deriveGaps} from './gaps.js';
 import {cloud,getRole} from './repository.js';
-import {classifyFile,extractText,sha256,buildDocumentRecord,persistBinary} from './documents.js';
+import {classifyFile,extractText,sha256,buildDocumentRecord,persistBinary,contentSignatureOk} from './documents.js';
 export function downloadFile(content,name,type='text/csv;charset=utf-8'){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export function exportCandidates(rows){downloadFile(Papa.unparse(rows.map(c=>({name:c.name,email:c.email,phone:c.phone,title:c.title,company:c.company,location:c.location,experience:c.experience,relevantExperience:c.relevantExperience,notice:c.notice,expected:c.expected,current:c.current,skills:c.skills.join('; '),status:c.status,source:c.source,mode:c.mode,verified:c.verified,exportedAt:new Date().toISOString(),exportedBy:'ECOD workspace export (audited)'})),{escapeFormulae:true}),'ecod-candidates.csv');}
 export function Candidates({data,query,setQuery,initialFilter,onOpen,onAdd,onImport,notify,audit,onSave}){
@@ -92,6 +92,7 @@ function DocumentsTab({candidate:c,data,onSave,busy}){
  async function upload(e){
   const file=e.target.files?.[0];e.target.value='';if(!file||fileBusy)return;
   setErr('');const cls=classifyFile(file);if(!cls.ok)return setErr(cls.error);
+  if(!(await contentSignatureOk(file,cls.ext)))return setErr(`The file content does not look like a real ${cls.ext.toUpperCase()} - upload rejected.`);
   setFileBusy(true);
   try{
    const buffer=await file.arrayBuffer();

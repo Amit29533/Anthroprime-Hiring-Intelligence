@@ -7,13 +7,14 @@ import {readCSV,previewImport,IMPORT_FIELDS} from './import.js';
 import {qualityQueues,retentionDue,anonymizeCandidate} from './quality.js';
 import {deriveGaps,GAP_SEVERITIES} from './gaps.js';
 import {duplicatePairs,mergePreview,MERGE_FIELDS,MERGE_FOLLOW_TABLES} from './dedupe.js';
-import {classifyFile,extractText,sha256,buildDocumentRecord,persistBinary,parseCVText} from './documents.js';
+import {classifyFile,extractText,sha256,buildDocumentRecord,persistBinary,parseCVText,contentSignatureOk} from './documents.js';
 import {setCustomTaxonomy,customTaxonomy,allSkills,skillList} from './taxonomy.js';
 import {timeToReady,sourceConversion,rediscoveryRate,demandCoverage,upliftConversion,clientFunnel,usableProfiles,interviewAnalytics} from './analytics.js';
 import {thresholdFor,DEFAULT_CRITERIA,templatesFor} from './feedback.js';
 import {changesSince} from './sync.js';
 import {downloadFile,exportCandidates} from './Candidates.jsx';
-import {cloud,supabase,getRole} from './repository.js';
+import {cloud,supabase,getRole,TABLES} from './repository.js';
+import {backupBundle,parseBackup} from './backup.js';
 export function ImportModal({data,onClose,onSave,busy}){
  const [raw,setRaw]=useState(null),[mapping,setMapping]=useState({}),[preview,setPreview]=useState(null),[error,setError]=useState(''),[text,setText]=useState('');
  const [cvRows,setCvRows]=useState(null),[cvBusy,setCvBusy]=useState(false);
@@ -25,6 +26,7 @@ export function ImportModal({data,onClose,onSave,busy}){
    const cls=classifyFile(f);
    if(!cls.ok){rows.push({file:f,draft:null,record:null,error:cls.error,checked:false,name:f.name});continue;}
    try{
+    if(!(await contentSignatureOk(f,cls.ext)))throw new Error(`File content does not look like a real ${cls.ext.toUpperCase()}.`);
     const buffer=await f.arrayBuffer();
     const extracted=await extractText(buffer,cls.ext);
     const parsed=parseCVText(extracted);
@@ -154,8 +156,11 @@ export function Analytics({data,navigate}){
 </div></>;
 }
 export function Settings({data,session,onReload,notify,audit,onSave}){
- const [since,setSince]=useState('');
+ const [since,setSince]=useState(''),[restoreBusy,setRestoreBusy]=useState(false);
  return <><PageHeader eyebrow="YOUR WORKSPACE" title="A foundation for better recruiting." description="Understand where your data lives and how this workspace is configured."/><div className="settings-grid"><section className="panel"><PanelHeading title="Data & connection" action={<Badge tone={cloud?'green':'amber'}>{cloud?'Cloud connected':'Local demo'}</Badge>}/><div className="settings-body"><div className="settings-feature"><Cloud size={25}/><div><h3>{cloud?'Shared PostgreSQL repository':'Browser-local demo workspace'}</h3><p>{cloud?'Your account accesses workspace records through Supabase authentication and row-level security.':'This workspace uses fictional examples and saves changes in this browser. It is not a shared team database. Use demo information until your cloud workspace is configured.'}</p></div></div><dl><div><dt>Hosting target</dt><dd>Netlify</dd></div><div><dt>Database</dt><dd>{cloud?'Supabase PostgreSQL':'Browser storage'}</dd></div><div><dt>Matching engine</dt><dd>Weighted, deterministic criteria</dd></div><div><dt>Profile persistence</dt><dd>{cloud?'Shared workspace':'This browser only'}</dd></div><div><dt>Candidate records</dt><dd>{data.candidates.length}</dd></div></dl><Button variant="secondary" icon={RefreshCw} onClick={onReload}>Reload repository</Button>{!cloud&&<p className="supporting-text">Team setup instructions and the database migration are included in the project's README. Configure the Supabase project URL and public key in Netlify, then redeploy.</p>}</div></section><section className="panel"><PanelHeading title="Workspace capabilities"/><div className="settings-body"><div className="capability"><CheckCircle2/><span>Reusable candidate profiles & history</span></div><div className="capability"><CheckCircle2/><span>Explainable demand matching</span></div><div className="capability"><CheckCircle2/><span>Pipeline, assessments & enrichment</span></div><div className="capability"><CheckCircle2/><span>CSV import with duplicate checks</span></div><div className="roadmap-note"><h3>Planned extensions</h3><p>CV document storage and parsing, semantic AI search, email/calendar integrations, granular team permissions and retention workflows are not enabled in this release.</p></div></div></section><DataTools data={data} onSave={onSave} onReload={onReload} notify={notify} audit={audit}/>{getRole()==='admin'&&<AdminPanel data={data} onSave={onSave} notify={notify} audit={audit}/>}<TaxonomyEditor data={data} onSave={onSave} notify={notify}/><section className="panel"><PanelHeading title="Data portability"/><div className="settings-body"><p>Export candidate records for your own reporting and migration.</p><Button variant="secondary" icon={Download} onClick={()=>{exportCandidates(data.candidates);notify('Candidate CSV exported.');audit&&audit({entityType:'candidates',entityId:null,action:'exported',detail:`${data.candidates.length} candidates`});}}>Export candidate CSV</Button><p className="supporting-text">Includes contact details and compensation. Store the export in an appropriate private location.</p>
+ <div className="backup-row"><Button variant="secondary" icon={Download} onClick={()=>{downloadFile(JSON.stringify(backupBundle(data),null,2),`ecod-workspace-backup-${today()}.json`,'application/json');notify('Workspace backup downloaded - store it somewhere private.');audit&&audit({entityType:'workspace',entityId:null,action:'exported',detail:'Full workspace backup (JSON)'});}}>Download workspace backup (JSON)</Button>
+ <label className={`button secondary${restoreBusy?' disabled':''}`}><FileSpreadsheet size={16}/>{restoreBusy?'Restoring…':'Restore from backup'}<input type="file" hidden accept=".json" disabled={restoreBusy} onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!window.confirm('Restore merges every table from this backup into the workspace. Existing rows with the same ids are overwritten; deletions are not applied. Continue?'))return;setRestoreBusy(true);try{const text=await file.text();const {rows:restored,exportedAt}=parseBackup(text);let touched=0,total=0;for(const t of TABLES)if(restored[t].length){await onSave(t,restored[t]);touched++;total+=restored[t].length;}notify(`Restore complete: ${total} rows across ${touched} tables (backup from ${String(exportedAt).slice(0,10)}).`);audit&&audit({entityType:'workspace',entityId:null,action:'updated',detail:`Restored backup from ${String(exportedAt).slice(0,10)}`});}catch(err){notify(`Restore failed: ${err.message}`);}setRestoreBusy(false);}}/></label></div>
+ <p className="supporting-text">The backup is a complete JSON snapshot of every workspace table. Restore merges rows by id through the normal save path — deletions are never applied. Encrypted server-side backups with tested restore (RPO/RTO) remain an operations responsibility.</p>
  <div className="since-export"><Field label="Incremental change export (API groundwork)"><input type="date" value={since} onChange={e=>setSince(e.target.value)} aria-label="Export changes since"/></Field><Button variant="secondary" icon={FileSpreadsheet} disabled={!since} onClick={()=>downloadFile(JSON.stringify(changesSince(data,since),null,2),`ecod-changes-${since}.json`,'application/json')}>Export changes since {since||'…'}</Button><p className="supporting-text">Blueprint §14: the same shape a future <code>updated_since</code> API endpoint returns.</p></div></div></section><section className="panel"><PanelHeading title="Recent activity" subtitle="Views and exports recorded in this workspace"/><div className="audit-list">{data.auditEvents.slice(0,8).map(e=><article key={e.id} className="audit-row"><Badge tone={e.action==='exported'?'amber':'gray'}>{e.action}</Badge><span>{e.detail||e.entityType}</span><small>{new Date(e.date).toLocaleString()} · {e.actor}</small></article>)}{!data.auditEvents.length&&<p className="supporting-text">Profile views and CSV exports will be recorded here.</p>}</div></section>{cloud&&<section className="panel"><PanelHeading title="Your session"/><div className="settings-body"><p>{session?.user?.email}</p><Button variant="secondary" icon={LogOut} onClick={()=>supabase.auth.signOut()}>Sign out</Button></div></section>}</div></>;
 }
 export function Login(){
@@ -224,6 +229,7 @@ function TaxonomyEditor({data,onSave,notify}){
 }
 
 function AdminPanel({data,onSave,notify,audit}){
+ const [restoreBusy,setRestoreBusy]=useState(false);
  const row=data.settings.find(r=>r&&r.id==='workspace');
  const custom=row?.custom||{};
  const [labels,setLabels]=useState(()=>({...stageLabelsMap()}));

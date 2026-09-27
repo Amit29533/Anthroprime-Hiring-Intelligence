@@ -5,6 +5,9 @@ import {uid,today,money} from './domain.js';
 import {ROUNDS,MODES,INTERVIEW_STATUSES,RECOMMENDATIONS,RECOMMENDATION_TONES,criteriaFor,thresholdFor,overallOf,meetsBar,templatesFor,fillTemplate} from './feedback.js';
 import {interviewAnalytics} from './analytics.js';
 import {OFFER_STATUSES,OFFER_TONES,offersSummary} from './offers.js';
+import {downloadFile} from './Candidates.jsx';
+import {icsFor,icsForInterview} from './calendar.js';
+import {offerLetterText} from './offerLetter.js';
 
 const fmtDT = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
 const fmtDay = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}); };
@@ -111,6 +114,7 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
      <InviteLink iv={iv} candidate={c} demand={d} settings={data.settings} notify={notify}/>
      <Button variant="secondary" className="small" disabled={busy} onClick={()=>setModal({type:'schedule',interview:iv})}>Reschedule</Button>
      <Button className="small" disabled={busy} onClick={()=>setModal({type:'feedback',interview:iv})}>Record outcome</Button>
+     <Button variant="ghost" className="small" disabled={busy} onClick={()=>{downloadFile(icsForInterview(iv,c,d),`interview-${(c?.name||'candidate').toLowerCase().replace(/\s+/g,'-')}.ics`,'text/calendar');notify&&notify('Calendar file downloaded.');}}>Calendar</Button>
      <Button variant="ghost" className="small" disabled={busy} onClick={()=>setStatus(iv,'No-show')}>No-show</Button>
      <Button variant="ghost" className="small" disabled={busy} onClick={()=>setStatus(iv,'Cancelled')}>Cancel</Button>
     </>:iv.status==='Completed'&&<Button variant="secondary" className="small" disabled={busy} onClick={()=>setModal({type:'feedback',interview:iv})}>Edit feedback</Button>}
@@ -119,7 +123,7 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
  };
  return <>
   <PageHeader eyebrow="SCREENING & INTERVIEWS" title="Interviews & offers" description="Schedule panels, keep outcomes structured and comparable, keep the feedback bar honest, and track offers to acceptance.">
-   <Button icon={Plus} onClick={()=>setModal({type:'schedule'})}>Schedule interview</Button>
+   <Button icon={Plus} onClick={()=>setModal({type:'schedule'})}>Schedule interview</Button><Button variant="secondary" onClick={()=>{downloadFile(icsFor(data.interviews,data.candidates,data.demands),'ecod-interviews.ics','text/calendar');notify&&notify('Calendar file downloaded - opens in Google/Outlook/Apple Calendar.');}}>Export calendar (.ics)</Button>
   </PageHeader>
   <div className="stats-grid"><Stat label="Upcoming" value={stats.upcoming} detail="Scheduled interviews ahead of the panel" icon={Clock}/>
   <Stat label="Completed" value={stats.completed} detail={`${stats.recommended} recommended (${stats.recommendRate==null?'—':stats.recommendRate+'%'})`} icon={CheckCircle2}/>
@@ -133,6 +137,7 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
   {modal?.type==='schedule'&&<ScheduleModal onClose={()=>setModal(null)} onSave={onSave} interview={modal.interview} candidates={data.candidates} demands={data.demands.filter(d=>d.status==='Open')}/>}
   {modal?.type==='feedback'&&<FeedbackModal interview={modal.interview} candidate={person(modal.interview.candidateId)} demand={demandOf(modal.interview.demandId)} settings={data.settings} onClose={()=>setModal(null)} onSave={onSave} notify={notify} audit={audit}/>}
   {modal?.type==='offer'&&<OfferModal onClose={()=>setModal(null)} onSave={onSave} offer={modal.offer} candidates={data.candidates} demands={data.demands.filter(d=>d.status==='Open')} preselect={modal.preselect||{}} notify={notify} audit={audit}/>}
+  {modal?.type==='letter'&&<LetterModal offer={modal.offer} data={data} onClose={()=>setModal(null)} notify={notify}/>}
  </>;
 }
 
@@ -192,7 +197,7 @@ export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
     {o.status==='Sent'&&<Button className="small" disabled={busy} onClick={()=>setStatus(o,'Accepted')}>Accepted</Button>}
     {o.status==='Sent'&&<Button variant="secondary" className="small" disabled={busy} onClick={()=>setStatus(o,'Rejected')}>Rejected</Button>}
     {o.status==='Sent'&&<Button variant="ghost" className="small" disabled={busy} onClick={()=>setStatus(o,'Withdrawn')}>Withdraw</Button>}
-    <Button variant="secondary" className="small" disabled={busy} onClick={()=>openModal&&openModal({type:'offer',offer:o})}>Edit</Button>
+    <Button variant="secondary" className="small" disabled={busy} onClick={()=>openModal&&openModal({type:'offer',offer:o})}>Edit</Button><Button variant="ghost" className="small" onClick={()=>openModal&&openModal({type:'letter',offer:o})}>Letter</Button>
    </div>
   </article>;
  };
@@ -200,4 +205,18 @@ export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
   <div className="iv-list">{offers.map(row)}{!offers.length&&<Empty title="No offers yet" text="Draft an offer once the panel says hire — terms, status and acceptance live on the record."/>}</div>
   {(summary.drafts>0||summary.sent>0)&&<p className="supporting-text" style={{padding:'0 24px 18px',margin:0}}>{summary.drafts} draft{summary.drafts===1?'':'s'} · {summary.sent} awaiting response{summary.acceptRate!=null?` · ${summary.acceptRate}% accepted so far`:''}</p>}
  </section>;
+}
+
+function LetterModal({offer,data,onClose,notify}){
+ const candidate=data.candidates.find(c=>c.id===offer.candidateId);
+ const demand=data.demands.find(d=>d.id===offer.demandId);
+ const letter=offerLetterText(offer,candidate,demand);
+ return <Modal title={`Offer letter — ${candidate?.name||'candidate'}`} subtitle="Generated from the offer record's terms. Print, attach or paste into your signing workflow — e-signature execution remains a server-side integration." onClose={onClose} wide>
+  <div className="modal-body"><div className="submission-preview wide"><span>Letter preview</span><pre>{letter}</pre></div></div>
+  <div className="modal-actions">
+   <Button variant="ghost" onClick={()=>{downloadFile(letter,`offer-letter-${(candidate?.name||'candidate').toLowerCase().replace(/\s+/g,'-')}.txt`,'text/plain');notify&&notify('Letter downloaded.');}}>Download letter</Button>
+   <a className="button ghost" href={`mailto:${candidate?.email||''}?subject=${encodeURIComponent(`Your offer from AnthroPrime — ${offer.role||'the role'}`)}&body=${encodeURIComponent(letter)}`} onClick={()=>notify&&notify('Email draft opened in your mail client.')}>Open email draft</a>
+   <Button variant="secondary" onClick={onClose}>Close</Button>
+  </div>
+ </Modal>;
 }

@@ -20,6 +20,9 @@ history }` — each an array of row objects with `workspace_id` stripped.
 Errors: `{ "error": "no workspace membership" }` when the caller has no membership; HTTP
 403-class permission error for `anon`.
 
+Feed ordering is deterministic: every table is returned ordered by its primary key, so a
+sync client can resume from the last seen id without ambiguity.
+
 Client example:
 
 ```js
@@ -45,7 +48,30 @@ workspace members can read or triage it (RLS: workspace read, `can_edit` triage)
 Candidates (`externalId`) and demands (`externalId`) carry free-text external mapping ids
 so external systems can keep their own keys alongside ECOD UUIDs.
 
+## `POST /rest/v1/rpc/api_changes_page` — paginated sync
+
+Same payload shape as `api_changes_since`, but each table is capped per block and the
+response carries a `next` flag:
+
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `day` | `date` | `current_date - 30` | Same window semantics as above. |
+| `page_block` | `int` | `0` | 0-based block index; block `n` skips `n × page_size` rows per table. |
+| `page_size` | `int` | `200` | Rows per table per block (min 1). |
+
+Response adds `{ since, block, size, next, …12 feeds }`. `next` is `true` while any table
+still has more rows in the window — keep calling with `page_block + 1` until it is `false`.
+`anon` is denied.
+
+```js
+let block = 0, out = [];
+for (;;) {
+  const { data } = await supabase.rpc('api_changes_page', { day: '2026-09-01', page_block: block, page_size: 200 });
+  out.push(data); if (!data.next) break; block++;
+}
+```
+
 ## Not yet provided (honest scope)
 
-Pagination (payloads are complete arrays), write endpoints beyond the public apply, and
-per-table REST resources. The RPCs above are the stable contract those will wrap.
+Write endpoints beyond the public apply, per-table REST resources, and cursor-based
+pagination. The RPCs above are the stable contract those will wrap.

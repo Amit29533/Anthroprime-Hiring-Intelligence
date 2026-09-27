@@ -120,3 +120,16 @@ export async function persistBinary(record, file) {
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
   return record;
 }
+
+
+// Defense-in-depth (§12): verify the first bytes actually look like the claimed type.
+// This is signature sniffing, NOT antivirus — real malware scanning needs a server-side
+// scanner in the storage pipeline and is documented as an open item.
+export async function contentSignatureOk(file, ext) {
+  try {
+    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    if (ext === 'pdf') return head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46; // %PDF
+    if (ext === 'docx') return head[0] === 0x50 && head[1] === 0x4B; // OOXML is a ZIP container (PK)
+    return true; // txt/md/csv are text; extraction validates readability anyway
+  } catch { return true; }
+}

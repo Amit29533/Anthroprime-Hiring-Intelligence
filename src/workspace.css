@@ -204,3 +204,5 @@
 .app-msg{margin-top:8px;font-size:13px;color:#5f7a84;max-width:520px;line-height:1.6}
 .app-flags{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 @media(max-width:760px){.apply-grid{grid-template-columns:1fr}.careers-hero h1{font-size:32px}.careers-role{padding:20px}}
+/* --- Batch 9: calendar export, offer letters, backup/restore --- */
+.backup-row{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 4px}

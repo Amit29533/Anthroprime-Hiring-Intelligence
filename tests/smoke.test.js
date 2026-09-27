@@ -39,7 +39,7 @@ test('Analytics renders quality queues, heatmap, coverage, funnel and audit pane
 test('Settings renders the admin console, merge tool and taxonomy editor', async () => {
   await init();
   const html = await render('Settings', { session: null, onReload: noop, notify: noop, audit: noop, onSave: save });
-  for (const marker of ['Administration', 'Pipeline stage labels', 'Retention policy', 'Audit log', 'Merge duplicates', 'Skill taxonomy'])
+  for (const marker of ['Administration', 'Pipeline stage labels', 'Retention policy', 'Audit log', 'Merge duplicates', 'Skill taxonomy', 'Download workspace backup (JSON)', 'Restore from backup'])
     assert.ok(html.includes(marker), `missing marker: ${marker}`);
 });
 
@@ -74,7 +74,7 @@ test('ECOD and Consent tabs render their full content', async () => {
 test('Interviews page renders stats, upcoming panel and history; profile tab lists interviews', async () => {
   await init();
   const html = await render('Interviews', { onSave: save, onOpen: noop, busy: false, notify: noop, audit: noop });
-  for (const marker of ['Schedule interview', 'Upcoming interviews', 'Past interviews', 'Average rating', 'Neha Kulkarni', 'Offers', 'New offer', 'awaiting response'])
+  for (const marker of ['Schedule interview', 'Upcoming interviews', 'Past interviews', 'Average rating', 'Neha Kulkarni', 'Offers', 'New offer', 'awaiting response', 'Export calendar (.ics)', 'Letter'])
     assert.ok(html.includes(marker), `Interviews page missing marker: ${marker}`);
   const tab = await render('CandidateProfile', {
     candidate: data.candidates[0], initialTab: 'Interviews', onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
