@@ -26,7 +26,7 @@ test('feedback model: criteria, bar, overall and template substitution',()=>{
   assert.equal(meetsBar(4.3,3.5),true);
   assert.equal(meetsBar(3.2,3.5),false);
   assert.ok(RECOMMENDATIONS.includes('Strong hire')&&RECOMMENDATIONS.includes('No hire'));
-  assert.equal(templatesFor([]).length,3,'three seeded templates');
+  assert.equal(templatesFor([]).length,4,'invite, follow-up, rejection, offer');
   const ctx={name:'Aarav',demand:'Senior Databricks Architect (Meridian)',round:'Round 2',mode:'Video',date:'Mon 29 Sep',time:'11:00'};
   assert.equal(fillTemplate('Hi {name}, {round} for {demand} on {date} at {time}. {missing} stays.',ctx),
     'Hi Aarav, Round 2 for Senior Databricks Architect (Meridian) on Mon 29 Sep at 11:00.  stays.');

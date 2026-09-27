@@ -1,9 +1,10 @@
 import React,{useState} from 'react';
 import {CalendarClock,Video,Phone,MapPin,CheckCircle2,XCircle,Clock,MailPlus,Plus} from 'lucide-react';
 import {PageHeader,Button,Field,Modal,Badge,Empty,PanelHeading,Stat,Avatar} from './ui.jsx';
-import {uid,today} from './domain.js';
+import {uid,today,money} from './domain.js';
 import {ROUNDS,MODES,INTERVIEW_STATUSES,RECOMMENDATIONS,RECOMMENDATION_TONES,criteriaFor,thresholdFor,overallOf,meetsBar,templatesFor,fillTemplate} from './feedback.js';
 import {interviewAnalytics} from './analytics.js';
+import {OFFER_STATUSES,OFFER_TONES,offersSummary} from './offers.js';
 
 const fmtDT = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
 const fmtDay = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}); };
@@ -78,11 +79,12 @@ function InviteLink({iv,candidate,demand,settings,notify}){
 }
 
 export function Interviews({data,onSave,onOpen,busy,notify,audit}){
- const [modal,setModal]=useState(null); // {type:'schedule',interview?} | {type:'feedback',interview}
+ const [modal,setModal]=useState(null); // {type:'schedule'|'feedback'|'offer', ...}
  const ivs=[...data.interviews].sort((a,b)=>new Date(a.scheduledAt)-new Date(b.scheduledAt));
  const upcoming=ivs.filter(iv=>iv.status==='Scheduled'&&new Date(iv.scheduledAt)>=new Date(Date.now()-12*3600000));
  const past=[...ivs].filter(iv=>iv.status!=='Scheduled').sort((a,b)=>new Date(b.scheduledAt)-new Date(a.scheduledAt));
  const stats=interviewAnalytics(data.interviews,thresholdFor(data.settings));
+ const offers=offersSummary(data.offers);
  const person= id => data.candidates.find(c=>c.id===id);
  const demandOf= id => data.demands.find(d=>d.id===id);
  async function setStatus(iv,status){
@@ -116,16 +118,86 @@ export function Interviews({data,onSave,onOpen,busy,notify,audit}){
   </article>;
  };
  return <>
-  <PageHeader eyebrow="SCREENING & INTERVIEWS" title="Interviews" description="Schedule panels, keep outcomes structured and comparable, and keep the feedback bar honest.">
+  <PageHeader eyebrow="SCREENING & INTERVIEWS" title="Interviews & offers" description="Schedule panels, keep outcomes structured and comparable, keep the feedback bar honest, and track offers to acceptance.">
    <Button icon={Plus} onClick={()=>setModal({type:'schedule'})}>Schedule interview</Button>
   </PageHeader>
   <div className="stats-grid"><Stat label="Upcoming" value={stats.upcoming} detail="Scheduled interviews ahead of the panel" icon={Clock}/>
   <Stat label="Completed" value={stats.completed} detail={`${stats.recommended} recommended (${stats.recommendRate==null?'—':stats.recommendRate+'%'})`} icon={CheckCircle2}/>
   <Stat label="Average rating" value={stats.avgOverall??'—'} detail={`${stats.aboveBar} above the feedback bar`} icon={CalendarClock}/>
-  <Stat label="Cancelled / no-show" value={stats.cancelled+stats.noShow} detail={`${stats.cancelled} cancelled · ${stats.noShow} no-shows`} icon={XCircle}/></div>
+  <Stat label="Cancelled / no-show" value={stats.cancelled+stats.noShow} detail={`${stats.cancelled} cancelled · ${stats.noShow} no-shows`} icon={XCircle}/>
+  <Stat label="Open offers" value={offers.open} detail={`${offers.sent} awaiting response · ${offers.drafts} drafts`} icon={CalendarClock}/>
+  <Stat label="Accepted offers" value={offers.accepted} detail={offers.acceptRate==null?'No decisions yet':offers.acceptRate+'% acceptance rate'} icon={CheckCircle2}/></div>
   <section className="panel"><PanelHeading title="Upcoming interviews" subtitle="The next panels on the calendar, with invite drafts and outcome capture ready"/><div className="iv-list">{upcoming.map(iv=>row(iv,true))}{!upcoming.length&&<Empty title="Nothing scheduled" text="Schedule an interview to see it here with invite drafts and outcome actions."/>}</div></section>
   <section className="panel"><PanelHeading title="Past interviews" subtitle="Completed, cancelled and no-show interviews with recorded feedback"/><div className="iv-list">{past.map(iv=>row(iv,false))}{!past.length&&<Empty title="No history yet" text="Completed interviews and their feedback will appear here."/>}</div></section>
+  <OffersSection data={data} onSave={onSave} onOpen={onOpen} busy={busy} notify={notify} audit={audit} openModal={setModal}/>
   {modal?.type==='schedule'&&<ScheduleModal onClose={()=>setModal(null)} onSave={onSave} interview={modal.interview} candidates={data.candidates} demands={data.demands.filter(d=>d.status==='Open')}/>}
   {modal?.type==='feedback'&&<FeedbackModal interview={modal.interview} candidate={person(modal.interview.candidateId)} demand={demandOf(modal.interview.demandId)} settings={data.settings} onClose={()=>setModal(null)} onSave={onSave} notify={notify} audit={audit}/>}
+  {modal?.type==='offer'&&<OfferModal onClose={()=>setModal(null)} onSave={onSave} offer={modal.offer} candidates={data.candidates} demands={data.demands.filter(d=>d.status==='Open')} preselect={modal.preselect||{}} notify={notify} audit={audit}/>}
  </>;
+}
+
+function offerDraftHref(o,candidate,demand,settings){
+ const tpl=templatesFor(settings).find(t=>t.name==='Offer')||templatesFor(settings)[0];
+ const ctx={name:candidate?.name||'there',demand:demand?`${demand.title} (${demand.client})`:o.role||'the role',mode:demand?.mode||'',location:o.location||demand?.location||'',ctc:o.ctc?`${money(o.ctc)} LPA`:'the package in your letter',date:o.joining?new Date(o.joining).toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}):'a date we will confirm'};
+ return `mailto:${candidate?.email||''}?subject=${encodeURIComponent(fillTemplate(tpl.subject,ctx))}&body=${encodeURIComponent(fillTemplate(tpl.body,ctx))}`;
+}
+
+export function OfferModal({onClose,onSave,offer=null,candidates,demands,preselect={},notify,audit}){
+ const [form,setForm]=useState(offer||{
+  candidateId:preselect.candidateId||'',demandId:preselect.demandId||'',role:preselect.role||'',location:preselect.location||'',ctc:'',joining:'',notes:''
+ });
+ const [error,setError]=useState('');
+ async function submit(e){
+  e.preventDefault();
+  if(!form.candidateId)return setError('Select the candidate receiving the offer.');
+  if(form.ctc===''||isNaN(Number(form.ctc)))return setError('Enter the annual package in rupee lakh per annum.');
+  const record={...form,ctc:Number(form.ctc),id:offer?.id||uid(),status:offer?.status||'Draft',sentDate:offer?.sentDate||null,decidedDate:offer?.decidedDate||null,created:offer?.created||today()};
+  if(await onSave('offers',[record])){notify&&notify(offer?'Offer updated.':'Offer drafted.');audit&&audit({entityType:'offer',entityId:record.id,action:'updated',detail:`${offer?'Updated':'Created'} ${record.status} offer`});onClose();}
+ }
+ return <Modal title={offer?'Edit offer':'Create an offer'} subtitle="Terms live on the offer record; the letter itself follows from your team. E-signature is out of scope for this release." onClose={onClose}>
+  <form onSubmit={submit}><div className="modal-body form-grid">
+   <Field label="Candidate *"><select value={form.candidateId} onChange={e=>setForm({...form,candidateId:e.target.value})}><option value="">Select a candidate…</option>{[...candidates].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name} · {c.title}</option>)}</select></Field>
+   <Field label="Demand"><select value={form.demandId||''} onChange={e=>{const d=demands.find(x=>x.id===e.target.value);setForm({...form,demandId:e.target.value,role:form.role||(d?.title||''),location:form.location||(d?.location||'')});}}><option value="">Not linked to a demand</option>{demands.map(d=><option key={d.id} value={d.id}>{d.title} · {d.client}</option>)}</select></Field>
+   <Field label="Role on offer"><input value={form.role} onChange={e=>setForm({...form,role:e.target.value})} placeholder="Defaults to the demand title"/></Field>
+   <Field label="Location"><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Bengaluru"/></Field>
+   <Field label="Annual package (₹ LPA) *"><input type="number" min="0" step="0.1" value={form.ctc} onChange={e=>setForm({...form,ctc:e.target.value})} placeholder="31"/></Field>
+   <Field label="Joining date"><input type="date" value={form.joining||''} onChange={e=>setForm({...form,joining:e.target.value})}/></Field>
+   <Field label="Notes" wide><textarea rows={3} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Terms discussed, conditions, sign-offs…"/></Field>
+   {error&&<p className="form-error wide">{error}</p>}
+  </div><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit">{offer?'Save offer':'Draft offer'}</Button></div></form>
+ </Modal>;
+}
+
+export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
+ const offers=[...data.offers].sort((a,b)=>(a.status===b.status?0:a.status==='Sent'?-1:b.status==='Sent'?1:(a.created||'').localeCompare(b.created||'')));
+ const summary=offersSummary(data.offers);
+ const person=id=>data.candidates.find(c=>c.id===id);
+ const demandOf=id=>data.demands.find(d=>d.id===id);
+ async function setStatus(o,status){
+  if(status!=='Accepted'&&!window.confirm(`Mark this offer as ${status}?`))return;
+  const patch={...o,status};
+  if(status==='Sent')patch.sentDate=today();
+  if(['Accepted','Rejected','Withdrawn'].includes(status))patch.decidedDate=today();
+  if(await onSave('offers',[patch])){notify&&notify(`Offer marked ${status}.`);audit&&audit({entityType:'offer',entityId:o.id,action:'updated',detail:`Offer ${status}`});}
+ }
+ const row=o=>{
+  const c=person(o.candidateId),d=demandOf(o.demandId);
+  return <article className="iv-row offer-row" key={o.id}>
+   <div className="iv-who">{c&&<button className="person" onClick={()=>onOpen(c.id)}><Avatar name={c.name} size="small"/><span><strong>{c.name}</strong><small>{o.role||d?.title||'Offer'}{d?` · ${d.client}`:''}</small></span></button>}{!c&&<span className="muted">Candidate removed</span>}
+    <small className="iv-notes">{o.ctc!=null?`${money(o.ctc)} LPA`:'Package in letter'}{o.joining?` · joining ${new Date(o.joining).toLocaleDateString(undefined,{day:'numeric',month:'short'})}`:''}{o.notes?` · ${o.notes}`:''}</small></div>
+   <div className="iv-state"><Badge tone={OFFER_TONES[o.status]||'gray'}>{o.status}</Badge>{o.sentDate&&o.status!=='Draft'&&<small className="iv-notes">sent {o.sentDate}</small>}{o.decidedDate&&<small className="iv-notes">decided {o.decidedDate}</small>}</div>
+   <div className="iv-actions">
+    {c&&<a className="button ghost small" href={offerDraftHref(o,c,d,data.settings)} onClick={()=>notify&&notify('Offer draft opened in your mail client.')}><MailPlus size={14}/>Draft email</a>}
+    {o.status==='Draft'&&<Button className="small" disabled={busy} onClick={()=>setStatus(o,'Sent')}>Mark sent</Button>}
+    {o.status==='Sent'&&<Button className="small" disabled={busy} onClick={()=>setStatus(o,'Accepted')}>Accepted</Button>}
+    {o.status==='Sent'&&<Button variant="secondary" className="small" disabled={busy} onClick={()=>setStatus(o,'Rejected')}>Rejected</Button>}
+    {o.status==='Sent'&&<Button variant="ghost" className="small" disabled={busy} onClick={()=>setStatus(o,'Withdrawn')}>Withdraw</Button>}
+    <Button variant="secondary" className="small" disabled={busy} onClick={()=>openModal&&openModal({type:'offer',offer:o})}>Edit</Button>
+   </div>
+  </article>;
+ };
+ return <section className="panel"><PanelHeading title="Offers" subtitle="Draft, send and track offers to acceptance" action={<Button icon={Plus} className="small" onClick={()=>openModal&&openModal({type:'offer'})}>New offer</Button>}/>
+  <div className="iv-list">{offers.map(row)}{!offers.length&&<Empty title="No offers yet" text="Draft an offer once the panel says hire — terms, status and acceptance live on the record."/>}</div>
+  {(summary.drafts>0||summary.sent>0)&&<p className="supporting-text" style={{padding:'0 24px 18px',margin:0}}>{summary.drafts} draft{summary.drafts===1?'':'s'} · {summary.sent} awaiting response{summary.acceptRate!=null?` · ${summary.acceptRate}% accepted so far`:''}</p>}
+ </section>;
 }

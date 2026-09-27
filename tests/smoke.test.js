@@ -74,7 +74,7 @@ test('ECOD and Consent tabs render their full content', async () => {
 test('Interviews page renders stats, upcoming panel and history; profile tab lists interviews', async () => {
   await init();
   const html = await render('Interviews', { onSave: save, onOpen: noop, busy: false, notify: noop, audit: noop });
-  for (const marker of ['Schedule interview', 'Upcoming interviews', 'Past interviews', 'Average rating', 'Neha Kulkarni'])
+  for (const marker of ['Schedule interview', 'Upcoming interviews', 'Past interviews', 'Average rating', 'Neha Kulkarni', 'Offers', 'New offer', 'awaiting response'])
     assert.ok(html.includes(marker), `Interviews page missing marker: ${marker}`);
   const tab = await render('CandidateProfile', {
     candidate: data.candidates[0], initialTab: 'Interviews', onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
@@ -88,6 +88,27 @@ test('Interviews page renders stats, upcoming panel and history; profile tab lis
   });
   for (const marker of ['Technical depth', 'Recommendation', 'the bar'])
     assert.ok(fb.includes(marker), `FeedbackModal missing marker: ${marker}`);
+});
+
+test('Offers and tasks render; custom fields appear on forms, profiles and demand briefs', async () => {
+  await init();
+  const acts = await render('Activities', { onOpen: noop, onSave: save, busy: false });
+  for (const marker of ['Tasks', 'Add task', 'Call Priya about the Meridian architecture panel'])
+    assert.ok(acts.includes(marker), `Activities missing marker: ${marker}`);
+  const profile = await render('CandidateProfile', {
+    candidate: data.candidates[5], initialTab: 'Applications', onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
+  });
+  for (const marker of ['Create offer', 'Offer \u00b7', '31'])
+    assert.ok(profile.includes(marker), `profile applications tab missing: ${marker}`);
+  const cform = await render('CandidateForm', { candidate: null, onClose: noop, onSave: save, busy: false });
+  assert.ok(cform.includes('Background check'), 'candidate form renders admin-defined custom fields');
+  const dform = await render('DemandForm', { demand: data.demands[0], onClose: noop, onSave: save, onCreated: noop, busy: false });
+  assert.ok(dform.includes('Billing rate'), 'demand form renders admin-defined custom fields');
+  const detail = await render('DemandDetail', {
+    demand: data.demands[0], onBack: noop, onEdit: noop, onOpenCandidate: noop, onShortlist: noop,
+    onPipeline: noop, onEnrich: noop, onSave: save, busy: false
+  });
+  assert.ok(detail.includes('Raise an offer'), 'demand detail has the offers panel');
 });
 
 test('Demand form renders per-skill minimums and stage-set picker for an existing demand', async () => {

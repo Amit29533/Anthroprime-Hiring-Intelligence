@@ -33,7 +33,8 @@ export const meetsBar = (overall, threshold) => overall != null && overall >= th
 export const DEFAULT_TEMPLATES = [
   { name: 'Interview invite', subject: 'Interview invitation — {demand}', body: 'Hi {name},\n\nGreat speaking with you. We would like to invite you to a {mode} interview ({round}) for the {demand} role on {date} at {time} (IST).\n\nPlease reply to confirm, or suggest another slot if this does not work.\n\nWarm regards,\nAnthroPrime Talent Team' },
   { name: 'Follow-up', subject: 'Following up — {demand}', body: 'Hi {name},\n\nJust following up on our conversation about the {demand} role. Is there anything you need from us in the meantime?\n\nWarm regards,\nAnthroPrime Talent Team' },
-  { name: 'Rejection', subject: 'Update on your application — {demand}', body: 'Hi {name},\n\nThank you for taking the time to interview for the {demand} role. After careful consideration we have decided not to move forward at this point. We would like to keep your profile on file for future roles that may fit better.\n\nWarm regards,\nAnthroPrime Talent Team' }
+  { name: 'Rejection', subject: 'Update on your application — {demand}', body: 'Hi {name},\n\nThank you for taking the time to interview for the {demand} role. After careful consideration we have decided not to move forward at this point. We would like to keep your profile on file for future roles that may fit better.\n\nWarm regards,\nAnthroPrime Talent Team' },
+  { name: 'Offer', subject: 'Your offer from AnthroPrime — {demand}', body: 'Hi {name},\n\nWe are delighted to offer you the {demand} role ({mode} in {location}), with an annual package of {ctc} and a start date of {date}. Your offer letter with the full terms follows from our team.\n\nPlease reply to confirm, and reach out with any questions.\n\nWarm regards,\nAnthroPrime Talent Team' }
 ];
 
 export const templatesFor = settings => {

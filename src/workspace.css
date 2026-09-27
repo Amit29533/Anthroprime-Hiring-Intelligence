@@ -136,3 +136,18 @@
 .tpl-card .field>span{font-size:11px}
 .tpl-actions{display:flex;gap:10px;margin-bottom:14px}
 @media(max-width:760px){.iv-row{flex-direction:column;align-items:flex-start}.feedback-grid{grid-template-columns:1fr}.iv-actions{width:100%}}
+/* --- Batch 6: offers, tasks, custom fields --- */
+.offer-line{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #edf1f3;font-size:13px}
+.offer-line:last-of-type{border-bottom:0}
+.task-panel{margin-top:24px}
+.task-add{display:flex;gap:10px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid #e9efec}
+.task-add input[type=text],.task-add input:not([type]){flex:2;min-width:180px}
+.task-add input[type=date]{flex:1;min-width:120px}
+.task-add select{flex:1;min-width:130px;font-size:13px}
+.task-list{display:flex;flex-direction:column}
+.task-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 24px;border-bottom:1px solid #edf1f3}
+.task-row:last-child{border-bottom:0}
+.task-row>label{display:flex;align-items:center;gap:11px;font-size:14px;color:#425c66;flex:1}
+.task-row.done>label span{text-decoration:line-through;color:#9daeb6}
+.task-meta{display:flex;align-items:center;gap:12px}
+.task-meta small{color:#8498a0;font-size:12px}
