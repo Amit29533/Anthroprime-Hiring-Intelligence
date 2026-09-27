@@ -151,3 +151,15 @@
 .task-row.done>label span{text-decoration:line-through;color:#9daeb6}
 .task-meta{display:flex;align-items:center;gap:12px}
 .task-meta small{color:#8498a0;font-size:12px}
+/* --- Batch 7: client submissions, similar talent --- */
+.submission-consent{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:7px;font-size:13px;grid-column:1/-1}
+.submission-consent.ok{background:#e4f1e9;color:#2c7a5c}
+.submission-consent.warn{background:#f6efdd;color:#97793d}
+.submission-preview{border:1px solid #e3ebee;border-radius:8px;background:#f9fbfc;padding:14px}
+.submission-preview>span{font-size:11px;color:#8498a0;text-transform:uppercase;letter-spacing:.4px}
+.submission-preview pre{white-space:pre-wrap;font-size:12px;line-height:1.7;color:#425c66;max-height:260px;overflow-y:auto;margin:8px 0 0}
+.similar-list{display:flex;flex-direction:column}
+.similar-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #edf1f3}
+.similar-row:last-child{border-bottom:0}
+.similar-row b{color:#2c7a5c;font-size:14px}
+.similar-shared{font-size:12px;color:#7e919a;flex:1;text-align:right}

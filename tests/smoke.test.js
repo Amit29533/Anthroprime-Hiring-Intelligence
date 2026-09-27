@@ -109,6 +109,24 @@ test('Offers and tasks render; custom fields appear on forms, profiles and deman
     onPipeline: noop, onEnrich: noop, onSave: save, busy: false
   });
   assert.ok(detail.includes('Raise an offer'), 'demand detail has the offers panel');
+  assert.ok(detail.includes('Client submissions'), 'demand detail has the submissions panel');
+  assert.ok(detail.includes('Demand owner'), 'demand brief shows the owner');
+  const overview = await render('CandidateProfile', {
+    candidate: data.candidates[0], onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
+  });
+  assert.ok(overview.includes('Similar talent in your repository'), 'profile shows similar talent');
+});
+
+test('Submission modal compiles the pack with a consent gate', async () => {
+  await init();
+  const sm = await server.ssrLoadModule('/src/Demands.jsx');
+  const modal = renderToString(React.createElement(sm.SubmissionModal, {
+    demand: data.demands[1], data, onClose: noop, onSave: save, busy: false, audit: noop
+  }));
+  for (const marker of ['Prepare client submission', 'Client contact', 'Pack preview', 'Profile-sharing consent', 'Log submission'])
+    assert.ok(modal.includes(marker), `SubmissionModal missing marker: ${marker}`);
+  const pre = modal.slice(modal.indexOf('<pre'), modal.indexOf('</pre>'));
+  assert.ok(pre.length > 200 && !pre.includes('Current CTC') && !pre.includes('\u20B9' + data.candidates[4].current + ' '), 'pack preview never shows current CTC');
 });
 
 test('Demand form renders per-skill minimums and stage-set picker for an existing demand', async () => {
