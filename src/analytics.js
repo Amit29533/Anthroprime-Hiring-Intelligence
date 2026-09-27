@@ -59,3 +59,20 @@ export function upliftConversion(candidates, assessments, enrichment) {
 export function clientFunnel(considerations) {
   return ['Submitted','Interview','Offer','Deployed'].map(stage => ({ stage, count: considerations.filter(a => a.stage === stage).length }));
 }
+
+export function interviewAnalytics(interviews = [], threshold = 3.5) {
+  const overall = iv => { const vals = Object.values(iv.feedback || {}).filter(v => typeof v === 'number'); return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null; };
+  const upcoming = interviews.filter(iv => iv.status === 'Scheduled').length;
+  const completed = interviews.filter(iv => iv.status === 'Completed');
+  const recommended = completed.filter(iv => iv.recommendation === 'Strong hire' || iv.recommendation === 'Hire');
+  const overalls = completed.map(overall).filter(v => v != null);
+  const byRec = {};
+  for (const iv of completed) byRec[iv.recommendation || 'Pending'] = (byRec[iv.recommendation || 'Pending'] || 0) + 1;
+  return {
+    upcoming, completed: completed.length, cancelled: interviews.filter(iv => iv.status === 'Cancelled').length,
+    noShow: interviews.filter(iv => iv.status === 'No-show').length,
+    recommended: recommended.length, recommendRate: completed.length ? Math.round(recommended.length / completed.length * 100) : null,
+    avgOverall: overalls.length ? Math.round(overalls.reduce((a, b) => a + b, 0) / overalls.length * 10) / 10 : null,
+    aboveBar: overalls.filter(v => v >= threshold).length, byRec
+  };
+}

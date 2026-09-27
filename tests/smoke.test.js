@@ -9,6 +9,7 @@ async function init() {
   if (M) return;
   server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
   const W = await server.ssrLoadModule('/src/Workflows.jsx');
+  const IV = await server.ssrLoadModule('/src/Interviews.jsx');
   const C = await server.ssrLoadModule('/src/Candidates.jsx');
   const D = await server.ssrLoadModule('/src/Demands.jsx');
   M = {
@@ -16,6 +17,7 @@ async function init() {
     App: (await server.ssrLoadModule('/src/App.jsx')).default,
     makeSeed: (await server.ssrLoadModule('/src/seed.js')).makeSeed,
     Assessments: W.Assessments, Activities: W.Activities, Pools: W.Pools, Analytics: W.Analytics, Settings: W.Settings,
+    Interviews: IV.Interviews, ScheduleModal: IV.ScheduleModal, FeedbackModal: IV.FeedbackModal,
     Candidates: C.Candidates, CandidateForm: C.CandidateForm, CandidateProfile: C.CandidateProfile,
     DemandForm: D.DemandForm, Demands: D.Demands, DemandDetail: D.DemandDetail, Pipeline: D.Pipeline
   };
@@ -55,7 +57,7 @@ test('Candidate profile renders all nine tabs including ECOD and Consent & priva
   const html = await render('CandidateProfile', {
     candidate: data.candidates[0], onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
   });
-  for (const marker of ['ECOD', 'Consent &amp; privacy', 'Employment', 'Documents', 'History'])
+  for (const marker of ['ECOD', 'Interviews', 'Consent &amp; privacy', 'Employment', 'Documents', 'History'])
     assert.ok(html.includes(marker), `missing marker: ${marker}`);
 });
 
@@ -67,6 +69,25 @@ test('ECOD and Consent tabs render their full content', async () => {
   const consent = await render('CandidateProfile', { candidate: data.candidates[0], initialTab: 'Consent & privacy', onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop });
   for (const marker of ['recruiting-contact', 'Notice version', 'Record consent', "Export this profile"])
     assert.ok(consent.includes(marker), `Consent tab missing marker: ${marker}`);
+});
+
+test('Interviews page renders stats, upcoming panel and history; profile tab lists interviews', async () => {
+  await init();
+  const html = await render('Interviews', { onSave: save, onOpen: noop, busy: false, notify: noop, audit: noop });
+  for (const marker of ['Schedule interview', 'Upcoming interviews', 'Past interviews', 'Average rating', 'Neha Kulkarni'])
+    assert.ok(html.includes(marker), `Interviews page missing marker: ${marker}`);
+  const tab = await render('CandidateProfile', {
+    candidate: data.candidates[0], initialTab: 'Interviews', onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
+  });
+  assert.ok(tab.includes('iv-row'), 'profile interviews tab lists rows');
+  const modal = await render('ScheduleModal', { onClose: noop, onSave: save, candidates: data.candidates, demands: data.demands.filter(d => d.status === 'Open') });
+  for (const marker of ['Candidate', 'Round', 'Interviewers', 'Schedule interview'])
+    assert.ok(modal.includes(marker), `ScheduleModal missing marker: ${marker}`);
+  const fb = await render('FeedbackModal', {
+    interview: data.interviews.find(i => i.status === 'Scheduled'), candidate: data.candidates[0], demand: data.demands[0], settings: data.settings, onClose: noop, onSave: save
+  });
+  for (const marker of ['Technical depth', 'Recommendation', 'the bar'])
+    assert.ok(fb.includes(marker), `FeedbackModal missing marker: ${marker}`);
 });
 
 test('Demand form renders per-skill minimums and stage-set picker for an existing demand', async () => {

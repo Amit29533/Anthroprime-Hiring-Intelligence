@@ -108,3 +108,31 @@
 .per-skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
 .stage-set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
 @media(max-width:760px){.consent-form{grid-template-columns:1fr 1fr}.coverage-row{flex-wrap:wrap}.per-skill-grid,.stage-set-grid{grid-template-columns:1fr 1fr}}
+/* --- Batch 5: interviews module, feedback forms, tags, email templates --- */
+.iv-list{display:flex;flex-direction:column;padding:6px 24px 24px}
+.iv-row{display:flex;align-items:center;gap:18px;padding:17px 0;border-bottom:1px solid #e9efec;flex-wrap:wrap}
+.iv-row:last-child{border-bottom:0}
+.iv-when{display:flex;flex-direction:column;gap:5px;min-width:150px;color:#425c66}
+.iv-when strong{font-size:13px;font-weight:550}
+.iv-when span{font-size:12px;color:#8498a0}
+.iv-who{flex:1;min-width:220px}
+.iv-who small{color:#7e919a;font-size:12px}
+.iv-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iv-meta small{color:#8498a0}
+.iv-notes{display:block;margin-top:6px;color:#95a3ab;font-size:12px;line-height:1.6}
+.iv-state{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:170px}
+.iv-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iv-row.compact{padding:14px 0}
+.feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.feedback-overall{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:7px;margin-bottom:16px;font-size:13px}
+.feedback-overall strong{font-size:22px}
+.feedback-overall.on-bar{background:#e4f1e9;color:#2c7a5c}
+.feedback-overall.below-bar{background:#f6efdd;color:#97793d}
+.tag-chip{display:inline-flex;align-items:center;border:1px solid #cfe3d9;background:#eef6f1;color:#2c7a5c;border-radius:999px;padding:3px 10px;font-size:11px;white-space:nowrap}
+.demand-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.demand-tags>span{font-size:11px;color:#8498a0;text-transform:uppercase;letter-spacing:.4px}
+.tpl-list{display:flex;flex-direction:column;gap:14px;margin:12px 0}
+.tpl-card{border:1px solid #e3ebee;border-radius:8px;padding:14px;display:grid;gap:10px;background:#f9fbfc}
+.tpl-card .field>span{font-size:11px}
+.tpl-actions{display:flex;gap:10px;margin-bottom:14px}
+@media(max-width:760px){.iv-row{flex-direction:column;align-items:flex-start}.feedback-grid{grid-template-columns:1fr}.iv-actions{width:100%}}
