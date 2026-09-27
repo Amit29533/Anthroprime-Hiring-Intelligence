@@ -8,6 +8,7 @@ import {OFFER_STATUSES,OFFER_TONES,offersSummary} from './offers.js';
 import {downloadFile} from './Candidates.jsx';
 import {icsFor,icsForInterview,parseICS,interviewDraftFromEvent} from './calendar.js';
 import {offerLetterText} from './offerLetter.js';
+import {getRole} from './repository.js';
 
 const fmtDT = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
 const fmtDay = iso => { const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}); };
@@ -175,6 +176,8 @@ export function OfferModal({onClose,onSave,offer=null,candidates,demands,presele
 }
 
 export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
+ const approvalsOn=!!((data.settings.find(r=>r&&r.id==='workspace')?.custom)||{}).offerApprovals;
+ const admin=getRole()==='admin';
  const offers=[...data.offers].sort((a,b)=>(a.status===b.status?0:a.status==='Sent'?-1:b.status==='Sent'?1:(a.created||'').localeCompare(b.created||'')));
  const summary=offersSummary(data.offers);
  const person=id=>data.candidates.find(c=>c.id===id);
@@ -188,6 +191,9 @@ export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
  }
  const row=o=>{
   const c=person(o.candidateId),d=demandOf(o.demandId);
+  const pending=o.status==='Pending approval';
+  const editHidden=pending&&!admin;
+  const draftApprovals=approvalsOn&&o.status==='Draft';
   return <article className="iv-row offer-row" key={o.id}>
    <div className="iv-who">{c&&<button className="person" onClick={()=>onOpen(c.id)}><Avatar name={c.name} size="small"/><span><strong>{c.name}</strong><small>{o.role||d?.title||'Offer'}{d?` · ${d.client}`:''}</small></span></button>}{!c&&<span className="muted">Candidate removed</span>}
     <small className="iv-notes">{o.ctc!=null?`${money(o.ctc)} LPA`:'Package in letter'}{o.joining?` · joining ${new Date(o.joining).toLocaleDateString(undefined,{day:'numeric',month:'short'})}`:''}{o.notes?` · ${o.notes}`:''}</small></div>
@@ -198,7 +204,7 @@ export function OffersSection({data,onSave,onOpen,busy,notify,audit,openModal}){
     {o.status==='Sent'&&<Button className="small" disabled={busy} onClick={()=>setStatus(o,'Accepted')}>Accepted</Button>}
     {o.status==='Sent'&&<Button variant="secondary" className="small" disabled={busy} onClick={()=>setStatus(o,'Rejected')}>Rejected</Button>}
     {o.status==='Sent'&&<Button variant="ghost" className="small" disabled={busy} onClick={()=>setStatus(o,'Withdrawn')}>Withdraw</Button>}
-    <Button variant="secondary" className="small" disabled={busy} onClick={()=>openModal&&openModal({type:'offer',offer:o})}>Edit</Button><Button variant="ghost" className="small" onClick={()=>openModal&&openModal({type:'letter',offer:o})}>Letter</Button>
+    {!pending&&!editHidden&&<Button variant="secondary" className="small" disabled={busy} onClick={()=>openModal&&openModal({type:'offer',offer:o})}>Edit</Button>}{pending&&admin&&<Button className="small" disabled={busy} onClick={async()=>{if(await onSave('offers',[{...o,status:'Draft'}])){notify&&notify(`Offer approved — you can send it now.`);audit&&audit({entityType:'offers',entityId:o.id,action:'updated',detail:'Offer approved (Pending approval → Draft)'});}}}>Approve</Button>}{pending&&!admin&&<span className="supporting-text">Awaiting admin approval</span>}{draftApprovals&&<Button variant="ghost" className="small" disabled={busy} onClick={async()=>{if(await onSave('offers',[{...o,status:'Pending approval'}])){notify&&notify('Offer submitted for approval.');audit&&audit({entityType:'offers',entityId:o.id,action:'updated',detail:'Offer submitted for approval'});}}}>Submit for approval</Button>}<Button variant="ghost" className="small" onClick={()=>openModal&&openModal({type:'letter',offer:o})}>Letter</Button>
    </div>
   </article>;
  };

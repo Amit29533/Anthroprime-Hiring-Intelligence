@@ -20,7 +20,7 @@ test('offers and tasks are first-class tables with normalize defaults',()=>{
 });
 
 test('offer lifecycle helpers compute the summary honestly',()=>{
-  assert.deepEqual(OFFER_STATUSES,['Draft','Sent','Accepted','Rejected','Withdrawn']);
+  assert.deepEqual(OFFER_STATUSES,['Draft','Pending approval','Sent','Accepted','Rejected','Withdrawn']);
   assert.equal(OFFER_TONES.Accepted,'green');
   assert.equal(offerIsOpen({status:'Sent'}),true);
   assert.equal(offerIsOpen({status:'Rejected'}),false);

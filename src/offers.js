@@ -1,8 +1,8 @@
 // Offer module — Zoho G1 equivalent, scoped honestly: offer records with terms, a
 // Draft → Sent → decision lifecycle and mail-client drafts. E-signature and PDF
 // generation are explicitly out of scope for this release.
-export const OFFER_STATUSES = ['Draft', 'Sent', 'Accepted', 'Rejected', 'Withdrawn'];
-export const OFFER_TONES = { Draft: 'gray', Sent: 'blue', Accepted: 'green', Rejected: 'red', Withdrawn: 'gray' };
+export const OFFER_STATUSES = ['Draft', 'Pending approval', 'Sent', 'Accepted', 'Rejected', 'Withdrawn'];
+export const OFFER_TONES = { Draft: 'gray', 'Pending approval': 'amber', Sent: 'blue', Accepted: 'green', Rejected: 'red', Withdrawn: 'gray' };
 export const OPEN_OFFER_STATUSES = ['Draft', 'Sent'];
 
 export const offerIsOpen = offer => OPEN_OFFER_STATUSES.includes(offer.status);

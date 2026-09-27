@@ -255,6 +255,8 @@ function AdminPanel({data,onSave,notify,audit}){
  const [months,setMonths]=useState(custom.retentionMonths??12);
  const [bar,setBar]=useState(custom.feedbackThreshold??3.5);
  const [crit,setCrit]=useState(()=>Array.isArray(custom.feedbackCriteria)&&custom.feedbackCriteria.length?custom.feedbackCriteria.join(', '):DEFAULT_CRITERIA.join(', '));
+ const [coolingDays,setCoolingDays]=useState(custom.coolingOffDays??30);
+ const [approvals,setApprovals]=useState(!!custom.offerApprovals);
  const [tpls,setTpls]=useState(()=>templatesFor(data.settings).map(t=>({...t})));
  const [busy,setBusy]=useState(false);
  const due=retentionDue(data.candidates,months);
@@ -279,6 +281,11 @@ function AdminPanel({data,onSave,notify,audit}){
  <p className="supporting-text">Drafts for invites and follow-ups, composed in your mail client. Placeholders: {'{name} {demand} {round} {mode} {date} {time}'}.</p>
  <div className="tpl-list">{tpls.map((t,i)=><div key={i} className="tpl-card"><Field label="Name"><input value={t.name} onChange={e=>{const next=[...tpls];next[i]={...t,name:e.target.value};setTpls(next);}}/></Field><Field label="Subject"><input value={t.subject} onChange={e=>{const next=[...tpls];next[i]={...t,subject:e.target.value};setTpls(next);}}/></Field><Field label="Body"><textarea rows={4} value={t.body} onChange={e=>{const next=[...tpls];next[i]={...t,body:e.target.value};setTpls(next);}}/></Field><Button variant="ghost" className="small" disabled={busy} onClick={()=>setTpls(tpls.filter((_,j)=>j!==i))}>Remove template</Button></div>)}</div>
  <div className="tpl-actions"><Button className="small" disabled={busy} onClick={()=>setTpls([...tpls,{name:'New template',subject:'',body:''}])}>Add template</Button><Button className="small" disabled={busy} onClick={async()=>{if(await onSave('settings',[{id:'workspace',custom:{...custom,emailTemplates:tpls.filter(t=>t.name.trim())}}]))notify('Email templates saved.');}}>Save templates</Button></div>
+ <h3 className="history-heading">Fair-process guardrails</h3>
+ <div className="retention-row"><Field label="Cooling-off after a client rejection (days)"><input type="number" min="0" max="365" value={coolingDays} onChange={e=>setCoolingDays(Number(e.target.value))}/></Field>
+  <label className="consent-check"><input type="checkbox" checked={approvals} onChange={e=>setApprovals(e.target.checked)}/>Require admin approval before offers are sent</label>
+  <Button className="small" disabled={busy} onClick={()=>saveSettings({coolingOffDays:coolingDays,offerApprovals:approvals})}>Save guardrails</Button></div>
+ <p className="supporting-text">Cooling-off shows a confirmation before re-submitting a candidate the same client rejected within this window (Zoho-style fair evaluation). Offer approval holds new offers in &ldquo;Pending approval&rdquo; until an admin releases them.</p>
  <h3 className="history-heading">Automation rules</h3>
  <p className="supporting-text">When a trigger fires — a candidate or demand stage change, an offer status, an interview recommendation — ECOD applies the rule&rsquo;s actions (task, note, tag, next action) and records it in the audit log. Time-based re-checks and outbound calls (email, webhooks) need a server.</p>
  <div className="rules-list">{(data.workflowRules||[]).map(r=><article key={r.id} className={`rule-row${r.enabled?'':' paused'}`}>

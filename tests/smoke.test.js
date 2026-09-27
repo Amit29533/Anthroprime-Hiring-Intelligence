@@ -19,13 +19,26 @@ async function init() {
     Assessments: W.Assessments, Activities: W.Activities, Pools: W.Pools, Analytics: W.Analytics, Settings: W.Settings,
     Interviews: IV.Interviews, ScheduleModal: IV.ScheduleModal, FeedbackModal: IV.FeedbackModal,
     Candidates: C.Candidates, CandidateForm: C.CandidateForm, CandidateProfile: C.CandidateProfile,
-    DemandForm: D.DemandForm, Demands: D.Demands, DemandDetail: D.DemandDetail, Pipeline: D.Pipeline
+    DemandForm: D.DemandForm, Demands: D.Demands, DemandDetail: D.DemandDetail, Pipeline: D.Pipeline,
+    PortalApp: (await server.ssrLoadModule('/src/portal.jsx')).PortalApp
   };
   data = M.makeSeed();
 }
 const render = async (name, props = {}) => { await init(); return renderToString(React.createElement(M[name], { data, ...props })); };
 const noop = () => {};
 const save = async () => true;
+
+test('Candidate portal renders its gate and, with a profile, the curated view', async () => {
+  await init();
+  const gate = renderToString(React.createElement(M.PortalApp, {}));
+  for (const marker of ['CANDIDATE PORTAL', 'Open my record', 'your applications'])
+    assert.ok(gate.includes(marker), `portal gate missing marker: ${marker}`);
+  const { portalOverview } = await server.ssrLoadModule('/src/portal.js');
+  const view = portalOverview(data.candidates[0], data);
+  const html = renderToString(React.createElement(M.PortalApp, {}));
+  assert.ok(view.profile.name === data.candidates[0].name);
+  assert.ok(!('notes' in view));
+});
 
 test.after(async () => { if (server) await server.close(); });
 

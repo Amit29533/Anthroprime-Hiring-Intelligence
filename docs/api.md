@@ -86,6 +86,24 @@ const { data } = await supabase.rpc('api_public_application_status', { p_email: 
 > Honest scope: the email acts as a bare capability check. A token sent to the applicant
 > (or a real candidate account) would be the proper gate — that needs a server.
 
+## `POST /rest/v1/rpc/api_portal_overview` — candidate portal (authenticated)
+
+For a signed-in candidate (Supabase Auth email matching their profile email), returns the
+curated self view: `{ profile, applications, submissions, interviews, offers, consents }`.
+The projection deliberately omits internal notes, owner/source metadata and the internal
+current-CTC figure. Unlinked accounts get `{ error: 'no candidate profile is linked…' }`.
+
+## `POST /rest/v1/rpc/api_portal_update` — candidate self-service (authenticated)
+
+Whitelisted availability self-service: `notice`, `earliestStart`, `activeStatus`, `mode`,
+`engagement`, `preferredLocations`, `expected`. Everything else is recruiter-owned. Every
+call writes an audit row attributed to `Candidate (portal)`.
+
+## `POST /rest/v1/rpc/api_portal_revoke_consent` — consent withdrawal (authenticated)
+
+Revokes one of the signed-in candidate's own consents by id. Cross-candidate ids are
+ignored by the `where` clause.
+
 ## Not yet provided (honest scope)
 
 Write endpoints beyond the public apply, per-table REST resources, and cursor-based

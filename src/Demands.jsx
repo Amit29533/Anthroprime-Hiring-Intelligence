@@ -5,6 +5,7 @@ import {uid,today,skillList,WEIGHTS,extractJD,matchCandidate,money,STAGES,stageL
 import {ENGAGEMENT_TYPES,PROFICIENCY_LEVELS} from './taxonomy.js';
 import {OfferModal} from './Interviews.jsx';
 import {buildSubmissionPack,submissionConsentState,submissionMailHref,SUBMISSION_METHODS} from './submissions.js';
+import {coolingOffCheck} from './portal.js';
 import {deriveGaps} from './gaps.js';
 import {marginPct} from './analytics.js';
 import {getRole} from './repository.js';
@@ -60,11 +61,13 @@ export function SubmissionModal({demand:d,data,onClose,onSave,audit,busy}){
  const [error,setError]=useState('');
  const candidate=data.candidates.find(c=>c.id===form.candidateId);
  const consent=candidate?submissionConsentState(data.consents,candidate.id):null;
+ const cool=candidate?coolingOffCheck(candidate.id,data.submissions,data.demands,d.client,Number(((data.settings.find(r=>r&&r.id==='workspace')?.custom)||{}).coolingOffDays??30)||30):null;
  const pack=candidate?buildSubmissionPack(candidate,d,data):null;
  async function submit(e){
   e.preventDefault();
   if(!form.candidateId)return setError('Choose a candidate from this demand pipeline.');
   if(!form.clientContact.trim())return setError('Add the client contact this is going to.');
+  if(cool&&cool.blocked&&!window.confirm(`${candidate.name} was rejected by ${d.client} on ${cool.when} (${cool.daysAgo} days ago), inside the cooling-off window. Submit anyway?`))return;
   const record={...form,id:uid(),demandId:d.id,submittedOn:today(),created:new Date().toISOString(),pack:pack?{consent:consent.state,assessments:pack.assessments,interviews:pack.interviews}:{},clientContact:form.clientContact.trim()};
   if(await onSave('submissions',[record])){audit&&audit({entityType:'demand',entityId:d.id,action:'submitted',detail:`${candidate.name} submitted to ${form.clientContact.trim()} (${form.method})`});onClose();}
  }
@@ -74,6 +77,7 @@ export function SubmissionModal({demand:d,data,onClose,onSave,audit,busy}){
    <Field label="Method"><select value={form.method} onChange={e=>setForm({...form,method:e.target.value})}>{SUBMISSION_METHODS.map(m=><option key={m}>{m}</option>)}</select></Field>
    <Field label="Client contact *" hint="Where the submission goes."><input value={form.clientContact} onChange={e=>setForm({...form,clientContact:e.target.value})} placeholder={`hiring@${(d.client||'client').toLowerCase().replace(/[^a-z]+/g,'')}.example`}/></Field>
    <Field label="Internal note"><input value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Context for your team (never shared)"/></Field>
+   {cool&&cool.blocked&&<div className="submission-consent warn"><ShieldCheck size={16}/><span>Cooling-off: {candidate.name} was rejected by {d.client} on {cool.when} ({cool.daysAgo} days ago). Confirm you want to submit anyway.</span></div>}
    {consent&&<div className={`submission-consent ${consent.ok?'ok':'warn'}`}><ShieldCheck size={16}/><span>{consent.ok?'Profile-sharing consent on record — safe to submit.':`${consent.label}. Record profile-sharing consent on the candidate's Consent & privacy tab before submitting.`}</span></div>}
    {pack&&<div className="submission-preview wide"><span>Pack preview — what the client receives</span><pre>{pack.packText}</pre></div>}
    {error&&<p className="form-error wide">{error}</p>}
