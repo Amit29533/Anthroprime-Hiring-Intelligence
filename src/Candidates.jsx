@@ -14,7 +14,7 @@ import {deriveGaps} from './gaps.js';
 import {cloud,getRole} from './repository.js';
 import {classifyFile,extractText,sha256,buildDocumentRecord,persistBinary} from './documents.js';
 export function downloadFile(content,name,type='text/csv;charset=utf-8'){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-export function exportCandidates(rows){downloadFile(Papa.unparse(rows.map(c=>({name:c.name,email:c.email,phone:c.phone,title:c.title,company:c.company,location:c.location,experience:c.experience,relevantExperience:c.relevantExperience,notice:c.notice,expected:c.expected,current:c.current,skills:c.skills.join('; '),status:c.status,source:c.source,mode:c.mode,verified:c.verified})),{escapeFormulae:true}),'ecod-candidates.csv');}
+export function exportCandidates(rows){downloadFile(Papa.unparse(rows.map(c=>({name:c.name,email:c.email,phone:c.phone,title:c.title,company:c.company,location:c.location,experience:c.experience,relevantExperience:c.relevantExperience,notice:c.notice,expected:c.expected,current:c.current,skills:c.skills.join('; '),status:c.status,source:c.source,mode:c.mode,verified:c.verified,exportedAt:new Date().toISOString(),exportedBy:'ECOD workspace export (audited)'})),{escapeFormulae:true}),'ecod-candidates.csv');}
 export function Candidates({data,query,setQuery,initialFilter,onOpen,onAdd,onImport,notify,audit,onSave}){
  const settingsRow=data.settings.find(r=>r&&r.id==='workspace');
  const savedViews=settingsRow?.custom?.savedViews||[];

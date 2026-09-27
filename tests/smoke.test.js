@@ -7,7 +7,7 @@ import React from 'react';
 let server, M, data;
 async function init() {
   if (M) return;
-  server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
+  server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error' });
   const W = await server.ssrLoadModule('/src/Workflows.jsx');
   const IV = await server.ssrLoadModule('/src/Interviews.jsx');
   const C = await server.ssrLoadModule('/src/Candidates.jsx');
@@ -102,6 +102,8 @@ test('Offers and tasks render; custom fields appear on forms, profiles and deman
     assert.ok(profile.includes(marker), `profile applications tab missing: ${marker}`);
   const cform = await render('CandidateForm', { candidate: null, onClose: noop, onSave: save, busy: false });
   assert.ok(cform.includes('Background check'), 'candidate form renders admin-defined custom fields');
+  const C = await server.ssrLoadModule('/src/Candidates.jsx');
+  assert.ok(String(C.exportCandidates).includes('exportedAt'), 'candidate CSV exports carry an exportedAt stamp');
   const dform = await render('DemandForm', { demand: data.demands[0], onClose: noop, onSave: save, onCreated: noop, busy: false });
   assert.ok(dform.includes('Billing rate'), 'demand form renders admin-defined custom fields');
   const detail = await render('DemandDetail', {
@@ -115,6 +117,22 @@ test('Offers and tasks render; custom fields appear on forms, profiles and deman
     candidate: data.candidates[0], onClose: noop, onEdit: noop, onSave: save, onShortlist: noop, onAssess: noop, busy: false, audit: noop
   });
   assert.ok(overview.includes('Similar talent in your repository'), 'profile shows similar talent');
+});
+
+test('Careers portal renders open roles with the consent-gated application form; review queue lists applications', async () => {
+  await init();
+  const CAREERS = await server.ssrLoadModule('/src/careers.jsx');
+  const html = renderToString(React.createElement(CAREERS.CareersApp, {}));
+  for (const marker of ['Open roles', 'Senior Databricks Architect', 'Apply'])
+    assert.ok(html.includes(marker), `careers page missing marker: ${marker}`);
+  const acts = await render('Activities', { onOpen: noop, onSave: save, busy: false, notify: noop, audit: noop });
+  for (const marker of ['Career applications', 'Devika Nair', 'contact consent', 'sharing consent', 'Accept into repository'])
+    assert.ok(acts.includes(marker), `activities missing application queue marker: ${marker}`);
+  const detail = await render('DemandDetail', {
+    demand: data.demands[1], onBack: noop, onEdit: noop, onOpenCandidate: noop, onShortlist: noop,
+    onPipeline: noop, onEnrich: noop, onSave: save, busy: false
+  });
+  assert.ok(detail.includes('Client decision'), 'submission rows expose client decision controls');
 });
 
 test('Submission modal compiles the pack with a consent gate', async () => {

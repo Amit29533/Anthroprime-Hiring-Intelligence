@@ -1,0 +1,51 @@
+# ECOD public API contract (v1, hosted RPCs)
+
+The workspace ships two hosted PostgreSQL functions (Supabase RPC endpoints). Both are
+security-definer, workspace-scoped and integration-tested against real Postgres
+(`tests/migration00*.test.js`). Authenticate with the caller's Supabase JWT.
+
+## `POST /rest/v1/rpc/api_changes_since` — incremental sync (§14 `updated_since`)
+
+Returns every workspace record created or changed on/after `day`, for the caller's
+workspace only. Cross-tenant safe; `anon` is denied.
+
+| Param | Type | Notes |
+|---|---|---|
+| `day` | `date` | Defaults to `current_date - 30`. Rows are matched by `created`/`updated`/`date`/`submittedOn` etc., day granularity. |
+
+Response `jsonb`: `{ since, candidates, demands, considerations, assessments, notes,
+documents (metadata only), interviews, offers, tasks, submissions, publicApplications,
+history }` — each an array of row objects with `workspace_id` stripped.
+
+Errors: `{ "error": "no workspace membership" }` when the caller has no membership; HTTP
+403-class permission error for `anon`.
+
+Client example:
+
+```js
+const { data, error } = await supabase.rpc('api_changes_since', { day: '2026-09-01' });
+```
+
+## `POST /rest/v1/rpc/api_public_apply` — careers-page applications (public, `anon`)
+
+Creates a `publicApplications` row for triage in the workspace's Activities page. The
+workspace id is public configuration (single-tenant deployments bake it into the page;
+multi-tenant front-ends resolve it per careers-site host).
+
+| Param | Type | Notes |
+|---|---|---|
+| `ws` | `uuid` | Target workspace. Must exist, otherwise `unknown workspace`. |
+| `payload` | `jsonb` | `{ name*, email*, phone?, linkedin?, message?, demandId?, consentContact?, consentSharing? }` — `name`/`email` required, email format validated. |
+
+Returns the new application `uuid`. The row lands with `status='pending'`; only
+workspace members can read or triage it (RLS: workspace read, `can_edit` triage).
+
+## Mapping fields
+
+Candidates (`externalId`) and demands (`externalId`) carry free-text external mapping ids
+so external systems can keep their own keys alongside ECOD UUIDs.
+
+## Not yet provided (honest scope)
+
+Pagination (payloads are complete arrays), write endpoints beyond the public apply, and
+per-table REST resources. The RPCs above are the stable contract those will wrap.

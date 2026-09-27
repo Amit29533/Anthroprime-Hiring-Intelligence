@@ -163,3 +163,44 @@
 .similar-row:last-child{border-bottom:0}
 .similar-row b{color:#2c7a5c;font-size:14px}
 .similar-shared{font-size:12px;color:#7e919a;flex:1;text-align:right}
+/* --- Batch 8: careers portal, client decisions, application reviews --- */
+.careers-page{min-height:100dvh;background:#f6f9f8;color:#304951;font-family:inherit}
+.careers-hero{background:#112f38;color:#cfe0dd;padding:64px 8vw 48px}
+.careers-brand{display:flex;flex-direction:column;font-weight:600;font-size:19px;color:#fff;letter-spacing:-.2px}
+.careers-brand small{font-size:10px;letter-spacing:1.6px;color:#7fa398;font-weight:500;margin-top:3px}
+.careers-hero h1{font-size:44px;font-weight:500;letter-spacing:-1.2px;color:#fff;margin:38px 0 12px}
+.careers-hero p{max-width:560px;line-height:1.7;font-size:15px;color:#a9c3bc}
+.careers-main{max-width:860px;margin:0 auto;padding:40px 6vw 70px}
+.careers-loading{color:#697f89;padding:30px 0}
+.careers-list{display:flex;flex-direction:column;gap:18px}
+.careers-role{background:#fff;border:1px solid #e1e9ec;border-radius:11px;padding:26px 28px;box-shadow:0 2px 10px #0a26310a}
+.careers-role-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.careers-role-head h2{font-size:20px;font-weight:550;color:#26454e}
+.apply-btn{border:1px solid #247a66;background:#247a66;color:#fff;border-radius:7px;padding:9px 18px;font-size:14px;cursor:pointer}
+.apply-btn:hover{background:#1d674f}
+.careers-meta{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0 4px;color:#758891;font-size:13px}
+.careers-meta span{display:inline-flex;align-items:center;gap:6px}
+.careers-skills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.careers-skills span{border:1px solid #dbe7e2;background:#f2f8f5;color:#3f7a63;border-radius:5px;padding:4px 9px;font-size:12px}
+.careers-desc{font-size:14px;line-height:1.75;color:#5f7a84;margin-top:8px}
+.apply-form{margin-top:18px;border-top:1px solid #e7edef;padding-top:18px}
+.apply-form h3{font-size:15px;margin-bottom:12px}
+.apply-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.apply-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#425c66}
+.apply-grid .wide{grid-column:1/-1}
+.apply-grid input,.apply-grid textarea{border:1px solid #dce5e8;border-radius:6px;padding:10px 12px;font:inherit}
+.consent-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:#5f7a84;margin-top:14px;line-height:1.6}
+.apply-send{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:#247a66;color:#fff;border:0;border-radius:7px;padding:11px 20px;font-size:14px;cursor:pointer}
+.apply-send:disabled{opacity:.6}
+.apply-fineprint{display:flex;align-items:center;gap:6px;font-size:12px;color:#8da0a8;margin-top:12px}
+.apply-done{display:flex;gap:12px;align-items:flex-start;background:#e4f1e9;border-radius:8px;padding:16px;color:#2c7a5c;margin-top:16px}
+.apply-done p{font-size:13px;margin-top:5px;line-height:1.6}
+.careers-footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:22px 8vw;border-top:1px solid #dfe8e5;color:#8da0a8;font-size:12px}
+.app-review{display:flex;flex-direction:column}
+.app-row{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:16px 0;border-bottom:1px solid #e9efec;flex-wrap:wrap}
+.app-row:last-child{border-bottom:0}
+.app-who strong{font-size:14px;color:#36535d}
+.app-who small{display:block;margin-top:5px;color:#7e919a;font-size:12px;line-height:1.6}
+.app-msg{margin-top:8px;font-size:13px;color:#5f7a84;max-width:520px;line-height:1.6}
+.app-flags{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+@media(max-width:760px){.apply-grid{grid-template-columns:1fr}.careers-hero h1{font-size:32px}.careers-role{padding:20px}}
