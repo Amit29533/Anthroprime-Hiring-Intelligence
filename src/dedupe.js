@@ -15,7 +15,7 @@ export function duplicatePairs(candidates) {
     else if (normalizeLinkedIn(a.linkedin) && normalizeLinkedIn(a.linkedin) === normalizeLinkedIn(b.linkedin)) reason = 'Same LinkedIn';
     else if (normName(a.name) && normName(a.name) === normName(b.name) && normName(a.company) && normName(a.company) === normName(b.company)) reason = 'Same name and employer';
     else if (normName(a.name) && normName(a.name) === normName(b.name) && normName(a.location) && normName(a.location) === normName(b.location)) reason = 'Same name and location';
-    if (reason) pairs.push({ a, b, reason });
+    if (reason) pairs.push({ a, b, reason, confidence: ['Same email','Same phone','Same LinkedIn'].includes(reason) ? 'high' : 'medium' });
   }
   return pairs;
 }

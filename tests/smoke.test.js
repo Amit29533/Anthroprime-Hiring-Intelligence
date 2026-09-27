@@ -61,7 +61,7 @@ test('Repository renders saved views, column chooser and table', async () => {
   const html = await render('Candidates', {
     query: '', setQuery: noop, initialFilter: null, onOpen: noop, onAdd: noop, onImport: noop, notify: noop, audit: noop, onSave: save
   });
-  for (const marker of ['Apply a saved view', 'Columns:', 'Talent repository'])
+  for (const marker of ['Apply a saved view', 'Columns:', 'Talent repository', 'Semantic'])
     assert.ok(html.includes(marker), `missing marker: ${marker}`);
 });
 

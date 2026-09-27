@@ -149,3 +149,16 @@ export function emailBodyText(raw){
  }
  return body.replace(/\n{3,}/g,'\n\n').trim();
 }
+
+
+// Batch 13 — Blueprint §13: private storage reads go through short-lived signed URLs
+// (no public objects). Demo mode falls back to the inline data URL.
+export async function signedUrlFor(record, ttlSeconds = 300) {
+  if (!record) return null;
+  if (cloud && record.storagePath) {
+    const { data, error } = await supabase.storage.from('documents').createSignedUrl(record.storagePath, ttlSeconds);
+    if (error) throw error;
+    return data?.signedUrl || null;
+  }
+  return record.dataUrl || null;
+}
