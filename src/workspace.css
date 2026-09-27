@@ -39,3 +39,32 @@
 .match-skills .nice{border-style:dashed}
 .nice-note{color:#8a99a1;font-size:12px;align-self:center}
 @media (max-width:720px){.skill-row{grid-template-columns:1fr 1fr;}.employment-form{grid-template-columns:1fr}}
+
+/* Blueprint R1 batch 2: documents, merge review, taxonomy admin, gap map, heatmap */
+.upload-label{position:relative;cursor:pointer}
+.upload-label.disabled{opacity:.6;pointer-events:none}
+.document-row{display:flex;gap:12px;align-items:flex-start;border:1px solid #e3eaee;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff}
+.document-info{flex:1;min-width:0}
+.document-info small{color:#6b7c85}
+.heat-list{display:flex;flex-direction:column}
+.heat-row{display:grid;grid-template-columns:1.1fr 2fr auto auto;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid #e7edf0;font-size:14px}
+.heat-cells{display:flex;gap:3px;height:12px}
+.heat-cells i{border-radius:4px;min-width:2px}
+.heat-cells .critical{background:#c4554d}
+.heat-cells .trainable{background:#e0a63f}
+.heat-cells .contextual{background:#9db3bc}
+.heat-row small{color:#8a99a1}
+.merge-table td,.merge-table th{padding:6px 8px;border-bottom:1px solid #edf1f4;text-align:left;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.merge-table td.picked{background:#eef7f4;font-weight:600}
+.merge-pick{display:flex;gap:10px}
+.merge-pick label{display:flex;gap:4px;align-items:center;font-size:12px}
+.merge-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.dup-list{display:flex;flex-direction:column}
+.taxonomy-form{display:grid;grid-template-columns:1.2fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.taxonomy-list{display:flex;flex-direction:column}
+.taxonomy-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e7edf0;padding:9px 2px}
+.taxonomy-row small{color:#6b7c85}
+.gap-list table{width:100%;border-collapse:collapse;margin-top:6px}
+.gap-list th,.gap-list td{text-align:left;padding:6px 8px;border-bottom:1px solid #e7edf0;font-size:13px}
+.since-export{display:flex;flex-direction:column;gap:8px;margin-top:12px;border-top:1px solid #edf1f4;padding-top:12px}
+@media (max-width:720px){.taxonomy-form{grid-template-columns:1fr}.heat-row{grid-template-columns:1fr auto}}

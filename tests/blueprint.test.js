@@ -62,8 +62,9 @@ test('engagement mismatch is a hard constraint; Any and unknown never block',()=
 });
 
 test('duplicate detection now includes LinkedIn URLs (case-insensitive, trailing slash)',()=>{
- assert.equal(duplicate({...candidate,id:'new',linkedin:'HTTPS://WWW.LINKEDIN.COM/IN/AARAV-MEHTA-SAMPLE/'},data.candidates).id,candidate.id);
- assert.equal(duplicate({...candidate,id:'new',email:'other@example.com',linkedin:'https://www.linkedin.com/in/someone-else'},data.candidates),undefined);
+ const distinct={...candidate,id:'new',email:'different@example.com',phone:''};
+ assert.equal(duplicate({...distinct,linkedin:'HTTPS://WWW.LINKEDIN.COM/IN/AARAV-MEHTA-SAMPLE/'},data.candidates).id,candidate.id,'linkedin alone must flag the duplicate');
+ assert.equal(duplicate({...distinct,linkedin:'https://www.linkedin.com/in/someone-else'},data.candidates),undefined);
 });
 
 test('captureChanges appends rows only for genuinely changed volatile facts',()=>{

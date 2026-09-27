@@ -1,10 +1,7 @@
-import { meetsLevel } from './taxonomy.js';
+import { meetsLevel, skillList, scanSkills } from './taxonomy.js';
+export { skillList, canonical, scanSkills } from './taxonomy.js';
 export const STAGES = ['Identified', 'Contacted', 'Assessed', 'Enrichment', 'Submitted', 'Interview', 'Offer', 'Deployed', 'Rejected', 'Withdrawn'];
 export const WEIGHTS = { skills: 35, experience: 20, readiness: 20, availability: 10, budget: 10, location: 5 };
-export const SKILLS = ['Databricks', 'Databricks Genie', 'Unity Catalog', 'Apache Spark', 'Python', 'SQL', 'Azure', 'AWS', 'Microsoft Entra', 'IAM', 'Conditional Access', 'Cybersecurity', 'OT Security', 'React', 'TypeScript', 'Node.js', 'Power BI', 'Snowflake', 'dbt', 'Terraform', 'Kubernetes', 'Java', 'SAP', 'Figma'];
-const aliases = { 'pyspark': 'Apache Spark', 'spark': 'Apache Spark', 'genie': 'Databricks Genie', 'ai/bi genie': 'Databricks Genie', 'entra': 'Microsoft Entra', 'entra id': 'Microsoft Entra', 'azure ad': 'Microsoft Entra', 'reactjs': 'React', 'react.js': 'React', 'nodejs': 'Node.js', 'node': 'Node.js', 'amazon web services': 'AWS', 'ms azure': 'Azure', 'ts': 'TypeScript' };
-export const canonical = value => aliases[value.trim().toLowerCase()] || SKILLS.find(s => s.toLowerCase() === value.trim().toLowerCase()) || value.trim();
-export const skillList = value => [...new Set((Array.isArray(value) ? value : value.split(/[,;|]/)).map(canonical).filter(Boolean))];
 export const uid = () => crypto.randomUUID();
 export const today = () => new Date().toISOString().slice(0, 10);
 export const age = date => date ? Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86400000)) : Infinity;
@@ -13,8 +10,9 @@ export const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).ma
 export const money = value => value == null || value === '' ? 'Not provided' : `₹${Number(value).toLocaleString('en-IN')} LPA`;
 export const normalizeEmail = email => String(email || '').trim().toLowerCase();
 export const normalizePhone = phone => String(phone || '').replace(/\D/g, '').replace(/^0+/, '');
+export const normalizeLinkedIn = url => String(url || '').trim().toLowerCase().replace(/\/+$/, '');
 export function duplicate(candidate, people) {
-  return people.find(p => p.id !== candidate.id && ((normalizeEmail(candidate.email) && normalizeEmail(p.email) === normalizeEmail(candidate.email)) || (normalizePhone(candidate.phone) && normalizePhone(p.phone) === normalizePhone(candidate.phone))));
+  return people.find(p => p.id !== candidate.id && ((normalizeEmail(candidate.email) && normalizeEmail(p.email) === normalizeEmail(candidate.email)) || (normalizePhone(candidate.phone) && normalizePhone(p.phone) === normalizePhone(candidate.phone)) || (normalizeLinkedIn(candidate.linkedin) && normalizeLinkedIn(p.linkedin) === normalizeLinkedIn(candidate.linkedin))));
 }
 export function matchCandidate(c, d, assessments = []) {
   const required = skillList(d.skills || []);
@@ -58,9 +56,7 @@ export function matchCandidate(c, d, assessments = []) {
   return { score, matched, missing, blockers, unknowns, scores, weights, details, niceCoverage:{ matched:niceMatched, missing:niceToHave.filter(s => !niceMatched.includes(s)) }, eligible: blockers.length === 0 && unknowns.length === 0 };
 }
 export function extractJD(text) {
-  const terms = [...SKILLS, ...Object.keys(aliases)].sort((a,b) => b.length-a.length);
-  const escaped = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const skills = skillList(terms.filter(s => new RegExp(`(^|[^a-z0-9])${escaped(s)}($|[^a-z0-9])`, 'i').test(text)));
+  const skills = scanSkills(text);
   const years = text.match(/(\d{1,2})(?:\s*[-–+]\s*\d{0,2})?\s*(?:years|yrs)/i);
   const notice = text.match(/(\d+)\s*[- ]?day(?:s)?\s*(?:notice|join)/i);
   return { skills, ...(years ? { minExperience: Number(years[1]) } : {}), ...(notice ? { maxNotice: Number(notice[1]) } : {}) };

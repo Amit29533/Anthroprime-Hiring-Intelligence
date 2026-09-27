@@ -1,21 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { makeSeed } from './seed.js';
 import {uid} from './domain.js';
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const url = env.VITE_SUPABASE_URL;
+const key = env.VITE_SUPABASE_ANON_KEY;
 export const cloud = Boolean(url && key);
 export const supabase = cloud ? createClient(url, key) : null;
-export const TABLES = ['candidates','demands','considerations','assessments','notes','enrichment','history','employmentHistory','compensationHistory','availabilityHistory','auditEvents'];
-export const emptyData = () => Object.fromEntries(TABLES.map(t=>[t,[]]));
+export { TABLES, emptyData, normalizeData } from './schema.js';
+import { TABLES, emptyData, normalizeData } from './schema.js';
 const STORAGE = 'ecod-demo-v1';
-// Fill in fields/tables added after a stored (or cloud) snapshot was written, so old data keeps loading.
-export function normalizeData(data){
- const out = emptyData();
- for(const t of TABLES) out[t] = Array.isArray(data?.[t]) ? data[t] : [];
- for(const c of out.candidates){ c.skills = c.skills||[]; c.skillsDetail = Array.isArray(c.skillsDetail)?c.skillsDetail:[]; c.engagement = c.engagement||''; c.earliestStart = c.earliestStart||null; c.activeStatus = c.activeStatus||'Active'; }
- for(const d of out.demands){ d.niceToHave = d.niceToHave||[]; d.engagementType = d.engagementType||'Any'; d.minProficiency = d.minProficiency||'Working'; d.skillMinimums = d.skillMinimums||{}; }
- return out;
-}
 export async function loadData() {
  if (!cloud) {
   const stored = localStorage.getItem(STORAGE);
