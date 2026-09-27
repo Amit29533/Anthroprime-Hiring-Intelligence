@@ -15,32 +15,31 @@ Prepared 27 September 2026 · Code state: `492f9bb` (branch `arena/01a0e3a4-anth
 
 ## 1. Executive summary
 
-Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked one-by-one against the code, and **(b)** all **123 requirements** of the ECOD Product Blueprint v1.0 checked section-by-section. *Updated 27 September 2026 after implementation batches 1–2 (skills evidence model, structured histories, engagement fields, LinkedIn dedupe, data-quality queues, view/export audit, time-to-shortlist; then documents/CV upload with reviewable parsing, the gap map with enrichment links, merge-duplicate review, taxonomy administration and incremental change exports) — blueprint coverage moved from 43% to 65% after batches 1–3.*
+Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked one-by-one against the code, and **(b)** all **123 requirements** of the ECOD Product Blueprint v1.0 checked section-by-section. *Updated 27 September 2026 after implementation batches 1–4 (1: skills evidence, structured histories, LinkedIn dedupe, quality queues, view/export audit · 2: CV upload with reviewable parsing, gap map, merge review, taxonomy admin, change export · 3: admin console with stage labels/retention/anonymization/audit log, CV-text search, admin-only commercials, conversion analytics · 4: saved views + column chooser + bulk update, consent ledger with data-subject export, per-demand stage sets + per-skill minimums, concept-expansion search, coverage/uplift/funnel analytics, hosted `api_changes_since` RPC) — blueprint coverage moved from 43% to **68%**.*
 
 | Verification | ✅ Equivalent | 🟡 Partial | ⚙️ By design | ❌ Missing | Weighted coverage |
 |---|---|---|---|---|---|
-| **Zoho Recruit** feature set (A–M) | 7 | 18 | 2 | 70 | **18%** |
-| **ECOD Blueprint v1.0** (N.1–N.14) | 53 | 52 | 1 | 17 | **65%** |
+| **Zoho Recruit** feature set (A–M) | 9 | 18 | 2 | 68 | **20%** |
+| **ECOD Blueprint v1.0** (N.1–N.14) | 59 | 49 | 1 | 14 | **68%** |
 
 **ECOD today ≈ a strong "repository-first matching core":** candidate repository, CSV import/export, demands, explainable weighted matching, pipeline, assessments, notes, pools, analytics, plus a hardened multi-tenant schema. That overlaps with roughly the **Free/Standard tier** of Zoho Recruit's core ATS, minus resumes, portals, and communication.
 
 **The largest gaps vs. Zoho Recruit, in order of recruiter impact:**
-1. **No resume/CV handling at all** (upload, parse, store, search-inside, resume inbox, bulk parse).
+1. **Resume handling is now partial** — upload, reviewable parsing, storage and search-inside shipped (batch 2); the resume inbox (email-to-parse) is still open.
 2. **No interviews module** (scheduling, interviewer feedback forms, calendar sync, video interviews).
 3. **No external-facing surfaces** — careers site, candidate portal, client portal, vendor portal, web forms.
 4. **No communication layer** — email templates/sync, mass email, SMS/WhatsApp, telephony.
 5. **No automation engine** — workflow rules, alerts, tasks, assignment/approval rules, blueprints, webhooks/API.
-6. **No customization layer** — custom fields, custom views, tags, custom modules, layout editor.
+6. **Thin customization layer** — saved views shipped (batch 4); custom fields, tags, custom modules and layout editor remain open.
 7. **No staffing-agency CRM depth** — client/contact records, submit-to-client with feedback, offers/e-sign, placements.
 8. **No Zia-style AI** — semantic matching, AI profile summaries, AI JD/email writing, sourcing chatbot (ECOD deliberately ships deterministic matching instead).
 
-**Remaining gaps vs. the ECOD Blueprint after implementation batch 1:**
-1. **Documents & CV upload (§4.1, §11)** — no file storage yet; blocks CV parsing, the "200 CVs + spreadsheet" acceptance scenario and the R1 exit condition.
-2. **Gap map + gap-linked enrichment (§3 stage 4)** — enrichment plans exist but are not connected to a demand-vs-candidate gap matrix with critical/trainable/contextual classification.
-3. **Skills taxonomy administration (§6)** — proficiency/evidence/confidence now tracked per skill, but the canonical table has no admin editor and no parent/domain graph.
-4. **Demand richness (§4.2)** — per-skill minimum UI, recency requirements, commercial margin fields and per-demand configurable stages still open.
-5. **Admin console & governance (§8, §12)** — no user/role/taxonomy/stage administration, no consent/retention workflows, no backup strategy; audit covers views/exports/edits but not merges or role changes.
-6. **Analytics depth (§17)** — time-to-shortlist shipped; time-to-ready, conversion and rediscovery metrics still open.
+**Remaining gaps vs. the ECOD Blueprint after implementation batch 4:**
+1. **Semantic/vector search (§5, §11)** — lexical concept expansion shipped; embedding-based matching remains the blueprint's own Phase 1.5.
+2. **Demand richness (§4.2)** — recency requirements, demand owner/business-unit fields still open; per-skill minimums, commercials and stage sets shipped.
+3. **Governance depth (§12)** — backups/restore verification, user/role administration UI, merge/role-change audit events still open; consent ledger, retention + anonymization and data-subject export shipped.
+4. **API surface (§14)** — `api_changes_since` RPC shipped; REST wrapper with pagination and `external_mapping_id` fields still open.
+5. **External surfaces (§15+)** — public careers portal, candidate/client portals, email/calendar sync and e-sign offers remain Zoho-parity Phase 1+ work.
 
 ---
 
@@ -75,7 +74,7 @@ Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked o
 | A6 | Duplication checker **and** merge/de-duplicate tooling | Duplicate *detection* (email/phone, case-insensitive, import + form); no merge tool, no bulk dedupe | 🟡 |
 | A7 | Data import with field mapping & migration batches | CSV import: mapping, preview, per-row validation, duplicate skip, error report, 5k rows/file | ✅ |
 | A8 | Export module data | Candidate CSV export (formula-injection safe) | ✅ |
-| A9 | Mass update / bulk action buttons in list views | Multi-select + bulk export only; no mass field updates | 🟡 |
+| A9 | Mass update / bulk action buttons in list views | Multi-select with bulk readiness update and bulk export | ✅ |
 | A10 | Candidate ratings / AI scoring | Assessment scores feed matching; readiness status is recruiter-controlled (no per-candidate star rating) | 🟡 |
 | A11 | Structured full employment histories | Profile snapshots only (explicit blueprint deferral) | ❌ |
 | A12 | Saved custom views / custom searches | Fixed filters only (explicit blueprint deferral) | ❌ |
@@ -180,7 +179,7 @@ Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked o
 | # | Zoho Recruit capability | ECOD today | Status |
 |---|---|---|---|
 | J1 | Custom fields per module | None | ❌ |
-| J2 | Custom views (saved filters) per module | None | ❌ |
+| J2 | Custom views (saved filters) per module | Saved views on the People module (persisted per workspace); other modules keep fixed tabs | 🟡 |
 | J3 | Custom modules, tab groups, web tabs, rename tabs | None; navigation is fixed | ❌ |
 | J4 | Custom links, buttons, functions | None | ❌ |
 | J5 | Drag-and-drop layout editor | None | ❌ |
@@ -219,7 +218,7 @@ Two verifications were performed: **(a)** 97 Zoho Recruit capabilities checked o
 | M1 | Role-based permissions (profiles, roles, up to 25 profiles) | 3 fixed roles (admin/recruiter/viewer) enforced by PostgreSQL RLS; DB-verified by tests | ✅ |
 | M2 | Field-level security, attachment permissions, data-sharing rules | None (blueprint defers granular commercial permissions) | ❌ |
 | M3 | Audit logs | **Write** audit: append-only history with before-update snapshots, server-triggered, DB-verified immutable. **Read/export audit: none** (blueprint defers) | 🟡 |
-| M4 | GDPR/consent management, retention workflows, data-subject requests | None (blueprint defers) | ❌ |
+| M4 | GDPR/consent management, retention workflows, data-subject requests | Consent ledger with revoke + data-subject JSON export; retention policy with audited anonymization; consent RLS tested in PGlite (migration 005) | ✅ |
 | M5 | SSO/MFA administration | None in app (Supabase Auth could provide; blueprint defers administration) | ❌ |
 | M6 | Data backup/restore (monthly backups, verified restore) | None (blueprint defers) | ❌ |
 | M7 | De-duplicate data tooling | Import-time + form-time detection; no bulk merge | 🟡 |
@@ -234,7 +233,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | # | Blueprint requirement | ECOD today | Status |
 |---|---|---|---|
 | N1 | Stage 1 Demand: client, role, quantity, must/nice-to-have skills, experience, budget, location, engagement type, notice, target date | Demand has client/role/positions/skills/experience/budget/location/mode/notice/target; **no nice-to-have skills, no engagement type, no per-skill minimums** | 🟡 |
-| N2 | Stage 2 Discover: internal search first, Boolean filters + semantic search | Multi-term Boolean-style search + exact filters; semantic is correctly deferred (blueprint marks it Phase 1.5) | 🟡 |
+| N2 | Stage 2 Discover: internal search first, Boolean filters + semantic search | Multi-term Boolean-style search (incl. CV text) + exact filters + concept expansion (skill → domain vocabulary, e.g. Databricks matches lakehouse); true vector/semantic search remains Phase 1.5 by blueprint | 🟡 |
 | N3 | Stage 3 Assess: technical/communication/role-specific assessments with assessor, date, evidence | Append-only assessments with title, score 0–100, assessor, evidence, date, demand scoping, 180-day expiry | ✅ |
 | N4 | Stage 4 Gap Map: gaps classified critical / trainable / contextual | Gap map shipped: demand-vs-candidate matrix with critical (absent) / trainable (below required proficiency) / contextual (stale or unvalidated evidence) classification, derived status (Open / Enrichment planned / Closed via recent assessments), shown per match with one-click enrichment planning | ✅ |
 | N5 | Stage 5 Enrich: training, labs, mentoring, certification, project exercises | Enrichment plans now carry an optional demand link and the skill gap they close; gap rows offer one-click "Plan enrichment" | ✅ |
@@ -256,9 +255,9 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N16 | Assessments: type, score/level, questions/areas, assessor, evidence, date, validity | Title, score, assessor, evidence, date, 180-day validity; no assessment types/templates or question areas | 🟡 |
 | N17 | ECOD: stage, gap map, enrichment plan, readiness, last validation, next action | Stage, enrichment and gap map now visible per demand match; profile-level "next action" field still missing | 🟡 |
 | N18 | Applications: every demand, submission, outcome, **client feedback**, reason codes | Considerations with stage + structured disposition reasons; no client feedback | 🟡 |
-| N19 | Interactions: calls, email notes, WhatsApp/manual notes, consent events, next follow-up | Notes + follow-up dates; no channels, no consent events | 🟡 |
+| N19 | Interactions: calls, email notes, WhatsApp/manual notes, consent events, next follow-up | Notes with channel (Note/Call/Email/WhatsApp) + follow-up dates; consent events recorded per purpose with notice version; per-candidate next action | ✅ |
 | N20 | Documents: CV versions, certifications, assessment files, version + upload metadata | Documents: PDF/DOCX/TXT/MD/CSV uploads with allowlist, size cap, randomized storage paths, SHA-256 hash, version field, parser status and soft-removal; originals in private cloud storage or inline in demo mode | ✅ |
-| N21 | Data governance: source, notice/consent/legal-basis metadata, retention review, access restrictions | Not present | ❌ |
+| N21 | Data governance: source, notice/consent/legal-basis metadata, retention review, access restrictions | Consent ledger (purpose, status, notice version, source, note); candidate source + owner; retention review with audited anonymization; role-based access incl. viewer export block and admin-only commercials | ✅ |
 
 #### N.3 — Blueprint §4.2: Demand / role object
 
@@ -268,7 +267,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N23 | Must-have **vs nice-to-have** skills, each with minimum proficiency, minimum relevant experience, recency requirement | Nice-to-have skill tier shipped; per-skill minimums stored (skillMinimums map) with a demand-level default minimum proficiency; per-skill editor UI and recency rules still pending | 🟡 |
 | N24 | Experience band, location/timezone, work mode, language, certification, industry/domain, security/eligibility constraints | Engagement-type constraint and demand-level minimum proficiency added; language/certification/industry/security-eligibility constraints still missing | 🟡 |
 | N25 | Commercials: bill rate/budget, currency, engagement type, internal target cost, **margin visibility restricted by role** | Internal cost and margin stored in a dedicated table whose select/insert/update all require the admin role (DB-verified in PGlite); admins edit per demand with a live margin readout against the client budget | ✅ |
-| N26 | **Pipeline stages configurable per demand** (incl. interested, ready stages) | Stage display labels configurable workspace-wide from the admin console (values stay stable for history); per-demand stage sets still pending | 🟡 |
+| N26 | **Pipeline stages configurable per demand** (incl. interested, ready stages) | Each demand picks its pipeline stages at creation/edit (unticked = all ten); kanban renders only the chosen set; display labels configurable workspace-wide from the admin console | ✅ |
 
 #### N.4 — Blueprint §5: search & matching layers
 
@@ -309,7 +308,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | # | Blueprint screen | ECOD today | Status |
 |---|---|---|---|
 | N46 | Dashboard: open demands, ready talent, stale profiles, follow-ups, assessments due, conversion funnel | All present except conversion funnel (stage distribution shown instead, deliberately) | 🟡 |
-| N47 | People: saved views, filters, bulk actions, column chooser, export permission | Search now includes CV text; quality-queue drill-through views exist. Saved views, column chooser and mass update still pending | 🟡 |
+| N47 | People: saved views, filters, bulk actions, column chooser, export permission | Named saved views (search+filters+sort, persisted per workspace), column chooser with per-browser persistence, bulk readiness update, viewer role blocked from export | ✅ |
 | N48 | Candidate 360 tabs: Overview, Skills, Employment, ECOD, Applications, Interactions, Documents, History | 7 of 8 blueprint tabs (Overview, Skills, Employment, Documents, Applications, Notes, History); ECOD tab still pending | 🟡 |
 | N49 | Demand: requirements left, pipeline/shortlist, match reasons, bulk outreach/assignment | Requirements + ranked matches + explanations + shortlist; no bulk outreach/assignment | 🟡 |
 | N50 | Talent pools: dynamic + static groups (silver medalists, 30-day joiners…) | 6 dynamic pools incl. "Ready in 30 days"; no static/custom pools (blueprint defers saved pools) | 🟡 |
@@ -352,10 +351,10 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N72 | Tenant/client boundaries | Workspace RLS + composite FKs blocking cross-workspace links — integration-tested | ✅ |
 | N73 | TLS in transit, encryption at rest, secrets managed | Inherited from Supabase/Netlify; no secrets in client (README warns against `VITE_` service keys) | ✅ |
 | N74 | Audit: profile **views**, exports, downloads, edits, merges, deletes, role changes | Profile views, CSV exports and edits now audited with actor + timestamp; merges, deletes and role changes not yet audited | 🟡 |
-| N75 | Permission-controlled, watermarked/logged, rate-limited exports | Exports available to all signed-in users, unlogged | ❌ |
+| N75 | Permission-controlled, watermarked/logged, rate-limited exports | Exports permission-controlled (viewer blocked) and every export is audited with actor+timestamp; no watermarking or rate limiting yet | 🟡 |
 | N76 | CV upload allowlist, type validation, size limits, randomized names, malware scan, storage outside webroot | Allowlist extensions, actual-content text extraction, 5 MB cap, randomized names, SHA-256 hashes, private bucket in cloud mode; malware scanning still absent | 🟡 |
 | N77 | Configurable retention review + deletion/anonymisation workflow | Configurable retention review window; anonymization erases identity/contact while keeping aggregate value; every anonymization is audited | ✅ |
-| N78 | Data-subject workflow (search/export/correct/delete, fulfillment record) | Not present | ❌ |
+| N78 | Data-subject workflow (search/export/correct/delete, fulfillment record) | Per-candidate JSON data-subject export, correction via Edit, erasure via audited admin anonymization; consent ledger records the fulfillment trail | ✅ |
 | N79 | Encrypted backups, tested restore, RPO/RTO | Not present (blueprint defers to ops) | ❌ |
 | N80 | No CV/comp/PII in application logs | No server-side logging layer; demo is client-only | ✅ |
 
@@ -369,7 +368,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | N84 | Private S-compatible object storage, signed short-lived URLs | No object storage use | ❌ |
 | N85 | Async job queue (parsing, bulk imports, embeddings, scans, notifications) | None (synchronous client flows) | ❌ |
 | N86 | AI provider abstraction; prompt/model version stored with output | No AI layer yet | ❌ |
-| N87 | API-first REST: stable IDs, pagination, `updated_since` sync | Incremental change export (changesSince over the loaded workspace, day-granularity) — the exact payload shape a future updated_since endpoint returns; no hosted endpoint yet | 🟡 |
+| N87 | API-first REST: stable IDs, pagination, `updated_since` sync | Stable UUIDs; hosted `api_changes_since(day)` security-definer RPC (migration 005) returning every workspace table since a date, cross-tenant-safe and integration-tested; day granularity, pagination deferred | ✅ |
 | N88 | Webhooks/event bus (profile.updated, stage_changed, assessment.completed…) | None | ❌ |
 | N89 | Idempotent bulk imports, `external_mapping_id` for integrations | Upsert-by-id is idempotent ✅; no external-mapping fields | 🟡 |
 | N90 | Soft delete + retention; destructive actions permissioned & audited | No deletes permitted at DB level (append/update only); no soft-delete flag or workflow | 🟡 |
@@ -430,7 +429,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 
 | Area | ✅ | 🟡 | ⚙️ | ❌ | Coverage |
 |---|---|---|---|---|---|
-| A. Candidate management | 3 | 5 | 0 | 4 | 46% |
+| A. Candidate management | 4 | 4 | 0 | 4 | 50% |
 | B. Job openings | 1 | 0 | 0 | 6 | 14% |
 | C. Clients & contacts | 0 | 2 | 0 | 4 | 17% |
 | D. Sourcing & publishing | 0 | 0 | 0 | 7 | 0% |
@@ -439,11 +438,11 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | G. Offers & onboarding | 0 | 1 | 0 | 2 | 17% |
 | H. Candidate portals | 0 | 0 | 0 | 5 | 0% |
 | I. Automation | 0 | 1 | 0 | 8 | 6% |
-| J. Customization & platform | 0 | 3 | 0 | 7 | 15% |
+| J. Customization & platform | 0 | 4 | 0 | 6 | 20% |
 | K. Analytics | 0 | 1 | 1 | 2 | 25% |
 | L. Communication & integrations | 0 | 0 | 1 | 7 | 6% |
-| M. Security & admin | 2 | 2 | 0 | 4 | 38% |
-| **Overall (Zoho, A–M)** | **7** | **18** | **2** | **70** | **18%** |
+| M. Security & admin | 3 | 2 | 0 | 3 | 50% |
+| **Overall (Zoho, A–M)** | **9** | **18** | **2** | **68** | **20%** |
 
 *(Coverage = weighted presence: ✅=1, 🟡/⚙️=0.5, ❌=0.)*
 
@@ -452,23 +451,23 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | Blueprint section | ✅ | 🟡 | ⚙️ | ❌ | Coverage |
 |---|---|---|---|---|---|
 | N.1 §3 ECOD lifecycle | 4 | 4 | 0 | 0 | 75% |
-| N.2 §4.1 Candidate 360 domains | 4 | 8 | 0 | 1 | 62% |
-| N.3 §4.2 Demand object | 1 | 4 | 0 | 0 | 60% |
+| N.2 §4.1 Candidate 360 domains | 6 | 6 | 0 | 1 | 69% |
+| N.3 §4.2 Demand object | 2 | 3 | 0 | 0 | 70% |
 | N.4 §5 Search & matching | 5 | 2 | 0 | 1 | 75% |
 | N.5 §6 Skills intelligence | 5 | 0 | 0 | 1 | 83% |
 | N.6 §7 Append-only history | 2 | 3 | 0 | 0 | 70% |
-| N.7 §8 Key screens | 1 | 9 | 0 | 0 | 55% |
+| N.7 §8 Key screens | 2 | 8 | 0 | 0 | 60% |
 | N.8 §10 Dedup & data quality | 6 | 0 | 0 | 0 | 100% |
 | N.9 §11 AI layer | 5 | 1 | 0 | 2 | 69% |
-| N.10 §12 Security & governance | 4 | 4 | 0 | 3 | 55% |
-| N.11 §13–14 Architecture & API | 1 | 4 | 1 | 4 | 35% |
+| N.10 §12 Security & governance | 5 | 5 | 0 | 1 | 68% |
+| N.11 §13–14 Architecture & API | 2 | 3 | 1 | 4 | 40% |
 | N.12 §16 MVP acceptance scenarios | 4 | 3 | 0 | 1 | 69% |
 | N.13 §17 Analytics | 5 | 4 | 0 | 1 | 70% |
 | N.14 §15 R1 scope + §18 not-to-build | 6 | 6 | 0 | 3 | 60% |
-| **Blueprint total** | **53** | **52** | **1** | **17** | **65%** |
+| **Blueprint total** | **59** | **49** | **1** | **14** | **68%** |
 
 **Strongest blueprint areas:** dedup & data quality (100%), skills intelligence (83%), lifecycle and matching (75% each), analytics and history (70% each).
-**Weakest blueprint areas:** architecture/API (35% — semantic search, hosted API endpoint, object-storage malware scanning), governance (55% — consent/data-subject workflows, backups), and the remaining partials: saved views, per-demand stage sets, demand owner/business-unit fields.
+**Weakest blueprint areas:** architecture/API (40% — vector/semantic search (blueprint's own Phase 1.5), REST layer with pagination, object-storage malware scanning) and the remaining partials: demand owner/business-unit fields, watermarking, merge/role-change audit events.
 
 **Where ECOD is genuinely at or above parity for its size:** candidate repository quality (alias-normalized skills, freshness discipline, dedup), import validation rigor, matching explainability (component scores + blockers + unknowns — Zoho shows a match score but ECOD's evidence model is more transparent), DB-level tenant isolation and audit integrity (verified by an actual-Postgres test), and honest analytics.
 
@@ -480,7 +479,7 @@ Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one de
 
 **Phase 0 — Complete the Blueprint's own R1 scope** *(highest priority: the blueprint's exit condition is "run a real client demand end-to-end", which requires these)*
 
-> **Batch 1 shipped (27 Sep 2026):** structured Employment/Compensation/Availability histories with auto-capture and profile UI · per-skill proficiency, evidence, years, last-used, confidence and validation with a matching proficiency gate · engagement preference + registry status + earliest start · demand nice-to-have skills, engagement type and minimum proficiency · LinkedIn duplicate checks · data-quality queues with drill-through filters · view/export audit trail · average time-to-shortlist metric · migration `002_blueprint_r1.sql` + 10 new tests (27 total, all passing). Batch 2 shipped (27 Sep 2026): CV/document upload with allowlists, hashes and reviewable heuristic parsing (demo inline, cloud private bucket) · bulk CV import with per-file duplicate/extraction flags · demand-vs-candidate gap map (critical/trainable/contextual, derived status) with one-click enrichment planning · gap heatmap in Analytics · merge-duplicate review with field-by-field keep decisions · workspace skill-taxonomy administration · incremental change export. Batch 3 shipped (27 Sep 2026): admin console (pipeline stage labels, retention policy with audited anonymization workflow, audit log) · repository search across extracted CV text · demand commercials (internal cost/margin) in an admin-role-only table verified in PGlite · conversion analytics (time to ready, source→ready, rediscovery rate) · migration 004 + 9 new tests (46 total). Remaining Phase-1 items: saved views/column chooser, per-demand stage sets, consent/data-subject workflows, hosted updated_since endpoint, semantic search.
+> **Batch 1 shipped (27 Sep 2026):** structured Employment/Compensation/Availability histories with auto-capture and profile UI · per-skill proficiency, evidence, years, last-used, confidence and validation with a matching proficiency gate · engagement preference + registry status + earliest start · demand nice-to-have skills, engagement type and minimum proficiency · LinkedIn duplicate checks · data-quality queues with drill-through filters · view/export audit trail · average time-to-shortlist metric · migration `002_blueprint_r1.sql` + 10 new tests (27 total, all passing). Batch 2 shipped (27 Sep 2026): CV/document upload with allowlists, hashes and reviewable heuristic parsing (demo inline, cloud private bucket) · bulk CV import with per-file duplicate/extraction flags · demand-vs-candidate gap map (critical/trainable/contextual, derived status) with one-click enrichment planning · gap heatmap in Analytics · merge-duplicate review with field-by-field keep decisions · workspace skill-taxonomy administration · incremental change export. Batch 3 shipped (27 Sep 2026): admin console (pipeline stage labels, retention policy with audited anonymization workflow, audit log) · repository search across extracted CV text · demand commercials (internal cost/margin) in an admin-role-only table verified in PGlite · conversion analytics (time to ready, source→ready, rediscovery rate) · migration 004 + 9 new tests (46 total). Batch 4 shipped (27 Sep 2026): named saved views (search+filters+sort persisted per workspace) with column chooser and bulk readiness update · consent ledger (purpose/status/notice version/source) with revoke, per-candidate data-subject JSON export and audited-anonymization erasure path · per-demand pipeline stage sets + per-skill minimum proficiency · concept-expansion search (skill → domain vocabulary, e.g. Databricks ↔ lakehouse) · demand-coverage, uplift-conversion and client-funnel analytics + usable-profiles stat · hosted `api_changes_since(day)` RPC (migration 005) with PGlite RLS/RPC tests — 14 new tests, 60 total, blueprint coverage 68%. Remaining Phase-1 items: semantic/vector search (blueprint Phase 1.5), email/calendar sync, e-sign offers, interviews module, public careers portal.
 
 | Item | Blueprint § | Effort |
 |---|---|---|
@@ -496,7 +495,7 @@ Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one de
 | Admin console: users/roles, skill taxonomy, pipeline stage labels, retention settings | §8 | M |
 | Blueprint analytics: time-to-shortlist, time-to-ready, rediscovery (from existing timestamped tables) | §17 | M |
 | View/export audit events (log profile views + CSV exports with actor) | §12 | S |
-| `updated_since`-style API endpoint + `external_mapping_id` fields (API-first groundwork) | §14 | M |
+| ~~`updated_since`-style API endpoint~~ **Shipped (batch 4):** `api_changes_since(day)` RPC, migration 005 | §14 | S (REST wrapper + pagination remain) |
 
 **Phase 1 — Core ATS parity with Zoho (no new infrastructure)**
 | Item | Zoho module | Effort |
@@ -543,7 +542,7 @@ Effort is relative (S ≤ a few days, M ~1–2 weeks, L = multi-week) for one de
 |---|---|---|
 | Field-level security & granular commercial permissions | M2 | M |
 | Read/export audit events | M3 | S |
-| Consent/retention/data-subject workflows | M4 | M |
+| ~~Consent/retention/data-subject workflows~~ **Shipped (batches 3–4)** | M4 | S (watermarking/rate limits remain) |
 | SSO/MFA administration, backups/restore verification | M5, M6 | M |
 | Multi-currency, multi-language, custom report builder | J8–J9, K2 | L |
 

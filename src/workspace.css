@@ -80,3 +80,31 @@
 .retention-count{font-size:14px;color:#5b6b74}
 .retention-list{display:flex;flex-direction:column;margin-bottom:8px}
 @media (max-width:720px){.commercials-form{grid-template-columns:1fr}}
+/* --- Batch 4: saved views, column chooser, bulk status, consent & ECOD tabs, coverage, per-skill minimums --- */
+.views-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 20px 14px}
+.views-bar select{font-size:12px;max-width:220px}
+.views-label{font-size:12px;color:#8498a0}
+.views-spacer{flex:1}
+.column-chooser{display:flex;gap:12px;flex-wrap:wrap;border:1px solid #e3ebee;background:#f9fbfc;border-radius:6px;padding:9px 12px}
+.column-chooser label{display:flex;align-items:center;gap:6px;font-size:12px;color:#5f7a84;white-space:nowrap}
+.bulk-bar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#eef6f1;border-block:1px solid #d8e9dd;font-size:13px;color:#3f6b56}
+.bulk-bar select{font-size:12px}
+.consent-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:18px;border:1px solid #e0e9e6;border-radius:8px;background:#f9fbfa;align-items:end;margin-bottom:8px}
+.consent-form .button{justify-self:start}
+.consent-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 0;border-bottom:1px solid #e8edef}
+.consent-row:last-child{border-bottom:0}
+.next-action-row{display:flex;gap:10px;margin-bottom:24px}
+.next-action-row input{flex:1}
+.coverage-list{padding:4px 24px 24px}
+.coverage-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 0;border-bottom:1px solid #e9efec}
+.coverage-row:last-child{border-bottom:0}
+.coverage-cells{display:flex;gap:10px}
+.coverage-cells b{font-size:12px;font-weight:550;padding:5px 10px;border-radius:5px;white-space:nowrap}
+.cov-ready{background:#e4f1e9;color:#2c7a5c}
+.cov-near{background:#f6efdd;color:#97793d}
+.cov-missing{background:#f7e8e4;color:#a35243}
+.per-skill-min{border:1px solid #e3ebee;border-radius:8px;background:#f9fbfc;padding:16px;margin-top:4px}
+.per-skill-min>span{font-size:12px;color:#7b919c;font-weight:550}
+.per-skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.stage-set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+@media(max-width:760px){.consent-form{grid-template-columns:1fr 1fr}.coverage-row{flex-wrap:wrap}.per-skill-grid,.stage-set-grid{grid-template-columns:1fr 1fr}}

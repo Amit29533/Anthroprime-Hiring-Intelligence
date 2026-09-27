@@ -26,7 +26,7 @@ const people = [
 const engagements = ['Permanent','Contract','C2H','Permanent','Permanent','Permanent','Contract','Permanent','C2H','Permanent','Permanent','Contract','Permanent','Permanent','Contract','Permanent','Contract','Permanent','Contract'];
 const detail = (skills, proficiency, evidence, validated) => skills.map(s => ({ ...blankSkillDetail(s), proficiency, evidence, confidence: validated ? 90 : null, validated }));
 export function makeSeed() {
- const candidates = people.map((p,i) => ({ id:`10000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`, name:p[0],title:p[1],company:p[2],location:p[3],experience:p[4],relevantExperience:p[5],notice:p[6],current:p[7],expected:p[8],skills:p[9],skillsDetail:[],status:p[10],verified:dateAgo(p[11]),source:p[12],mode:p[13],email:(i===18?'priya.sharma':p[0].toLowerCase().replace(' ','.'))+'@example.com',phone:'',summary:`${p[1]} with ${p[4]} years of experience. Focused on ${p[9].slice(0,3).join(', ')} and enterprise delivery.`,created:dateAgo(100+i),owner:'Amit Singh',linkedin:i===0?'https://www.linkedin.com/in/aarav-mehta-sample':'',engagement:engagements[i],earliestStart:i%4===0?dateAgo(-(10+i)):null,activeStatus:i===6?'Passive':'Active' }));
+ const candidates = people.map((p,i) => ({ id:`10000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`, name:p[0],title:p[1],company:p[2],location:p[3],experience:p[4],relevantExperience:p[5],notice:p[6],current:p[7],expected:p[8],skills:p[9],skillsDetail:[],status:p[10],verified:dateAgo(p[11]),source:p[12],mode:p[13],email:(i===18?'priya.sharma':p[0].toLowerCase().replace(' ','.'))+'@example.com',phone:'',summary:`${p[1]} with ${p[4]} years of experience. Focused on ${p[9].slice(0,3).join(', ')} and enterprise delivery.`,created:dateAgo(100+i),owner:'Amit Singh',linkedin:i===0?'https://www.linkedin.com/in/aarav-mehta-sample':'',engagement:engagements[i],earliestStart:i%4===0?dateAgo(-(10+i)):null,activeStatus:i===6?'Passive':'Active',timezone:'Asia/Kolkata',preferredLocations:i%3===0?'Bengaluru, Remote':'',nextAction:i===0?'Confirm interview slot with Meridian':'',externalId:'' }));
  candidates[0].skillsDetail = detail(candidates[0].skills,'Proficient','Assessment',true);
  candidates[1].skillsDetail = detail(candidates[1].skills.slice(0,3),'Advanced','Recruiter-verified',true).concat(detail(candidates[1].skills.slice(3),'Working','Self-declared',false));
  candidates[3].skillsDetail = detail(candidates[3].skills,'Advanced','Certification',true);
@@ -59,5 +59,10 @@ export function makeSeed() {
  ];
  const settings = [{ id:'workspace', custom:{ stageLabels:{}, retentionMonths:12 } }];
  const demandCommercials = [{ id:'81000000-0000-4000-8000-000000000001', demandId:demands[0].id, internalCost:32, currency:'INR', notes:'Target delivery cost for the Meridian programme', updated:dateAgo(4) }];
- return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[], documents:[], taxonomy:[], demandCommercials, settings };
+ const consents = [
+  {id:'82000000-0000-4000-8000-000000000001',candidateId:candidates[0].id,purpose:'recruiting-contact',status:'granted',noticeVersion:'v1.1',source:'Phone call',note:'Verbal consent recorded by Amit',date:stampAgo(30)},
+  {id:'82000000-0000-4000-8000-000000000002',candidateId:candidates[4].id,purpose:'profile-sharing',status:'granted',noticeVersion:'v1.1',source:'Email',note:'CV sharing approved for Northstar Financial',date:stampAgo(12)},
+  {id:'82000000-0000-4000-8000-000000000003',candidateId:candidates[6].id,purpose:'marketing',status:'revoked',noticeVersion:'v1.0',source:'Email',note:'Candidate opted out of newsletters',date:stampAgo(45)}
+ ];
+ return { candidates, demands, considerations, assessments, notes, enrichment, history:[], employmentHistory, compensationHistory, availabilityHistory, auditEvents:[], documents:[], taxonomy:[], demandCommercials, settings, consents };
 }

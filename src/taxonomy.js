@@ -41,6 +41,25 @@ export function scanSkills(text) {
   const terms = [...allSkills(), ...Object.keys(allAliases())].sort((a,b) => b.length - a.length);
   return skillList(terms.filter(s => new RegExp(`(^|[^a-z0-9])${escapeRe(s)}($|[^a-z0-9])`, 'i').test(text)));
 }
+
+// Blueprint §5 — lexical concept expansion: everyday terms that should surface related skills
+// without embeddings. Honest scope: keyword concepts, not vector similarity.
+export const CONCEPTS = {
+  lakehouse:['Databricks','Unity Catalog','Apache Spark'],
+  'data platform':['Databricks','Snowflake','Apache Spark','dbt'],
+  identity:['Microsoft Entra','IAM','Conditional Access'],
+  security:['Cybersecurity','OT Security','IAM','Conditional Access'],
+  'cloud':['Azure','AWS','Terraform','Kubernetes'],
+  analytics:['Power BI','SQL','dbt','Snowflake'],
+  frontend:['React','TypeScript','Figma'],
+  backend:['Node.js','Java','Python','SQL'],
+  infrastructure:['Terraform','Kubernetes','Azure','AWS'],
+  governance:['Unity Catalog','Microsoft Entra','IAM']
+};
+const conceptIndex = {};
+for(const [term,skills] of Object.entries(CONCEPTS)) for(const sk of skills) (conceptIndex[sk] = conceptIndex[sk] || []).push(term);
+export const conceptTermsFor = skill => conceptIndex[skill] || [];
+
 export const domainOf = skill => custom.domains[skill] || SKILL_DOMAINS[skill] || 'Other';
 export const proficiencyRank = level => { const i = PROFICIENCY_LEVELS.indexOf(level); return i === -1 ? 1 : i; };
 export const meetsLevel = (has, need) => proficiencyRank(has) >= proficiencyRank(need || 'Working');

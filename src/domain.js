@@ -1,4 +1,4 @@
-import { meetsLevel, skillList, scanSkills } from './taxonomy.js';
+import { meetsLevel, skillList, scanSkills, domainOf, conceptTermsFor } from './taxonomy.js';
 export { skillList, canonical, scanSkills } from './taxonomy.js';
 export const STAGES = ['Identified', 'Contacted', 'Assessed', 'Enrichment', 'Submitted', 'Interview', 'Offer', 'Deployed', 'Rejected', 'Withdrawn'];
 export const WEIGHTS = { skills: 35, experience: 20, readiness: 20, availability: 10, budget: 10, location: 5 };
@@ -66,7 +66,9 @@ export const setStageLabels = map => { stageLabels = map && typeof map === 'obje
 export const stageLabelsMap = () => ({ ...stageLabels });
 export const stageLabel = s => stageLabels[s] || s;
 export function candidateSearchText(c, documents = []) {
-  return [c.name, c.title, c.company, c.location, c.email, c.summary, ...(c.skills || []),
+  const skills = c.skills || [];
+  const conceptTerms = [...new Set(skills.flatMap(s => [...domainOf(s), ...conceptTermsFor(s)]))];
+  return [c.name, c.title, c.company, c.location, c.email, c.summary, ...skills, ...conceptTerms,
     ...documents.filter(d => d && d.candidateId === c.id && !d.removed && d.extracted).map(d => d.extracted)].join(' ').toLowerCase();
 }
 export function searchCandidate(c, query) {

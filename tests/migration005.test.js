@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+test('Batch-4 migration: consents tenant-scoped and the changes_since RPC serves only the caller workspace',async()=>{
+ const db=new PGlite();
+ await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+ for(const f of ['001_ecod.sql','002_blueprint_r1.sql','003_documents_taxonomy.sql','004_admin_settings.sql','005_consents_sync.sql'])
+  await db.exec(await readFile(new URL(`../supabase/migrations/${f}`,import.meta.url),'utf8'));
+ const admin='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
+ const w1='00000000-0000-4000-8000-000000000011',w2='00000000-0000-4000-8000-000000000012';
+ const c1='00000000-0000-4000-8000-000000000021';
+ await db.exec(`insert into auth.users values('${admin}','admin@example.com'),('${other}','other@example.com');insert into public.workspaces(id,name) values('${w1}','A'),('${w2}','B');insert into public.memberships values('${admin}','${w1}','admin'),('${other}','${w2}','recruiter');`);
+ const act=async user=>db.exec(`reset role;select set_config('request.jwt.claim.sub','${user}',false);set role authenticated;`);
+ await act(admin);
+ await db.exec(`insert into candidates(id,name,email,timezone,"nextAction","externalId") values('${c1}','Sync Person','sync@example.com','Asia/Kolkata','Call back','ext-42');`);
+ await db.exec(`insert into notes("candidateId",text,channel) values('${c1}','intro call','Call');`);
+ await db.exec(`insert into "consents"("candidateId",purpose,status,"noticeVersion",source) values('${c1}','profile-sharing','granted','v1.1','Email');`);
+ const feed=await db.query(`select api_changes_since('2026-01-01') as feed`);
+ const parsed=feed.rows[0].feed;
+ assert.equal(parsed.candidates.length,1);
+ assert.equal(parsed.candidates[0].externalId,'ext-42');
+ assert.equal(parsed.notes.length,1);
+ assert.equal(parsed.history.length,2,'candidate and note inserts are both captured in history');
+ await act(other);
+ const otherFeed=await db.query(`select api_changes_since('2026-01-01') as feed`);
+ assert.equal(otherFeed.rows[0].feed.candidates.length,0,'cross-tenant rows never leak');
+ assert.equal((await db.query('select count(*)::int as count from "consents"')).rows[0].count,0,'other workspace sees no consent rows');
+ await db.exec('reset role;set role anon;');
+ await assert.rejects(()=>db.exec(`select api_changes_since('2026-01-01');`),/permission/i);
+ await db.close();
+});
