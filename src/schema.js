@@ -32,6 +32,7 @@ export const TABLES = [
   'personSkills',
   'skillEvidence',
   'referrals',
+  'interviewSlots',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -75,6 +76,19 @@ export function normalizeData(data) {
     d.approvedAt = d.approvedAt || null;
     d.approvedTerms = d.approvedTerms || null;
     d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.interviewSlots = out.interviewSlots || [];
+  for (const s of out.interviewSlots) {
+    s.demandId = s.demandId || null;
+    s.candidateId = s.candidateId || null;
+    s.interviewer = s.interviewer || '';
+    s.round = s.round || 'Round 1';
+    s.mode = s.mode || 'Video';
+    s.location = s.location || '';
+    s.durationMins = Number(s.durationMins) || 45;
+    s.status = s.status || 'Open';
+    s.interviewId = s.interviewId || null;
+    s.note = s.note || '';
   }
   out.referrals = out.referrals || [];
   for (const r of out.referrals) {
