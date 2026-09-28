@@ -291,3 +291,9 @@
 .approval-note{margin:4px 0 16px;padding:12px 15px;border-left:3px solid #cddbd7;background:#f7faf9;color:#6d8790;font-size:13px;line-height:1.7;font-style:italic}
 .constraint-warning{padding:14px 16px;border:1px solid #f0dcc4;background:#fdf6ea;border-radius:7px;color:#96713c;font-size:13px;line-height:1.7}
 .constraint-warning strong{display:block;color:#7d5c2c;margin-bottom:3px;font-style:normal}
+/* --- Batch 19: careers SEO --- */
+.careers-back{margin-top:18px;background:none;border:0;color:inherit;opacity:.8;font-size:13px;padding:0;cursor:pointer}
+.careers-back:hover{opacity:1;text-decoration:underline}
+.careers-role-head h2 a{color:inherit;text-decoration:none}
+.careers-role-head h2 a:hover{text-decoration:underline}
+.seo-url{overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}

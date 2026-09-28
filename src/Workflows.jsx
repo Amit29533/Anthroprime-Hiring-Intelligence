@@ -30,7 +30,7 @@ import {
   Stat,
 } from './ui.jsx';
 import { Members } from './Members.jsx';
-import { DepartmentsPanel } from './Requisitions.jsx';
+import { DepartmentsPanel, CareersSeoPanel } from './Requisitions.jsx';
 import {
   uid,
   today,
@@ -1882,6 +1882,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onMod
           onEdit={(department) => onModal?.({ type: 'department', department })}
           notify={notify}
         />
+        <CareersSeoPanel data={data} notify={notify} />
         <section className="panel">
           <PanelHeading title="Workspace capabilities" />
           <div className="settings-body">

@@ -81,6 +81,7 @@ export async function loadApp() {
     ApprovalWarning: RQ.ApprovalWarning,
     DepartmentForm: RQ.DepartmentForm,
     DepartmentsPanel: RQ.DepartmentsPanel,
+    CareersSeoPanel: RQ.CareersSeoPanel,
     Clients: CL.Clients,
     ClientForm: CL.ClientForm,
     ClientDetail: CL.ClientDetail,

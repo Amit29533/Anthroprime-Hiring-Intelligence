@@ -8,6 +8,7 @@ import { BriefcaseBusiness, MapPin, Clock, Send, CheckCircle2, ShieldCheck } fro
 import { cloud, getSupabase, loadData, saveRows } from './repository.js';
 import { makeSeed } from './seed.js';
 import { normalizeData } from './schema.js';
+import { jobPostingJsonLd, jobListJsonLd, pageMeta } from './jobPosting.js';
 import './workspace.css';
 
 const WS_KEY = 'ecod-careers-workspace';
@@ -333,20 +334,95 @@ function StatusCheck() {
   );
 }
 
+/** Replace (never duplicate) a managed tag in <head>, keyed by a data attribute. */
+function setHeadTag(key, tag, attrs) {
+  if (typeof document === 'undefined') return;
+  const selector = `[data-careers-seo="${key}"]`;
+  document.head.querySelectorAll(selector).forEach((node) => node.remove());
+  const el = document.createElement(tag);
+  el.setAttribute('data-careers-seo', key);
+  for (const [name, value] of Object.entries(attrs)) {
+    if (name === 'text') el.textContent = value;
+    else el.setAttribute(name, value);
+  }
+  document.head.appendChild(el);
+}
+
+/**
+ * Publish page metadata and schema.org JobPosting markup for whatever is currently on screen.
+ * A single role gets its own title, canonical URL and JobPosting; the listing gets an ItemList.
+ * This is what makes the page eligible for a Google Jobs rich result.
+ */
+export function applyCareersSeo(role, roles, options = {}) {
+  if (typeof document === 'undefined') return null;
+  const meta = pageMeta(role, options);
+  document.title = meta.title;
+  setHeadTag('description', 'meta', { name: 'description', content: meta.description });
+  setHeadTag('canonical', 'link', { rel: 'canonical', href: meta.canonical });
+  setHeadTag('robots', 'meta', { name: 'robots', content: 'index, follow' });
+  setHeadTag('og:title', 'meta', { property: 'og:title', content: meta.title });
+  setHeadTag('og:description', 'meta', { property: 'og:description', content: meta.description });
+  setHeadTag('og:type', 'meta', { property: 'og:type', content: meta.ogType });
+  setHeadTag('og:url', 'meta', { property: 'og:url', content: meta.canonical });
+  setHeadTag('twitter:card', 'meta', { name: 'twitter:card', content: 'summary' });
+
+  const json = role ? jobPostingJsonLd(role, options) : jobListJsonLd(roles, options);
+  if (json)
+    setHeadTag('jsonld', 'script', { type: 'application/ld+json', text: JSON.stringify(json) });
+  else document.head.querySelectorAll('[data-careers-seo="jsonld"]').forEach((n) => n.remove());
+  return json;
+}
+
 export function CareersApp() {
   const { loading, roles, error } = useOpenRoles();
   const [applying, setApplying] = useState(null);
+  // A deep link to one role gives that posting its own indexable URL, which is what Google Jobs
+  // wants. Without it every job would share a single listing URL.
+  const params = typeof location === 'undefined' ? null : new URLSearchParams(location.search);
+  const [focusId, setFocusId] = useState(() => params?.get('role') || '');
+  const workspace = params?.get('ws') || '';
+  const focused = focusId ? roles.find((r) => r.id === focusId) || null : null;
+  const visible = focused ? [focused] : roles;
+  const seoOptions = {
+    origin: typeof location === 'undefined' ? '' : location.origin,
+    path: typeof location === 'undefined' ? '/careers.html' : location.pathname,
+    workspace,
+  };
+
+  useEffect(() => {
+    if (loading) return;
+    applyCareersSeo(focused, roles, seoOptions);
+    // A deep link to a role that is no longer published must not leave a dead page.
+    if (focusId && !focused && roles.length) setFocusId('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, focusId, roles]);
+
+  function showRole(id) {
+    setFocusId(id);
+    if (typeof history !== 'undefined' && typeof location !== 'undefined') {
+      const next = new URLSearchParams(location.search);
+      if (id) next.set('role', id);
+      else next.delete('role');
+      history.pushState({}, '', `${location.pathname}?${next.toString()}`);
+    }
+  }
   return (
     <div className="careers-page">
       <header className="careers-hero">
         <span className="careers-brand">
           AnthroPrime<small>ECOD · TALENT INTELLIGENCE</small>
         </span>
-        <h1>Open roles</h1>
+        <h1>{focused ? focused.title : 'Open roles'}</h1>
         <p>
-          Every role below is live with our client partners. Apply directly — a recruiter reviews
-          every application, and your consent choices are recorded and respected.
+          {focused
+            ? `${focused.client} · ${focused.location} · ${focused.mode}`
+            : 'Every role below is live with our client partners. Apply directly — a recruiter reviews every application, and your consent choices are recorded and respected.'}
         </p>
+        {focused && (
+          <button className="careers-back" onClick={() => showRole('')}>
+            ← All open roles
+          </button>
+        )}
       </header>
       <main className="careers-main">
         {loading && <p className="careers-loading">Loading open roles…</p>}
@@ -355,10 +431,24 @@ export function CareersApp() {
           <p className="careers-loading">No open roles right now — check back soon.</p>
         )}
         <div className="careers-list">
-          {roles.map((r) => (
+          {visible.map((r) => (
             <section className="careers-role" key={r.id}>
               <div className="careers-role-head">
-                <h2>{r.title}</h2>
+                <h2>
+                  {focused ? (
+                    r.title
+                  ) : (
+                    <a
+                      href={`?${workspace ? `ws=${encodeURIComponent(workspace)}&` : ''}role=${r.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        showRole(r.id);
+                      }}
+                    >
+                      {r.title}
+                    </a>
+                  )}
+                </h2>
                 <button
                   className="apply-btn"
                   onClick={() => setApplying(applying === r.id ? null : r.id)}

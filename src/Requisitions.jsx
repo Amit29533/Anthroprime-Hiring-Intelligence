@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
-import { Plus, CheckCircle2, XCircle, Undo2, Send, ShieldCheck, Building } from 'lucide-react';
+import {
+  Plus,
+  CheckCircle2,
+  XCircle,
+  Undo2,
+  Send,
+  ShieldCheck,
+  Building,
+  Download,
+} from 'lucide-react';
 import { PanelHeading, Button, Field, Modal, Badge, Empty } from './ui.jsx';
 import { uid, today } from './domain.js';
-import { canWriteForRole, getRole } from './repository.js';
+import { canWriteForRole, getRole, getWorkspaceId } from './repository.js';
+import { downloadFile } from './Candidates.jsx';
+import { publishedRoles, roleUrl, sitemapXml } from './jobPosting.js';
 import {
   APPROVAL_TONE,
   approvalsRequired,
@@ -332,6 +343,86 @@ export function DepartmentsPanel({ data, onSave, onNew, onEdit, notify, busy, ro
             </div>
           </>
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Careers-page discoverability (Zoho B6). Shows the public URL, what search engines will see,
+ * and produces a sitemap for the roles that are actually published right now.
+ */
+export function CareersSeoPanel({
+  data,
+  notify,
+  download = downloadFile,
+  origin,
+  workspace = getWorkspaceId(),
+}) {
+  const roles = publishedRoles(data);
+  const base =
+    origin || (typeof location === 'undefined' ? 'https://your-site.example' : location.origin);
+  const options = { origin: base, path: '/careers.html', workspace };
+  const listing = workspace ? `${base}/careers.html?ws=${workspace}` : `${base}/careers.html`;
+
+  return (
+    <section className="panel">
+      <PanelHeading
+        title="Careers page & search visibility"
+        subtitle="What job seekers and search engines see when a role is published."
+      />
+      <div className="settings-body">
+        <dl>
+          <div>
+            <dt>Public careers URL</dt>
+            <dd className="seo-url">{listing}</dd>
+          </div>
+          <div>
+            <dt>Roles currently published</dt>
+            <dd>{roles.length}</dd>
+          </div>
+          <div>
+            <dt>Structured data</dt>
+            <dd>schema.org JobPosting per role</dd>
+          </div>
+        </dl>
+        {roles.length === 0 ? (
+          <p className="supporting-text">
+            No roles are published yet. Tick{' '}
+            <strong>Publish this role on the public careers page</strong> on a demand to list it.
+          </p>
+        ) : (
+          <ul className="client-list">
+            {roles.slice(0, 6).map((r) => (
+              <li key={r.id}>
+                <div>
+                  <strong>{r.title}</strong>
+                  <small>{roleUrl(r, options)}</small>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="approval-actions">
+          <Button
+            variant="secondary"
+            icon={Download}
+            disabled={!roles.length}
+            onClick={() => {
+              download(sitemapXml(roles, options), 'sitemap.xml', 'application/xml;charset=utf-8');
+              notify?.(`Sitemap generated for ${roles.length} published role(s).`);
+            }}
+          >
+            Download sitemap.xml
+          </Button>
+        </div>
+        <p className="careers-publish-hint">
+          Each role has its own address, and the page publishes schema.org JobPosting markup so it
+          is eligible for a Google Jobs result. That markup is added by JavaScript: Google does
+          render it, but server-rendered or prerendered pages are indexed faster and more reliably.
+          Upload the sitemap to your host and submit it in Google Search Console — nothing here
+          submits it for you.
+        </p>
       </div>
     </section>
   );

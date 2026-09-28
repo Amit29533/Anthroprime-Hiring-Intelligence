@@ -21,12 +21,17 @@ export function getSupabase() {
 
 let currentRole = cloud ? 'viewer' : 'admin'; // cloud access stays restrictive until membership resolves
 export const getRole = () => currentRole;
+// The workspace the signed-in account belongs to. The public careers URL needs it as ?ws=, so
+// the settings screen can show a link that actually works instead of a placeholder.
+let currentWorkspaceId = '';
+export const getWorkspaceId = () => currentWorkspaceId;
 export const canWriteForRole = (role) => role === 'admin' || role === 'recruiter';
 export const canExportForRole = canWriteForRole;
 
 // A new cloud identity must not inherit the previous account's UI permissions while loading.
 export function resetRoleForSessionChange() {
   currentRole = cloud ? 'viewer' : 'admin';
+  currentWorkspaceId = '';
 }
 export { TABLES, emptyData, normalizeData } from './schema.js';
 import { TABLES, emptyData, normalizeData } from './schema.js';
@@ -63,6 +68,7 @@ export async function loadData() {
   currentRole = ['admin', 'recruiter', 'viewer'].includes(membership.role)
     ? membership.role
     : 'viewer';
+  currentWorkspaceId = membership.workspace_id || '';
   await Promise.all(
     TABLES.map(async (table) => {
       let from = 0;
