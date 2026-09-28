@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeData } from '../src/schema.js';
+import { normalizeData, TABLES } from '../src/schema.js';
 import { makeSeed } from '../src/seed.js';
 import { ruleMatches, actionsFor, buildActions, AUTOMATION_TABLES } from '../src/automation.js';
 import { parseICS, interviewDraftFromEvent } from '../src/calendar.js';
@@ -159,7 +159,15 @@ test('forwarded emails yield a parseable CV body', () => {
 
 test('backups carry a table manifest and stay backward-compatible', () => {
   const bundle = backupBundle(seed);
-  assert.deepEqual(bundle.tableList.length, 22, 'manifest lists every table incl. workflowRules');
+  // Pinned to the schema rather than a literal, so adding a table cannot silently drop it from
+  // the backup manifest without this assertion noticing.
+  assert.deepEqual(
+    bundle.tableList.length,
+    TABLES.length,
+    'the manifest lists every table in the schema',
+  );
+  for (const table of ['workflowRules', 'clients', 'clientContacts'])
+    assert.ok(bundle.tableList.includes(table), `${table} is included in the backup manifest`);
   const restored = parseBackup(JSON.stringify(bundle));
   assert.equal(restored.rows.workflowRules.length, seed.workflowRules.length);
   const legacy = JSON.parse(JSON.stringify(bundle));

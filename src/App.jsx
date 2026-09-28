@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   LoaderCircle,
   CalendarClock,
+  Building2,
 } from 'lucide-react';
 import {
   loadData,
@@ -49,10 +50,12 @@ import {
   DispositionModal,
 } from './Workflows.jsx';
 import { Interviews } from './Interviews.jsx';
+import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
   ['Demands', BriefcaseBusiness],
+  ['Clients', Building2],
   ['Pipeline', Columns3],
   ['Talent pools', Layers],
   ['Assessments', ClipboardCheck],
@@ -72,6 +75,7 @@ export default function App() {
     [personId, setPersonId] = useState(null),
     [personTab, setPersonTab] = useState('Overview'),
     [demandId, setDemandId] = useState(null),
+    [clientId, setClientId] = useState(null),
     [pipelineDemand, setPipelineDemand] = useState(null),
     [candidateFilter, setCandidateFilter] = useState(null),
     [busy, setBusy] = useState(false),
@@ -98,6 +102,7 @@ export default function App() {
         setPersonId(null);
         setPersonTab('Overview');
         setDemandId(null);
+        setClientId(null);
         setPipelineDemand(null);
         setCandidateFilter(null);
         setModal(null);
@@ -193,8 +198,15 @@ export default function App() {
     setMobile(false);
     setPersonId(null);
     setDemandId(null);
+    setClientId(null);
     setCandidateFilter(filter);
     if (p !== 'Candidates') setQuery('');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+  const openClient = (id) => {
+    setPage('Clients');
+    setClientId(id);
+    setMobile(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const openDemand = (id) => {
@@ -379,7 +391,8 @@ export default function App() {
     importCandidates = () => setModal({ type: 'import' }),
     newAssessment = (candidateId) => setModal({ type: 'assessment', candidateId });
   const person = data.candidates.find((c) => c.id === personId),
-    demand = data.demands.find((d) => d.id === demandId);
+    demand = data.demands.find((d) => d.id === demandId),
+    client = (data.clients || []).find((c) => c.id === clientId);
   const userName = cloud
     ? session?.user?.user_metadata?.full_name ||
       session?.user?.email?.split('@')[0] ||
@@ -441,9 +454,32 @@ export default function App() {
         onSave={save}
         busy={busy}
         audit={audit}
+        onOpenClient={openClient}
       />
     ) : (
       <Demands data={data} onNew={newDemand} onOpen={openDemand} />
+    );
+  else if (page === 'Clients')
+    content = client ? (
+      <ClientDetail
+        key={client.id}
+        client={client}
+        data={data}
+        onBack={() => setClientId(null)}
+        onEdit={(c) => setModal({ type: 'client', client: c })}
+        onAddContact={(id) => setModal({ type: 'contact', clientId: id })}
+        onEditContact={(c) => setModal({ type: 'contact', contact: c, clientId: c.clientId })}
+        onOpenDemand={openDemand}
+        onOpenCandidate={setPersonId}
+      />
+    ) : (
+      <Clients
+        data={data}
+        onNew={() => setModal({ type: 'client' })}
+        onOpen={setClientId}
+        onSave={save}
+        busy={busy}
+      />
     );
   else if (page === 'Pipeline')
     content = (
@@ -556,6 +592,7 @@ export default function App() {
               {name === 'Demands' && (
                 <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
               )}
+              {name === 'Clients' && <b>{(data.clients || []).length}</b>}
             </button>
           ))}
         </nav>
@@ -718,6 +755,26 @@ export default function App() {
           onClose={() => setModal(null)}
           onSave={save}
           onCreated={openDemand}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'client' && (
+        <ClientForm
+          client={modal.client}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          onCreated={openClient}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'contact' && (
+        <ContactForm
+          contact={modal.contact}
+          clientId={modal.clientId}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
           busy={busy}
         />
       )}

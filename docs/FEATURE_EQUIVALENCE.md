@@ -17,7 +17,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 
 | Verification                       | ✅ Equivalent | 🟡 Partial | ⚙️ By design | ❌ Missing | Weighted coverage |
 | ---------------------------------- | ------------- | ---------- | ------------ | ---------- | ----------------- |
-| **Zoho Recruit** feature set (A–M) | 15            | 47         | 2            | 33         | **41%**           |
+| **Zoho Recruit** feature set (A–M) | 17            | 45         | 2            | 33         | **43%**           |
 | **ECOD Blueprint v1.0** (N.1–N.14) | 79            | 40         | 1            | 3          | **81%**           |
 
 **ECOD today ≈ a strong "repository-first talent intelligence core":** reusable candidate records, CSV/CV ingestion, search and local TF-IDF retrieval, explainable matching, demand pipelines, assessments, interviews/offers, governance tools, public careers and candidate self-service portals, plus workspace-level tenant isolation. It covers many recruiter-side ATS basics, but is not a substitute for an integrated communications suite, client/vendor CRM portals or enterprise-scale governance.
@@ -30,7 +30,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 4. **No integrated communication layer** — mailto drafts and one-way `.ics` import/export exist, but there is no server-side email delivery/inbox sync, mass messaging, SMS/WhatsApp or telephony.
 5. **Automation engine is grounded but client-side** — condition-based workflow rules with task/note/tag/field-update actions shipped (batch 10); server-side execution, alerts, assignment/approval rules and webhooks remain.
 6. **Thin customization layer** — saved views, tags and custom fields for candidates/demands shipped; custom modules, broader module-level fields and a layout editor remain open.
-7. **Staffing-agency CRM depth is partial** — consent-gated submission packs plus recruiter-recorded client decisions/free-text feedback shipped (batches 7–8), as did generated offer letters (batch 9); client/contact records, client-facing review, e-sign execution and placements remain.
+7. **Staffing-agency CRM depth is partial** — consent-gated submission packs, recruiter-recorded client decisions/free-text feedback (batches 7–8), generated offer letters (batch 9) and now client account/contact records with per-account rollups (batch 16) have shipped; client-facing review, a client login portal, e-sign execution and placement/commercial records remain.
 8. **No Zia-style AI** — no model-generated summaries, scoring or writing; local deterministic TF-IDF/natural-language retrieval is not a hosted embedding or AI layer, and a sourcing chatbot remains absent.
 
 **Remaining gaps vs. the ECOD Blueprint after implementation batch 13:**
@@ -38,7 +38,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 1. **Hosted semantic index (§5, §11, Phase 1.5)** — in-browser TF-IDF vector ranking and similar-talent retrieval shipped; a hosted embedding index for cross-workspace semantic search remains.
 2. **API surface (§14)** — `api_changes_since` and paginated `api_changes_page` RPCs ship the workspace feed; candidate/demand `externalId` fields exist. A general REST wrapper, external-mapping registry and integration reconciliation remain open.
 3. **Governance depth (§12)** — server-side malware scanning, encrypted/scheduled backups with restore verification, user/role administration UI, export DLP/rate limits and SSO/MFA administration remain open. CSV provenance stamps and manual backup/restore exist, but do not provide those operational controls.
-4. **Key screens (§8, R2 scope)** — public careers and candidate self-service portals shipped (batches 8 and 11); client and vendor login portals remain outstanding.
+4. **Key screens (§8, R2 scope)** — public careers and candidate self-service portals shipped (batches 8 and 11) and the Clients screen shipped (batch 16); client and vendor *login* portals remain outstanding.
 5. **History and measurement depth (§7, §17)** — structured histories and current analytics are in place; per-skill evidence versioning, automated archival/purge, time-to-submit and cohort conversion remain.
 
 ---
@@ -54,7 +54,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 | Assessments / Interview Feedback | Append-only assessments + structured interview-panel feedback                                                         |
 | Notes & Timeline                 | Notes & follow-ups + History snapshots                                                                                |
 | Talent Pool                      | Talent Pools (6 fixed, dynamic membership)                                                                            |
-| Clients / Contacts / Departments | Client (text field on a demand only)                                                                                  |
+| Clients / Contacts / Departments | Clients (account records) + Client contacts; business unit is a text field on the demand                             |
 | Zia (AI)                         | Explainable deterministic matching + local TF-IDF/natural-language retrieval; no AI model layer                       |
 | Blueprint (automation)           | Per-demand stages + configurable labels and client-side condition/action workflows; no flowchart/state-machine editor |
 
@@ -95,9 +95,9 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 
 | #   | Zoho Recruit capability                                                   | ECOD today                                                                                                                                                    | Status |
 | --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| C1  | Clients module (accounts, agreements, their openings)                     | Client is free text on a demand; no client records                                                                                                            | 🟡     |
-| C2  | Contacts module + candidate/client contact linking + portal invites       | Candidate portal invite drafts exist on profiles; no separate Contacts module, client-contact linking or bulk invitation                                      | 🟡     |
-| C3  | Submissions module (submit candidate to client, track across stages)      | Consent-gated, verified-fact submission packs and per-demand submission records/client decisions are available; no client account or external tracking portal | 🟡     |
+| C1  | Clients module (accounts, agreements, their openings)                     | Client accounts with industry/location/owner/status/tier/payment terms, a portfolio list with search, filter and sort, and a detail page rolling up demands, submissions, interviews, offers and placements; demands link to an account (legacy free-text names still match by name and can be adopted in one click). No agreements or contract documents | ✅     |
+| C2  | Contacts module + candidate/client contact linking + portal invites       | Client contacts per account (title, email, phone, primary and decision-maker flags, one primary enforced by a partial unique index); submissions can be addressed to a recorded contact and prefill the account primary. Candidate portal invite drafts exist on profiles; no client-contact portal invitations or bulk invites | ✅     |
+| C3  | Submissions module (submit candidate to client, track across stages)      | Consent-gated, verified-fact submission packs and per-demand submission records/client decisions, now linked to a client account and contact and visible on the account's activity table; no external tracking portal | 🟡     |
 | C4  | Candidate Review Form (client approves/rejects submissions)               | Recruiters can record client decisions and feedback on a submission; there is no client-facing review form or login                                           | 🟡     |
 | C5  | Client portal (clients create openings, give feedback, decide interviews) | Client decisions (Pending/Shortlisted/Rejected/Hired) and feedback recorded per submission on the demand; no client login portal or client-created openings   | 🟡     |
 | C6  | Vendor portal (share job alerts; real-time vendor notifications)          | None                                                                                                                                                          | ❌     |
@@ -431,7 +431,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | ------------------------------- | ------ | ------ | ----- | ------ | -------- |
 | A. Candidate management         | 6      | 6      | 0     | 0      | 75%      |
 | B. Job openings                 | 1      | 2      | 0     | 4      | 29%      |
-| C. Clients & contacts           | 0      | 5      | 0     | 1      | 42%      |
+| C. Clients & contacts           | 2      | 3      | 0     | 1      | 58%      |
 | D. Sourcing & publishing        | 1      | 2      | 0     | 4      | 29%      |
 | E. Resumes & parsing            | 1      | 5      | 1     | 1      | 50%      |
 | F. Screening & interviews       | 2      | 4      | 0     | 4      | 40%      |
@@ -442,7 +442,7 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | K. Analytics                    | 0      | 2      | 0     | 2      | 25%      |
 | L. Communication & integrations | 0      | 2      | 1     | 5      | 19%      |
 | M. Security & admin             | 3      | 4      | 0     | 1      | 63%      |
-| **Overall (Zoho, A–M)**         | **15** | **47** | **2** | **33** | **41%**  |
+| **Overall (Zoho, A–M)**         | **17** | **45** | **2** | **33** | **43%**  |
 
 _(Coverage = weighted presence: ✅=1, 🟡/⚙️=0.5, ❌=0. The Zoho rollup counts combined 🟡/⚙️ rows in the by-design column so categories remain exclusive. Current-working-tree totals were recounted on 28 September 2026.)_
 
@@ -521,6 +521,8 @@ The entries below are historical delivery notes, not the current feature verdict
 - **Batch 14 shipped (28 Sep 2026):** public careers isolation hardening (migration 018) — anonymous direct demand-table reads revoked, role publication is an explicit per-demand opt-in, public listing RPCs are workspace-scoped and column-limited, application status lookups are workspace-scoped, and direct application calls require contact consent plus a role that is still open and published in the same workspace — PGlite multi-workspace/RPC regression coverage and UI publication checks; **189 tests total**. The status lookup still does not verify email ownership. The hosted Supabase deployment needs separate Auth, Storage and PostgREST verification.
 
 - **Batch 15 shipped (28 Sep 2026):** application status privacy hardening (migration 019) — each application receives a random private status code, shown to the applicant on confirmation; checking status now requires workspace, email and code, and mismatches return no records. Legacy applications receive codes during migration but need a verified recruiter handoff because the code was not present at submission time — PGlite and careers user-flow regression tests; **191 tests total**.
+
+- **Batch 16 shipped (28 Sep 2026):** client accounts and contacts (Zoho area C, blueprint §4.2) — a `clients` table (industry, location, website, owner, status, tier, payment terms, notes, tags) with a case-insensitive unique name per workspace, a `clientContacts` table with a partial unique index enforcing one primary contact per account and a check requiring an email or a phone, `demands."clientId"` and `submissions."contactId"` links, a Clients screen with portfolio stats/search/filter/sort, an account detail page rolling up demands, submissions, interviews, offers and placements (percentages reported only where a denominator exists), one-click adoption of legacy free-text client names, demand-form account linking, and submission prefill from the account's primary contact. Both new tables carry the standard RLS shape, the `record_change` audit trigger and the `touch_updated_column` stamp, and join both incremental-sync RPCs. Account deletion is admin-only and cascades to contacts while clearing — not deleting — the demand link. Nothing in the rollup reads admin-only `demandCommercials`. Migration 020 plus 23 new tests (2 PGlite migration, 11 domain, 10 user-flow); **214 tests total**. A database-level bug was caught by the new tests and fixed before merge: a composite `ON DELETE SET NULL` foreign key nulls *every* referencing column, so both new FKs pin the SET NULL column list and can no longer blank a row's `workspace_id`.
 
 ---
 

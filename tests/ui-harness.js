@@ -40,7 +40,7 @@ export async function load(path) {
 
 /** Every component the workspace shell can render, keyed for convenience. */
 export async function loadApp() {
-  const [A, C, D, W, IV, DB, CA, PO] = await Promise.all([
+  const [A, C, D, W, IV, DB, CA, PO, CL] = await Promise.all([
     load('/src/App.jsx'),
     load('/src/Candidates.jsx'),
     load('/src/Demands.jsx'),
@@ -49,6 +49,7 @@ export async function loadApp() {
     load('/src/Dashboard.jsx'),
     load('/src/careers.jsx'),
     load('/src/portal.jsx'),
+    load('/src/Clients.jsx'),
   ]);
   return {
     App: A.default,
@@ -73,6 +74,10 @@ export async function loadApp() {
     Settings: W.Settings,
     Login: W.Login,
     DispositionModal: W.DispositionModal,
+    Clients: CL.Clients,
+    ClientForm: CL.ClientForm,
+    ClientDetail: CL.ClientDetail,
+    ContactForm: CL.ContactForm,
     Interviews: IV.Interviews,
     ScheduleModal: IV.ScheduleModal,
     FeedbackModal: IV.FeedbackModal,

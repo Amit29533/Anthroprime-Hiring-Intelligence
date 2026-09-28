@@ -243,3 +243,25 @@
 .application-status-code code{display:inline-block;max-width:100%;padding:2px 6px;border-radius:5px;background:#d5e9dc;color:#245b43;font-size:12px;word-break:break-all}
 .status-form{flex-wrap:wrap}
 .status-form input{flex:1 1 210px}
+/* --- Batch 16: client accounts & contacts --- */
+.client-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:18px 24px 0}
+.client-columns .panel{margin:0}
+.client-chip-row{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 18px}
+.chip-button{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px dashed var(--border,#d8e2df);background:#f7fbfa;color:#40605c;cursor:pointer}
+.chip-button:hover:not(:disabled){background:#e4eeec;border-style:solid}
+.chip-button:disabled{opacity:.55;cursor:default}
+.chip-button b{font-weight:600;color:#7b919c}
+.client-list{list-style:none;margin:0;padding:0 20px 8px;display:flex;flex-direction:column}
+.client-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border,#eef2f1)}
+.client-list li:last-child{border-bottom:0}
+.client-list li > div{min-width:0}
+.client-list strong{display:inline;font-size:14px}
+.client-list small{display:flex;align-items:center;gap:5px;font-size:12px;color:#7b919c;margin-top:3px}
+.client-list small a{display:inline-flex;align-items:center;gap:4px;color:#40605c}
+.client-row-actions{display:inline-flex;align-items:center;gap:9px;flex-shrink:0}
+.client-meta{margin:4px 20px 0;padding-top:10px;border-top:1px dashed var(--border,#e5e5e5);display:flex;flex-wrap:wrap;gap:18px}
+.client-meta div{min-width:0}
+.client-meta dt{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#93a7a3}
+.client-meta dd{margin:2px 0 0;font-size:13px;color:#40605c}
+.client-meta dd a{display:inline-flex;align-items:center;gap:4px;overflow-wrap:anywhere}
+.client-checkboxes{display:flex;flex-wrap:wrap;gap:18px;padding:0 2px 4px}

@@ -49,6 +49,7 @@ import { coolingOffCheck } from './portal.js';
 import { deriveGaps } from './gaps.js';
 import { marginPct } from './analytics.js';
 import { canWriteForRole, getRole } from './repository.js';
+import { applyClientToDemand, contactsFor, contactLabel } from './clients.js';
 // Weights are compared at a fixed precision: binary floats make 33.4+33.3+33.3 equal
 // 99.99999999999999, which used to reject a demand the recruiter could see summed to 100.
 export const weightSum = (weights) =>
@@ -60,6 +61,7 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
       demand || {
         title: '',
         client: '',
+        clientId: null,
         skills: [],
         niceToHave: [],
         tags: [],
@@ -181,7 +183,39 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
             )}
           </div>
           <Field label="Role title *">{field('title', 'text', { required: true })}</Field>
-          <Field label="Client *">{field('client', 'text', { required: true })}</Field>
+          <Field
+            label="Client *"
+            hint={
+              (data.clients || []).length
+                ? 'Pick an account to roll this demand up, or type a new name.'
+                : 'Create client accounts to roll demands up by customer.'
+            }
+          >
+            <input
+              name="client"
+              list="client-account-options"
+              value={form.client}
+              required
+              onChange={(e) => {
+                const typed = e.target.value;
+                const match = (data.clients || []).find(
+                  (c) => c.name.trim().toLowerCase() === typed.trim().toLowerCase(),
+                );
+                // Selecting a known account links the demand; typing a new name clears the link
+                // so the free-text value never silently points at the wrong account.
+                setForm(
+                  match
+                    ? applyClientToDemand({ ...form, client: typed }, match)
+                    : { ...form, client: typed, clientId: null },
+                );
+              }}
+            />
+            <datalist id="client-account-options">
+              {(data.clients || []).map((c) => (
+                <option key={c.id} value={c.name} />
+              ))}
+            </datalist>
+          </Field>
           <Field
             label="Must-have skills *"
             wide
@@ -558,6 +592,7 @@ export function DemandDetail({
   onSave,
   busy,
   audit,
+  onOpenClient,
 }) {
   const viewer = !canWriteForRole(getRole());
   const [onlyQualified, setOnlyQualified] = useState(false),
@@ -575,6 +610,8 @@ export function DemandDetail({
         [c.name, c.title, ...c.skills].join(' ').toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => b.m.score - a.m.score);
+  const account = (data.clients || []).find((c) => c.id === d.clientId) || null;
+  const accountPrimary = account ? contactsFor(data, account.id).find((c) => c.isPrimary) : null;
   return (
     <>
       <button className="back-link" onClick={onBack}>
@@ -586,6 +623,11 @@ export function DemandDetail({
         title={d.title}
         description={`${d.location} · ${d.mode} · ${d.positions} open positions · Target ${d.target}`}
       >
+        {account && onOpenClient && (
+          <Button variant="secondary" onClick={() => onOpenClient(account.id)}>
+            Client account
+          </Button>
+        )}
         {!viewer && (
           <Button variant="secondary" icon={Pencil} onClick={() => onEdit(d)}>
             Edit demand
@@ -626,6 +668,10 @@ export function DemandDetail({
                 ['Priority', d.priority],
                 ...(d.owner ? [['Demand owner', d.owner]] : []),
                 ...(d.businessUnit ? [['Business unit', d.businessUnit]] : []),
+                ...(account ? [['Client account', `${account.name} · ${account.status}`]] : []),
+                ...(accountPrimary
+                  ? [['Primary client contact', contactLabel(accountPrimary)]]
+                  : []),
               ].map(([l, v]) => (
                 <div key={l}>
                   <dt>{l}</dt>
@@ -1280,9 +1326,13 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
   const eligible = pipeline
     .map((a) => data.candidates.find((c) => c.id === a.candidateId))
     .filter(Boolean);
+  const accountContacts = d.clientId ? contactsFor(data, d.clientId) : [];
+  const defaultContact = accountContacts.find((c) => c.isPrimary) || accountContacts[0] || null;
   const [form, setForm] = useState({
     candidateId: eligible[0]?.id || '',
-    clientContact: '',
+    // Prefill from the account's primary contact when the demand is linked to a client record.
+    clientContact: defaultContact?.email || '',
+    contactId: defaultContact?.id || null,
     method: 'Email',
     notes: '',
   });
@@ -1323,6 +1373,7 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
         ? { consent: consent.state, assessments: pack.assessments, interviews: pack.interviews }
         : {},
       clientContact: form.clientContact.trim(),
+      contactId: form.contactId || null,
     };
     if (await onSave('submissions', [record])) {
       audit &&
@@ -1367,10 +1418,36 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
               ))}
             </select>
           </Field>
+          {accountContacts.length > 0 && (
+            <Field label="Recorded contact" hint="Contacts saved against this client account.">
+              <select
+                value={form.contactId || ''}
+                onChange={(e) => {
+                  const picked = accountContacts.find((c) => c.id === e.target.value) || null;
+                  setForm({
+                    ...form,
+                    contactId: picked?.id || null,
+                    clientContact: picked?.email || form.clientContact,
+                  });
+                }}
+              >
+                <option value="">Other / type below</option>
+                {accountContacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {contactLabel(c)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Client contact *" hint="Where the submission goes.">
             <input
               value={form.clientContact}
-              onChange={(e) => setForm({ ...form, clientContact: e.target.value })}
+              onChange={(e) =>
+                // Typing over a prefilled address detaches the link so the stored contactId
+                // always matches the address actually used.
+                setForm({ ...form, clientContact: e.target.value, contactId: null })
+              }
               placeholder={`hiring@${(d.client || 'client').toLowerCase().replace(/[^a-z]+/g, '')}.example`}
             />
           </Field>

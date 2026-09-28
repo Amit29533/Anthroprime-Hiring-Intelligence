@@ -24,6 +24,8 @@ export const TABLES = [
   'submissions',
   'publicApplications',
   'workflowRules',
+  'clients',
+  'clientContacts',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -55,6 +57,33 @@ export function normalizeData(data) {
     d.businessUnit = d.businessUnit || '';
     d.externalId = d.externalId || '';
     d.careersVisible = d.careersVisible === true;
+    // Demands created before batch 16 carry only the free-text client name; an unlinked demand
+    // stays valid and simply does not roll up into an account record.
+    d.clientId = d.clientId || null;
+  }
+  out.clients = out.clients || [];
+  for (const c of out.clients) {
+    c.name = c.name || '';
+    c.industry = c.industry || '';
+    c.location = c.location || '';
+    c.website = c.website || '';
+    c.owner = c.owner || '';
+    c.status = c.status || 'Active';
+    c.tier = c.tier || 'Standard';
+    c.paymentTerms = c.paymentTerms || '';
+    c.notes = c.notes || '';
+    c.tags = Array.isArray(c.tags) ? c.tags : [];
+  }
+  out.clientContacts = out.clientContacts || [];
+  for (const c of out.clientContacts) {
+    c.clientId = c.clientId || null;
+    c.name = c.name || '';
+    c.title = c.title || '';
+    c.email = c.email || '';
+    c.phone = c.phone || '';
+    c.notes = c.notes || '';
+    c.isPrimary = c.isPrimary === true;
+    c.decisionMaker = c.decisionMaker === true;
   }
   for (const c of out.candidates) {
     c.tags = Array.isArray(c.tags) ? c.tags : [];
@@ -101,6 +130,7 @@ export function normalizeData(data) {
     sub.clientStatus = sub.clientStatus || 'Pending';
     sub.clientComment = sub.clientComment || '';
     sub.decidedOn = sub.decidedOn || null;
+    sub.contactId = sub.contactId || null;
   }
   out.publicApplications = out.publicApplications || [];
   for (const a of out.publicApplications) {

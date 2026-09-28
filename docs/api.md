@@ -143,3 +143,18 @@ ignored by the `where` clause.
 
 Write endpoints beyond the public apply, per-table REST resources, and cursor-based
 pagination. The RPCs above are the stable contract those will wrap.
+
+## Client accounts (migration 020)
+
+`api_changes_since` and `api_changes_page` both carry two additional tables:
+
+| Table            | Key fields                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `clients`        | `id`, `name`, `industry`, `location`, `website`, `owner`, `status`, `tier`, `paymentTerms`, `tags`, `created`, `updated` |
+| `clientContacts` | `id`, `clientId`, `name`, `title`, `email`, `phone`, `isPrimary`, `decisionMaker`, `created`, `updated` |
+
+Two existing tables gained a nullable link column that also travels in the feed: `demands.clientId`
+and `submissions.contactId`. Both are `ON DELETE SET NULL` restricted to the link column, so
+deleting an account clears the reference without affecting the demand or submission record.
+`clients.name` is unique per workspace, case- and whitespace-insensitively, and at most one contact
+per account may have `isPrimary = true`.
