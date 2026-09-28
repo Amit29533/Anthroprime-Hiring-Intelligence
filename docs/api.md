@@ -158,3 +158,24 @@ and `submissions.contactId`. Both are `ON DELETE SET NULL` restricted to the lin
 deleting an account clears the reference without affecting the demand or submission record.
 `clients.name` is unique per workspace, case- and whitespace-insensitively, and at most one contact
 per account may have `isPrimary = true`.
+
+## Membership administration (migration 021)
+
+These RPCs are **not** part of the sync feed. They administer access and are admin-only except
+where noted. Each returns a JSON object and reports refusals as `{ "error": "..." }` rather than
+raising, so a client can surface the database's own wording.
+
+| RPC                                        | Who may call  | Returns                                                     |
+| ------------------------------------------ | ------------- | ----------------------------------------------------------- |
+| `api_workspace_members()`                  | any member    | `{ workspace, isAdmin, adminCount, members[] }` — `userId`, `email`, `role`, `isSelf` only |
+| `api_workspace_invites()`                  | admin         | pending invitations for the caller's workspace               |
+| `api_invite_member(p_email, p_role)`       | admin         | creates or updates a pending invitation; grants access at once if the address already has an account |
+| `api_revoke_invite(p_id)`                  | admin         | deletes a pending invitation                                 |
+| `api_set_member_role(p_user, p_role)`      | admin         | changes a role; refuses to demote the last administrator     |
+| `api_remove_member(p_user)`                | admin         | revokes access; refuses to remove the last administrator     |
+
+`public."workspaceInvites"` has no table grants at all — the RPCs are the only route in or out, and
+`memberships` remains unwritable from `authenticated` as it has been since migration 001. A trigger
+on `auth.users` (`claim_workspace_invite`) redeems a pending invitation at sign-up, which is why no
+service-role key is needed in the browser. Every mutation writes an `auditEvents` row with
+`entityType = 'membership'`.

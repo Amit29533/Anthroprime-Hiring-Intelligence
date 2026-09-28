@@ -29,6 +29,7 @@ import {
   PanelHeading,
   Stat,
 } from './ui.jsx';
+import { Members } from './Members.jsx';
 import {
   uid,
   today,
@@ -1872,6 +1873,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave }) {
             )}
           </div>
         </section>
+        <Members notify={notify} audit={audit} />
         <section className="panel">
           <PanelHeading title="Workspace capabilities" />
           <div className="settings-body">

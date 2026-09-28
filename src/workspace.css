@@ -265,3 +265,22 @@
 .client-meta dd{margin:2px 0 0;font-size:13px;color:#40605c}
 .client-meta dd a{display:inline-flex;align-items:center;gap:4px;overflow-wrap:anywhere}
 .client-checkboxes{display:flex;flex-wrap:wrap;gap:18px;padding:0 2px 4px}
+/* --- Batch 17: users & roles administration --- */
+.member-list{list-style:none;margin:6px 0 20px;padding:0}
+.member-list li{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid #eef2f3}
+.member-list li:last-child{border-bottom:0}
+.member-list li > div{min-width:0}
+.member-list strong{display:block;font-size:13.5px;font-weight:550;color:#415b65;overflow-wrap:anywhere}
+.member-list small{display:block;margin-top:4px;font-size:12px;color:#8a9ca4;line-height:1.6}
+.member-actions{display:inline-flex;align-items:center;gap:9px;flex-shrink:0}
+.member-actions select{font-size:12px;padding:7px 9px}
+.member-actions .button{font-size:12px}
+.member-subheading{font-size:13px;font-weight:600;color:#7b919c;margin:22px 0 2px}
+.invite-form{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;padding:18px 0 4px;border-top:1px dashed #e3eaec}
+.invite-form .field{flex:1;min-width:190px}
+.invite-form .field:nth-child(2){flex:0 0 150px}
+.role-reference{margin:18px 0 0;padding-top:16px;border-top:1px dashed #e3eaec;display:grid;gap:14px}
+.role-reference div{display:grid;gap:5px}
+.role-reference dt{font-size:12px;font-weight:600;color:#41756a;text-transform:uppercase;letter-spacing:.04em}
+.role-reference dd{margin:0;font-size:13px;color:#7b919c;line-height:1.7}
+.role-reference dd small{display:block;margin-top:4px;font-size:12px;color:#95a7ae}

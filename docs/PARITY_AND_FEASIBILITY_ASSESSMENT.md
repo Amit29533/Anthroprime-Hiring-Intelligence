@@ -1,6 +1,7 @@
 # ECOD Talent Intelligence — Independent Parity & Feasibility Assessment
 
 _Prepared 28 September 2026 · branch `arena/01a0e64f-anthroprime-hiring-intelligenc` (base `80cee22`)_
+_Updated after batches 16 (clients & contacts) and 17 (user administration): 237 tests passing, Zoho parity ~44%, blueprint ~82%._
 
 This is a **fresh, code-first read** of the project: what actually exists, how much of Zoho Recruit
 and of `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` v1.0 is really done, and — the
@@ -124,14 +125,14 @@ Effort assumes one developer. "Blocked" = needs the server decision above first.
 
 | # | Feature                                                | Effort | Feasible today?                  | Notes                                                                 |
 | - | ------------------------------------------------------ | ------ | -------------------------------- | --------------------------------------------------------------------- |
-| 1 | **Client & contact records + client portal**            | M (2–3 wk) | ✅ Yes, pure Supabase            | Biggest Zoho gap you can close with zero new infra. Mirror the existing candidate-portal pattern (`012_candidate_portal.sql` + `portal.jsx`) — that pattern is proven and reusable |
+| 1 | ~~**Client & contact records**~~ **✅ shipped (batch 16)** | M | Done | Accounts, contacts, per-customer rollups, demand/submission links. The client *login portal* remains |
 | 2 | **Server-side email (invites, offers, alerts)**         | M      | ⚠️ Blocked → trivial after A      | Edge Function + Resend/SES; replaces every `mailto:` handoff          |
 | 3 | **Server-side workflow execution + alerts**             | M      | ⚠️ Blocked → S after A            | Rules engine already exists in `src/automation.js`; port evaluation into a function + `pg_cron` |
 | 4 | **pgvector semantic index**                             | S–M    | ✅ Yes (Supabase ships pgvector) | Needs an embedding call → really needs A for background embedding. TF-IDF is a fine stopgap |
 | 5 | **Server-side search & pagination (fix Ceiling 1)**     | M–L    | ✅ Yes, Postgres FTS + RPCs       | Do this *before* your first real 20k-profile migration, not after     |
 | 6 | **Real REST API + API keys + webhooks**                 | L      | ⚠️ Blocked → M after A            | `api_changes_since/page` already defines the contract; wrap it        |
 | 7 | **Malware scanning + tested encrypted backups**         | S–M    | ⚠️ Blocked                        | Compliance blocker for production PII — treat as go-live gating       |
-| 8 | **SSO/MFA + user & role admin UI**                      | S–M    | ✅ Yes (Supabase Auth config + UI) | Membership table exists; only the admin screen is missing             |
+| 8 | ~~**User & role admin UI**~~ **✅ shipped (batch 17)**   | S–M    | Done | Invite/role/remove with a database-enforced last-admin guard and full audit. SSO/MFA *enrolment* is still Supabase Auth configuration |
 | 9 | **AI layer (CV/JD parsing, match explanations)**        | M      | ⚠️ Blocked (keys can't ship in a SPA) | After A: provider abstraction in an Edge Function, per blueprint §11/§20 |
 | 10| **Normalized Skill/PersonSkill/SkillEvidence tables**   | M      | ✅ Yes                            | Migration + backfill from `skills[]`/`skillsDetail`; unblocks skill analytics at scale and real evidence versioning |
 | 11| **Job-board / social distribution, referrals**          | L      | ⚠️ Mostly blocked                 | Each board is an integration; low ROI until #1 and #2 exist           |
@@ -174,8 +175,9 @@ Add Supabase Edge Functions + `pg_cron` + a Storage trigger. Ship one function e
 interview invite) to prove the path.
 
 **Phase 2 — Commercial value (4–6 weeks)**
-Clients/contacts + client portal (#1) → server-side email (#2) → server-side workflows + alerts (#3).
-This is what turns a repository into something a client-facing staffing business runs on.
+~~Clients/contacts (#1)~~ ✅ and ~~user administration (#8)~~ ✅ are done. Remaining: server-side
+email (#2) → server-side workflows + alerts (#3) → the client *login* portal. This is what turns a
+repository into something a client-facing staffing business runs on.
 
 **Phase 3 — Scale & intelligence (4–8 weeks)**
 Server-side search/pagination (#5) → normalized skills tables (#10) → pgvector (#4) → bounded AI
