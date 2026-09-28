@@ -7,6 +7,7 @@ import {
   Layers,
   ClipboardCheck,
   ChartNoAxesCombined,
+  FileBarChart,
   Settings,
   Search,
   Bell,
@@ -22,6 +23,7 @@ import {
 import {
   loadData,
   saveRows,
+  deleteRows,
   cloud,
   getSupabase,
   getRole,
@@ -52,6 +54,7 @@ import {
 import { Interviews } from './Interviews.jsx';
 import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
 import { DepartmentForm } from './Requisitions.jsx';
+import { Reports } from './Reports.jsx';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -63,6 +66,7 @@ const nav = [
   ['Interviews', CalendarClock],
   ['Activities', Activity],
   ['Analytics', ChartNoAxesCombined],
+  ['Reports', FileBarChart],
 ];
 export default function App() {
   const [data, setData] = useState(emptyData()),
@@ -217,6 +221,25 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const automating = useRef(false);
+  async function remove(table, ids) {
+    if (cloud && !canWriteForRole(getRole())) {
+      setToast('Your workspace role is view-only. Ask an administrator to change your access.');
+      return false;
+    }
+    setBusy(true);
+    try {
+      const next = await deleteRows(table, ids, dataRef.current);
+      dataRef.current = next;
+      setData(next);
+      return true;
+    } catch (e) {
+      setToast(e.message || 'That could not be deleted.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function save(table, rows) {
     if (cloud && !canWriteForRole(getRole())) {
       setToast('Your workspace role is view-only. Ask an administrator to change your access.');
@@ -530,6 +553,17 @@ export default function App() {
       />
     );
   else if (page === 'Analytics') content = <Analytics data={data} navigate={navigate} />;
+  else if (page === 'Reports')
+    content = (
+      <Reports
+        data={data}
+        onSave={save}
+        onDelete={remove}
+        notify={setToast}
+        audit={audit}
+        busy={busy}
+      />
+    );
   else
     content = (
       <WorkspaceSettings

@@ -136,6 +136,26 @@ export async function saveRows(table, rows, current) {
   return { rows, history: next.history };
 }
 
+/**
+ * Delete rows. Only tables whose DELETE policy grants editors the right are permitted here —
+ * repository records are never deletable from the product, because history and audit depend on
+ * them existing. A saved report is disposable metadata, so it is.
+ */
+export const DELETABLE_TABLES = ['reports'];
+
+export async function deleteRows(table, ids, current) {
+  if (!DELETABLE_TABLES.includes(table))
+    throw new Error(`${table} records cannot be deleted from the product.`);
+  if (cloud) {
+    const supabase = await getSupabase();
+    const { error } = await supabase.from(table).delete().in('id', ids);
+    if (error) throw error;
+  }
+  const next = { ...current, [table]: current[table].filter((r) => !ids.includes(r.id)) };
+  if (!cloud) localStorage.setItem(STORAGE, JSON.stringify(next));
+  return next;
+}
+
 // Blueprint §12 — view/export audit trail. Silent: no toast, errors swallowed by the caller.
 export async function logAuditEvent(event, current) {
   const row = {

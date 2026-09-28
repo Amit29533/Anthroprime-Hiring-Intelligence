@@ -199,3 +199,20 @@ enforces the rules. Setting `approvalStatus` to `Approved` or `Rejected` as a no
 `Only a workspace admin can approve or reject a requisition`. Publishing an unapproved role while
 `settings.custom->>'requisitionApprovals'` is true raises `This workspace requires requisition
 approval before a role can be published`.
+
+## Saved reports (migration 024)
+
+`reports` joins both sync RPCs as an ordinary workspace table.
+
+| Column        | Meaning                                                                    |
+| ------------- | -------------------------------------------------------------------------- |
+| `entity`      | which record type the report is about                                       |
+| `config`      | jsonb definition: `{ filters[], groupBy, measure, measureField, sort, limit }` |
+| `shared`      | reports are workspace-wide by default                                       |
+| `owner`       | who authored it, for attribution only — not an access control              |
+
+The table stores a **definition only**. There is no column in which a result could be cached, so
+a report always reflects the repository as it is now. Access control is not in this table: a
+report is evaluated client-side against rows the reader's own RLS already allowed them to load,
+and `src/reports.js` additionally withholds admin-only fields from non-admin readers. `owner`
+therefore grants nothing — do not treat it as a permission.

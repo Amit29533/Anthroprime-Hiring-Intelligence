@@ -1,7 +1,7 @@
 # ECOD Talent Intelligence — Independent Parity & Feasibility Assessment
 
 _Prepared 28 September 2026 · branch `arena/01a0e64f-anthroprime-hiring-intelligenc` (base `80cee22`)_
-_Updated after batches 16 (clients & contacts), 17 (user administration), 18 (requisition approval & departments) and 19 (careers SEO / Google Jobs): 290 tests passing, Zoho parity ~46%, blueprint ~82%._
+_Updated after batches 16 (clients & contacts), 17 (user administration), 18 (requisition approval & departments) 19 (careers SEO / Google Jobs) and 20 (custom reports): 324 tests passing, Zoho parity ~47%, blueprint ~82%._
 
 This is a **fresh, code-first read** of the project: what actually exists, how much of Zoho Recruit
 and of `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` v1.0 is really done, and — the

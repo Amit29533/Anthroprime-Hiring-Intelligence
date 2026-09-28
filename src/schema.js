@@ -27,6 +27,7 @@ export const TABLES = [
   'clients',
   'clientContacts',
   'departments',
+  'reports',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -70,6 +71,16 @@ export function normalizeData(data) {
     d.approvedAt = d.approvedAt || null;
     d.approvedTerms = d.approvedTerms || null;
     d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.reports = out.reports || [];
+  for (const r of out.reports) {
+    r.name = r.name || '';
+    r.description = r.description || '';
+    r.entity = r.entity || 'candidates';
+    r.shared = r.shared !== false;
+    r.config = r.config && typeof r.config === 'object' && !Array.isArray(r.config) ? r.config : {};
+    r.config.filters = Array.isArray(r.config.filters) ? r.config.filters : [];
+    r.config.measure = r.config.measure || 'count';
   }
   out.departments = out.departments || [];
   for (const d of out.departments) {
