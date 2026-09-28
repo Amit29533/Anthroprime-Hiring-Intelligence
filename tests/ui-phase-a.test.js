@@ -83,7 +83,7 @@ test('a search with no matches says so instead of showing an empty panel', async
 test('a single character does not trigger a search', async () => {
   await boot();
   await typeSearch('a');
-  assert.equal(document.querySelector('.search-results'), null, 'too short to be useful');
+  assert.equal(document.querySelector('.search-results') === null, true, 'too short to be useful');
   cleanup();
 });
 
@@ -135,7 +135,11 @@ test('a clear desk shows no badge at all, rather than a zero', async () => {
   seed.interviews = [];
   seed.referrals = [];
   await boot(seed);
-  assert.equal(document.querySelector('.bell-badge'), null, 'no badge when nothing is due');
+  assert.equal(
+    document.querySelector('.bell-badge') === null,
+    true,
+    'no badge when nothing is due',
+  );
   await act(async () => {
     fireEvent.click(document.querySelector('.bell-wrap button'));
   });

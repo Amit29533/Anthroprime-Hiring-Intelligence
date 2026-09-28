@@ -27,6 +27,7 @@ import {
 } from './ui.jsx';
 import { SkillEvidencePanel } from './Skills.jsx';
 import { PresentationModal } from './Presentation.jsx';
+import { BulkBar, UndoBar } from './BulkBar.jsx';
 import {
   freshness,
   money,
@@ -129,6 +130,7 @@ export function Candidates({
   notify,
   audit,
   onSave,
+  busy,
 }) {
   const settingsRow = data.settings.find((r) => r && r.id === 'workspace');
   const savedViews = settingsRow?.custom?.savedViews || [];
@@ -140,7 +142,6 @@ export function Candidates({
     }
   });
   const col = (k, label) => ({ k, label, visible: columns[k] !== false });
-  const [bulkStatus, setBulkStatus] = useState('Ready');
   const [semantic, setSemantic] = useState(false);
   const [status, setStatus] = useState(initialFilter?.status || 'All candidates'),
     [queue, setQueue] = useState(initialFilter?.queue || ''),
@@ -152,6 +153,7 @@ export function Candidates({
     [tag, setTag] = useState(''),
     [sort, setSort] = useState('name'),
     [selected, setSelected] = useState([]),
+    [bulkUndo, setBulkUndo] = useState(null),
     [page, setPage] = useState(1);
   const queueDef = queueById(queue);
   const filteredRows = useMemo(() => {
@@ -483,33 +485,24 @@ export function Candidates({
           </div>
         </div>
         {selected.length > 0 && canWriteForRole(getRole()) && (
-          <div className="bulk-bar">
-            <span>{selected.length} selected</span>
-            <select
-              aria-label="Bulk set readiness"
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value)}
-            >
-              {['Ready', 'Near-ready', 'Assessing', 'Unavailable'].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-            <Button
-              className="small"
-              onClick={async () => {
-                const updates = rows
-                  .filter((c) => selected.includes(c.id) && c.status !== bulkStatus)
-                  .map((c) => ({ ...c, status: bulkStatus }));
-                if (!updates.length) return notify('Selected candidates already have that status.');
-                if (await onSave('candidates', updates))
-                  notify(
-                    `${updates.length} profile${updates.length === 1 ? '' : 's'} set to ${bulkStatus}.`,
-                  );
-              }}
-            >
-              Apply status
-            </Button>
-          </div>
+          <BulkBar
+            data={data}
+            selected={selected}
+            onSave={onSave}
+            notify={notify}
+            busy={busy}
+            onClear={() => setSelected([])}
+            onUndoReady={setBulkUndo}
+          />
+        )}
+        {selected.length === 0 && bulkUndo && (
+          <UndoBar
+            undo={bulkUndo}
+            onSave={onSave}
+            notify={notify}
+            busy={busy}
+            onDismiss={() => setBulkUndo(null)}
+          />
         )}
         {parsed && parsed.used && (
           <div className="sem-chips">

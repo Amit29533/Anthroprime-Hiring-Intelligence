@@ -158,7 +158,11 @@ test('anonymising rewrites the document, not just the heading', async () => {
 test('no consent means no document, with an explanation rather than a blank page', async () => {
   await openModal({ data: world(null) });
   assert.ok(allText(/cannot be generated/i).length);
-  assert.equal(document.querySelector('.presentation-preview'), null, 'nothing is rendered');
+  assert.equal(
+    document.querySelector('.presentation-preview') === null,
+    true,
+    'nothing is rendered',
+  );
   assert.equal(
     [...document.querySelectorAll('button')].filter((b) => /Download/.test(b.textContent)).length,
     0,
@@ -170,7 +174,7 @@ test('no consent means no document, with an explanation rather than a blank page
 test('a revoked consent is refused just as firmly as a missing one', async () => {
   await openModal({ data: world('revoked') });
   assert.ok(allText(/revoked/i).length);
-  assert.equal(document.querySelector('.presentation-preview'), null);
+  assert.equal(document.querySelector('.presentation-preview') === null, true);
   cleanup();
 });
 

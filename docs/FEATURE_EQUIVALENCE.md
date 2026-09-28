@@ -17,7 +17,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 
 | Verification                       | ✅ Equivalent | 🟡 Partial | ⚙️ By design | ❌ Missing | Weighted coverage |
 | ---------------------------------- | ------------- | ---------- | ------------ | ---------- | ----------------- |
-| **Zoho Recruit** feature set (A–M) | 24            | 44         | 2            | 27         | **49%**           |
+| **Zoho Recruit** feature set (A–M) | 24            | 45         | 2            | 26         | **50%**           |
 | **ECOD Blueprint v1.0** (N.1–N.14) | 82            | 37         | 1            | 3          | **84%**           |
 
 **ECOD today ≈ a strong "repository-first talent intelligence core":** reusable candidate records, CSV/CV ingestion, search and local TF-IDF retrieval, explainable matching, demand pipelines, assessments, interviews/offers, governance tools, public careers and candidate self-service portals, plus workspace-level tenant isolation. It covers many recruiter-side ATS basics, but is not a substitute for an integrated communications suite, client/vendor CRM portals or enterprise-scale governance.
@@ -172,7 +172,7 @@ The audit checks **97 Zoho Recruit capabilities** and all **123 requirements** o
 | I6  | Auto-response rules                                               | None                                                                                                                                                                                                                                                                                                     | ❌     |
 | I7  | Approval processes (jobs, offers)                                 | Settings-gated offer approvals require an admin release and are bound to a server-generated terms snapshot (migrations 013–014); job approvals remain absent                                                                                                                                             | 🟡     |
 | I8  | Webhooks + REST API (OAuth, daily API credits)                    | Documented sync/public RPCs and PostgREST endpoints exist; no general OAuth product API, webhooks or API-credit management                                                                                                                                                                               | 🟡     |
-| I9  | Macros                                                            | None                                                                                                                                                                                                                                                                                                     | ❌     |
+| I9  | Macros                                                            | Bulk actions over a selection: assign owner, add/remove tag, set readiness, shortlist to a demand — each previewed before it runs, with grouped skip reasons and one-click undo for edits. No stored, replayable macro definitions | 🟡     |
 
 ### J. Product customization & platform
 
@@ -437,12 +437,12 @@ Reconciled against the authoritative document fetched from `origin/main` (commit
 | F. Screening & interviews       | 2      | 4      | 0     | 4      | 40%      |
 | G. Offers & onboarding          | 1      | 0      | 0     | 2      | 33%      |
 | H. Candidate portals            | 0      | 5      | 0     | 0      | 50%      |
-| I. Automation                   | 0      | 5      | 0     | 4      | 28%      |
+| I. Automation                   | 0      | 6      | 0     | 3      | 33%      |
 | J. Customization & platform     | 0      | 5      | 0     | 5      | 25%      |
 | K. Analytics                    | 1      | 2      | 0     | 1      | 50%      |
 | L. Communication & integrations | 0      | 2      | 1     | 5      | 19%      |
 | M. Security & admin             | 4      | 4      | 0     | 0      | 75%      |
-| **Overall (Zoho, A–M)**         | **24** | **44** | **2** | **27** | **49%**  |
+| **Overall (Zoho, A–M)**         | **24** | **45** | **2** | **26** | **50%**  |
 
 _(Coverage = weighted presence: ✅=1, 🟡/⚙️=0.5, ❌=0. The Zoho rollup counts combined 🟡/⚙️ rows in the by-design column so categories remain exclusive. Current-working-tree totals were recounted on 28 September 2026.)_
 
@@ -542,6 +542,8 @@ The entries below are historical delivery notes, not the current feature verdict
 - **Bug found and fixed during batch 24:** `loadData()` returned `makeSeed()` **unnormalized** on a fresh demo workspace, and `makeSeed()` only produces tables it has sample data for. Any newer table was therefore missing its key, and the first save to one threw `Cannot read properties of undefined`. This had broken **saving a custom report on a fresh demo workspace since batch 20**, and was missed because the report UI test used a stubbed save rather than the real one. A regression test now asserts every table in `TABLES` is an array after a fresh `loadData()`.
 
 - **Phase A shipped (28 Sep 2026):** day-to-day friction removers, identified by walking a recruiter's working day rather than the feature matrix. No migration. (1) **Cross-entity global search** — the top-bar box previously reached candidates only, so finding a demand or client meant knowing which page to be on first. It now searches seven entity types with weighted ranking (exact > starts-with > word-boundary > substring), grouped results and keyboard navigation. Admin-only figures — `expected`, `current`, `budget`, `internalCost`, portal `statusToken` — are on a never-indexed list, because *matching* on a value discloses it; a test asserts a recruiter typing a real budget number finds nothing. (2) **A working notification bell** — it previously just navigated to Activities. It now counts only what is actionable today, and shows no badge at all rather than a zero. Requisition approvals are shown only to admins, since only they can clear them. (3) **A personal work queue** on the dashboard. Ownership in this release is a *text* field, not a user id, so "assigned to me" can only be a best-effort name match; rather than hide that, `ownerLooksUnmatched()` detects when a workspace has owners but none resemble the signed-in user, and the UI says so instead of showing an empty queue that would read as "no work". 31 new tests (20 domain, 11 user-flow); **465 tests total**.
+
+- **Phase B shipped (28 Sep 2026):** bulk operations. Every list action was previously one record at a time apart from export and a status change. `src/bulk.js` is a pure **planner**: it returns the exact rows that would be written *and* the rows that would be skipped with a reason, so nothing happens until the user has seen what will happen — a bulk action that silently no-ops on half a selection is worse than one that refuses, because the user believes it worked. Skip reasons are grouped ("12 already tagged") rather than listed row by row. Edits carry an undo payload captured from the rows as they were; shortlisting is deliberately **not** undoable, because undoing it would mean deleting pipeline rows from a table this product never deletes from. 21 new tests (12 domain, 9 user-flow); **486 tests total**. Three defects were found and fixed during the work, two of them mine: the undo affordance vanished the moment it was needed because applying clears the selection, which unmounted the bar (undo is now owned by the parent); an early `return null` sat above a `useMemo`, changing the hook count between renders; and — a testing lesson worth recording — `assert.equal(domNode, null)` exhausts memory when it fails, because Node tries to serialise a jsdom element's circular graph for the diff. All such assertions across the suite were rewritten as boolean comparisons.
 
 ---
 

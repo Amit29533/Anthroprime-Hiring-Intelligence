@@ -28,6 +28,7 @@ import {
   allText,
   byPlaceholder,
   submitVia,
+  pressPrefixed,
 } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { MAX_EXPERIENCE_YEARS } from '../src/domain.js';
@@ -490,8 +491,11 @@ test('that rule then fires when a recruiter makes the change it waits for', asyn
   assert.ok(target, 'the seed has someone who is not already Ready');
   const name = target.name;
   await selectCandidate(name);
-  await choose('Bulk set readiness', 'Ready');
-  await press('Apply status');
+  // Bulk actions are now two-step: choose, preview what will change, then commit.
+  await choose('Bulk action', 'status');
+  await choose('Bulk value', 'Ready');
+  await press('Preview');
+  await pressPrefixed('Apply to');
   await settle(4);
 
   const after = store();
@@ -533,8 +537,11 @@ test('a paused rule stays paused and does nothing', async () => {
   await navTo('Candidates');
   const target = data.candidates.find((c) => c.status !== 'Ready');
   await selectCandidate(target.name);
-  await choose('Bulk set readiness', 'Ready');
-  await press('Apply status');
+  // Bulk actions are now two-step: choose, preview what will change, then commit.
+  await choose('Bulk action', 'status');
+  await choose('Bulk value', 'Ready');
+  await press('Preview');
+  await pressPrefixed('Apply to');
   await settle(4);
   assert.equal(
     store().candidates.find((c) => c.id === target.id).status,
