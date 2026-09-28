@@ -68,6 +68,7 @@ import {
 } from './documents.js';
 import { documentTemplatesFor, mergeContext, renderTemplate, dossierHtml } from './templates.js';
 import { parseTalentQuery, matchesSemantic, skillsUnder, allSkillDomains } from './semantic.js';
+import { placementsForCandidate } from './placements.js';
 export function downloadFile(content, name, type = 'text/csv;charset=utf-8') {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement('a');
@@ -989,6 +990,7 @@ export function CandidateProfile({
   const [letterOpen, setLetterOpen] = useState(false);
   const similar = similarCandidates(c, data.candidates, data.documents, 4);
   const applications = data.considerations.filter((a) => a.candidateId === c.id),
+    placements = placementsForCandidate(data, c.id),
     assessments = data.assessments
       .filter((a) => a.candidateId === c.id)
       .sort((a, b) => b.date.localeCompare(a.date)),
@@ -1358,6 +1360,25 @@ export function CandidateProfile({
                     </article>
                   );
                 })}
+              {placements.map((placement) => {
+                const demand = data.demands.find((row) => row.id === placement.demandId);
+                return (
+                  <article className="application-record" key={placement.id}>
+                    <div>
+                      <h3>Placement · {demand?.title || 'Role'}</h3>
+                      <p>
+                        {demand?.client || 'Client'} · started{' '}
+                        {placement.startDate || 'date pending'}
+                        {placement.endDate ? ` · ends ${placement.endDate}` : ''}
+                      </p>
+                      {placement.notes && <p>{placement.notes}</p>}
+                    </div>
+                    <Badge tone={placement.status === 'Active' ? 'green' : 'gray'}>
+                      {placement.status}
+                    </Badge>
+                  </article>
+                );
+              })}
               {applications.map((a) => {
                 const d = data.demands.find((d) => d.id === a.demandId);
                 return (
@@ -1372,12 +1393,14 @@ export function CandidateProfile({
                   </article>
                 );
               })}
-              {!applications.length && !data.offers.some((o) => o.candidateId === c.id) && (
-                <Empty
-                  title="A fresh start"
-                  text="Shortlist this person for an open demand to begin their hiring process."
-                />
-              )}
+              {!applications.length &&
+                !placements.length &&
+                !data.offers.some((o) => o.candidateId === c.id) && (
+                  <Empty
+                    title="A fresh start"
+                    text="Shortlist this person for an open demand to begin their hiring process."
+                  />
+                )}
             </>
           )}
           {offerOpen && !viewer && (

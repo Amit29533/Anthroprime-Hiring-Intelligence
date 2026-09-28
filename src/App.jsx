@@ -51,7 +51,7 @@ import {
   DispositionModal,
 } from './Workflows.jsx';
 import { Interviews } from './Interviews.jsx';
-import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
+import { Clients, ClientForm, ClientDetail, ContactForm, PlacementForm } from './Clients.jsx';
 import { DepartmentForm } from './Requisitions.jsx';
 import { Reports } from './Reports.jsx';
 import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
@@ -538,6 +538,10 @@ export default function App() {
         onEditContact={(c) => setModal({ type: 'contact', contact: c, clientId: c.clientId })}
         onOpenDemand={openDemand}
         onOpenCandidate={setPersonId}
+        onAddPlacement={(id) => setModal({ type: 'placement', clientId: id })}
+        onEditPlacement={(placement) =>
+          setModal({ type: 'placement', placement, clientId: placement.clientId })
+        }
       />
     ) : (
       <Clients
@@ -854,6 +858,16 @@ export default function App() {
       {modal?.type === 'contact' && (
         <ContactForm
           contact={modal.contact}
+          clientId={modal.clientId}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'placement' && (
+        <PlacementForm
+          placement={modal.placement}
           clientId={modal.clientId}
           data={data}
           onClose={() => setModal(null)}

@@ -5,6 +5,8 @@
 // Deliberate boundary: nothing in this module reads `demandCommercials`. Internal cost and margin
 // stay admin-only (migration 004), so an account rollup can never become a side channel to them.
 
+import { placementsForClient } from './placements.js';
+
 export const CLIENT_STATUSES = ['Prospect', 'Active', 'On hold', 'Dormant'];
 export const CLIENT_TIERS = ['Strategic', 'Key', 'Standard'];
 
@@ -122,8 +124,7 @@ export function clientRollup(data, client) {
   const submissions = (data?.submissions || []).filter((s) => s && demandIds.has(s.demandId));
   const interviews = (data?.interviews || []).filter((i) => i && demandIds.has(i.demandId));
   const offers = (data?.offers || []).filter((o) => o && demandIds.has(o.demandId));
-  const considerations = (data?.considerations || []).filter((c) => c && demandIds.has(c.demandId));
-  const placements = considerations.filter((c) => c.stage === 'Deployed');
+  const placements = placementsForClient(data, client.id);
   const openDemands = demands.filter((d) => d.status === 'Open');
   const positions = openDemands.reduce((sum, d) => sum + (Number(d.positions) || 0), 0);
   const accepted = offers.filter((o) => o.status === 'Accepted');
@@ -153,16 +154,17 @@ export function clientRollup(data, client) {
       ? Math.round((interviews.length / submissions.length) * 100)
       : null,
     offerAcceptance: offers.length ? Math.round((accepted.length / offers.length) * 100) : null,
-    lastActivity: lastActivityDate({ demands, submissions, interviews, offers }),
+    lastActivity: lastActivityDate({ demands, submissions, interviews, offers, placements }),
   };
 }
 
-function lastActivityDate({ demands, submissions, interviews, offers }) {
+function lastActivityDate({ demands, submissions, interviews, offers, placements = [] }) {
   const dates = [
     ...demands.map((d) => d.created),
     ...submissions.map((s) => s.submittedOn),
     ...interviews.map((i) => (i.scheduledAt || '').slice(0, 10)),
     ...offers.map((o) => o.sentDate || (o.created || '').slice(0, 10)),
+    ...placements.map((p) => p.updated || p.startDate || (p.created || '').slice(0, 10)),
   ].filter(Boolean);
   return dates.length ? dates.sort().at(-1) : null;
 }

@@ -34,6 +34,8 @@ export const TABLES = [
   'referrals',
   'interviewSlots',
   'assignmentRules',
+  'placements',
+  'placementCommercials',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -88,6 +90,30 @@ export function normalizeData(data) {
     r.assignTo = r.assignTo || '';
     r.priority = Number(r.priority) || 100;
     r.enabled = r.enabled !== false;
+  }
+  out.placements = out.placements || [];
+  for (const p of out.placements) {
+    p.clientId = p.clientId || null;
+    p.considerationId = p.considerationId || null;
+    p.offerId = p.offerId || null;
+    p.status = p.status || 'Planned';
+    p.startDate = p.startDate || null;
+    p.endDate = p.endDate || null;
+    p.engagementType = p.engagementType || '';
+    p.workMode = p.workMode || '';
+    p.location = p.location || '';
+    p.recruiter = p.recruiter || '';
+    p.notes = p.notes || '';
+  }
+  out.placementCommercials = out.placementCommercials || [];
+  for (const c of out.placementCommercials) {
+    c.billRate = c.billRate == null ? null : Number(c.billRate);
+    c.costRate = c.costRate == null ? null : Number(c.costRate);
+    c.billedAmount = c.billedAmount == null ? null : Number(c.billedAmount);
+    c.collectedAmount = c.collectedAmount == null ? null : Number(c.collectedAmount);
+    c.currency = c.currency || 'INR';
+    c.basis = c.basis || 'Annual';
+    c.notes = c.notes || '';
   }
   out.interviewSlots = out.interviewSlots || [];
   for (const s of out.interviewSlots) {

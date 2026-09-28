@@ -13,6 +13,7 @@ import {
   Phone,
   BriefcaseBusiness,
   CheckCircle2,
+  Rocket,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -41,6 +42,17 @@ import {
   unlinkedDemandNames,
   linkDemandsByName,
 } from './clients.js';
+import {
+  PLACEMENT_STATUSES,
+  BILLING_BASES,
+  CURRENCIES,
+  blankPlacement,
+  blankPlacementCommercial,
+  validatePlacement,
+  validatePlacementCommercial,
+  normalizePlacementCommercial,
+  placementMargin,
+} from './placements.js';
 
 const statusTone = { Active: 'green', Prospect: 'blue', 'On hold': 'amber', Dormant: 'gray' };
 const decisionTone = { Hired: 'green', Shortlisted: 'blue', Rejected: 'red' };
@@ -225,6 +237,207 @@ export function ContactForm({ contact, clientId, data, onClose, onSave, busy }) 
   );
 }
 
+export function PlacementForm({ placement, clientId, data, onClose, onSave, busy }) {
+  const clientDemands = data.demands.filter((d) => d.clientId === clientId);
+  const initial = placement || blankPlacement(clientId);
+  const [draftId] = useState(placement?.id || uid());
+  const [form, setForm] = useState(initial);
+  const existingCommercial = placement
+    ? data.placementCommercials.find((row) => row.placementId === placement.id)
+    : null;
+  const [commercial, setCommercial] = useState(
+    existingCommercial || blankPlacementCommercial(placement?.id || null),
+  );
+  const [errors, setErrors] = useState({});
+  const [commercialErrors, setCommercialErrors] = useState({});
+  const admin = getRole() === 'admin';
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const setMoney = (key) => (e) => setCommercial({ ...commercial, [key]: e.target.value });
+
+  async function submit(e) {
+    e.preventDefault();
+    const id = draftId;
+    const demand = data.demands.find((row) => row.id === form.demandId);
+    const normalized = {
+      ...form,
+      id,
+      clientId: demand?.clientId || clientId,
+      engagementType: form.engagementType || demand?.engagementType || '',
+      workMode: form.workMode || demand?.mode || '',
+      location: form.location || demand?.location || '',
+      considerationId:
+        form.considerationId ||
+        data.considerations.find(
+          (row) => row.candidateId === form.candidateId && row.demandId === form.demandId,
+        )?.id ||
+        null,
+      offerId:
+        form.offerId ||
+        data.offers.find(
+          (row) =>
+            row.candidateId === form.candidateId &&
+            row.demandId === form.demandId &&
+            row.status === 'Accepted',
+        )?.id ||
+        null,
+      endDate: form.endDate || null,
+      created: placement?.created || new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
+    const found = validatePlacement(normalized, data, draftId);
+    const moneyErrors = admin ? validatePlacementCommercial(commercial) : {};
+    setErrors(found);
+    setCommercialErrors(moneyErrors);
+    if (Object.keys(found).length || Object.keys(moneyErrors).length) return;
+    if (!(await onSave('placements', [normalized]))) return;
+    const hasCommercial = ['billRate', 'costRate', 'billedAmount', 'collectedAmount'].some(
+      (key) => commercial[key] !== '' && commercial[key] != null,
+    );
+    if (admin && (existingCommercial || hasCommercial || commercial.notes.trim())) {
+      const row = normalizePlacementCommercial(
+        {
+          ...commercial,
+          id: existingCommercial?.id || uid(),
+          updated: new Date().toISOString(),
+        },
+        id,
+      );
+      if (!(await onSave('placementCommercials', [row]))) return;
+    }
+    onClose();
+  }
+
+  return (
+    <Modal
+      title={placement ? 'Edit placement' : 'Record placement'}
+      subtitle="Record the deployment lifecycle separately from the hiring pipeline."
+      onClose={onClose}
+      wide
+    >
+      <form className="modal-form" onSubmit={submit}>
+        <div className="form-grid">
+          <Field label="Candidate" hint={errors.candidateId}>
+            <select value={form.candidateId} onChange={set('candidateId')} required>
+              <option value="">Select candidate</option>
+              {data.candidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Demand" hint={errors.demandId || errors.clientId}>
+            <select value={form.demandId} onChange={set('demandId')} required>
+              <option value="">Select demand</option>
+              {clientDemands.map((demand) => (
+                <option key={demand.id} value={demand.id}>
+                  {demand.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status" hint={errors.status}>
+            <select value={form.status} onChange={set('status')}>
+              {PLACEMENT_STATUSES.map((status) => (
+                <option key={status}>{status}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Start date" hint={errors.startDate}>
+            <input type="date" value={form.startDate || ''} onChange={set('startDate')} required />
+          </Field>
+          <Field label="End date" hint={errors.endDate}>
+            <input type="date" value={form.endDate || ''} onChange={set('endDate')} />
+          </Field>
+          <Field label="Recruiter / owner">
+            <input value={form.recruiter} onChange={set('recruiter')} />
+          </Field>
+          <Field label="Engagement">
+            <input value={form.engagementType} onChange={set('engagementType')} />
+          </Field>
+          <Field label="Work mode">
+            <input value={form.workMode} onChange={set('workMode')} />
+          </Field>
+          <Field label="Location" wide>
+            <input value={form.location} onChange={set('location')} />
+          </Field>
+          <Field label="Placement notes" wide>
+            <textarea rows={3} value={form.notes} onChange={set('notes')} />
+          </Field>
+        </div>
+        {admin && (
+          <>
+            <h3 className="form-section-title">Commercial outcome · administrators only</h3>
+            <div className="form-grid">
+              <Field label="Bill rate" hint={commercialErrors.billRate}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commercial.billRate ?? ''}
+                  onChange={setMoney('billRate')}
+                />
+              </Field>
+              <Field label="Cost rate" hint={commercialErrors.costRate}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commercial.costRate ?? ''}
+                  onChange={setMoney('costRate')}
+                />
+              </Field>
+              <Field label="Currency" hint={commercialErrors.currency}>
+                <select value={commercial.currency} onChange={setMoney('currency')}>
+                  {CURRENCIES.map((currency) => (
+                    <option key={currency}>{currency}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Rate basis" hint={commercialErrors.basis}>
+                <select value={commercial.basis} onChange={setMoney('basis')}>
+                  {BILLING_BASES.map((basis) => (
+                    <option key={basis}>{basis}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Amount billed" hint={commercialErrors.billedAmount}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commercial.billedAmount ?? ''}
+                  onChange={setMoney('billedAmount')}
+                />
+              </Field>
+              <Field label="Amount collected" hint={commercialErrors.collectedAmount}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commercial.collectedAmount ?? ''}
+                  onChange={setMoney('collectedAmount')}
+                />
+              </Field>
+              <Field label="Commercial notes" wide>
+                <textarea rows={2} value={commercial.notes} onChange={setMoney('notes')} />
+              </Field>
+            </div>
+          </>
+        )}
+        <div className="modal-actions">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {placement ? 'Save placement' : 'Create placement'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function Clients({ data, onNew, onOpen, onSave, busy }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('All');
@@ -402,6 +615,8 @@ export function ClientDetail({
   onEditContact,
   onOpenDemand,
   onOpenCandidate,
+  onAddPlacement,
+  onEditPlacement,
 }) {
   const roll = clientRollup(data, client);
   const canWrite = canWriteForRole(getRole());
@@ -458,7 +673,7 @@ export function ClientDetail({
         <Stat
           label="Placements"
           value={roll.counts.placements}
-          detail="Deployed"
+          detail={`${roll.placements.filter((row) => row.status === 'Active').length} active`}
           icon={CheckCircle2}
           tone="green"
         />
@@ -601,6 +816,101 @@ export function ClientDetail({
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <PanelHeading
+          title="Placements and deployments"
+          subtitle="Joining, deployment status and realized commercial outcome."
+          action={
+            canWrite ? (
+              <Button icon={Rocket} variant="secondary" onClick={() => onAddPlacement(client.id)}>
+                Record placement
+              </Button>
+            ) : null
+          }
+        />
+        {roll.placements.length === 0 ? (
+          <p className="supporting-text">
+            No placement records yet. A Deployed pipeline stage alone is not treated as a commercial
+            outcome.
+          </p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Demand</th>
+                  <th>Start</th>
+                  <th>Status</th>
+                  {getRole() === 'admin' && <th>Commercial</th>}
+                  {canWrite && <th>Action</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {roll.placements.map((placement) => {
+                  const commercial = data.placementCommercials.find(
+                    (row) => row.placementId === placement.id,
+                  );
+                  const margin = placementMargin(commercial);
+                  return (
+                    <tr key={placement.id}>
+                      <td>
+                        <button
+                          className="text-link"
+                          onClick={() => onOpenCandidate(placement.candidateId)}
+                        >
+                          {candidateName(placement.candidateId)}
+                        </button>
+                      </td>
+                      <td>
+                        {data.demands.find((row) => row.id === placement.demandId)?.title || '—'}
+                      </td>
+                      <td>
+                        {placement.startDate || '—'}
+                        {placement.endDate ? ` → ${placement.endDate}` : ''}
+                      </td>
+                      <td>
+                        <Badge
+                          tone={
+                            placement.status === 'Active'
+                              ? 'green'
+                              : placement.status === 'Planned'
+                                ? 'blue'
+                                : 'gray'
+                          }
+                        >
+                          {placement.status}
+                        </Badge>
+                      </td>
+                      {getRole() === 'admin' && (
+                        <td>
+                          {commercial ? (
+                            <>
+                              {commercial.currency} {commercial.billRate ?? '—'} /{' '}
+                              {commercial.basis}
+                              {margin.percent != null && <small> · {margin.percent}% margin</small>}
+                            </>
+                          ) : (
+                            <small>Not recorded</small>
+                          )}
+                        </td>
+                      )}
+                      {canWrite && (
+                        <td>
+                          <Button variant="secondary" onClick={() => onEditPlacement(placement)}>
+                            Edit
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

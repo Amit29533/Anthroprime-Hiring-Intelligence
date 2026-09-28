@@ -166,6 +166,49 @@ test('the client detail page rolls up demands, submissions and placements', asyn
   cleanup();
 });
 
+test('an account manager can record a placement and its restricted commercial outcome', async () => {
+  const data = normalizeData(makeSeed());
+  const demand = data.demands[0];
+  const candidate = data.candidates[0];
+  const harness = createHarness(data);
+  await mount(M.PlacementForm, {
+    clientId: demand.clientId,
+    data,
+    onClose: harness.noop,
+    onSave: harness.save,
+    busy: false,
+  });
+
+  await choose('Candidate', candidate.id);
+  await choose('Demand', demand.id);
+  await choose('Status', 'Active');
+  await type('Start date', '2026-10-01');
+  await type('Bill rate', '48');
+  await type('Cost rate', '36');
+  await type('Amount billed', '4');
+  await type('Amount collected', '3');
+  await submitVia('Create placement');
+
+  const placementWrite = harness.state.writes.find((write) => write.table === 'placements');
+  assert.ok(placementWrite, 'the deployment lifecycle is saved as a placement record');
+  const saved = placementWrite.rows[0];
+  assert.equal(saved.candidateId, candidate.id);
+  assert.equal(saved.demandId, demand.id);
+  assert.equal(saved.clientId, demand.clientId);
+  assert.equal(saved.status, 'Active');
+
+  const commercialWrite = harness.state.writes.find(
+    (write) => write.table === 'placementCommercials',
+  );
+  assert.ok(commercialWrite, 'commercial outcomes are saved separately');
+  assert.equal(commercialWrite.rows[0].placementId, saved.id);
+  assert.equal(commercialWrite.rows[0].billRate, 48);
+  assert.equal(commercialWrite.rows[0].costRate, 36);
+  assert.equal(commercialWrite.rows[0].billedAmount, 4);
+  assert.equal(commercialWrite.rows[0].collectedAmount, 3);
+  cleanup();
+});
+
 test('a client account with no activity reports zeros rather than invented rates', async () => {
   const data = normalizeData(makeSeed());
   const prospect = data.clients.find((c) => c.name === 'Aster Digital');

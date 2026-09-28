@@ -82,6 +82,16 @@ const fixture = () =>
       { id: 'o2', candidateId: 'p1', demandId: 'd1', status: 'Rejected', sentDate: '2026-03-11' },
     ],
     considerations: [{ id: 'x1', candidateId: 'p1', demandId: 'd1', stage: 'Deployed' }],
+    placements: [
+      {
+        id: 'p1d1',
+        candidateId: 'p1',
+        demandId: 'd1',
+        clientId: 'c1',
+        status: 'Active',
+        startDate: '2026-03-10',
+      },
+    ],
   });
 
 test('client validation mirrors the database constraints', () => {
