@@ -31,6 +31,7 @@ import {
   pressPrefixed,
 } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
+import { TABLES } from '../src/schema.js';
 import { MAX_EXPERIENCE_YEARS } from '../src/domain.js';
 import { TRIGGER_VALUES } from '../src/automation.js';
 import { today } from '../src/domain.js';
@@ -499,6 +500,7 @@ test('that rule then fires when a recruiter makes the change it waits for', asyn
   await settle(4);
 
   const after = store();
+  for (const table of TABLES) assert.ok(Array.isArray(after[table]), `${table} exists after reset`);
   assert.equal(
     after.candidates.find((c) => c.name === name).status,
     'Ready',

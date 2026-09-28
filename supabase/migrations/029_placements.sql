@@ -12,6 +12,14 @@ begin
     alter table public.considerations add constraint considerations_workspace_id_unique
       unique(workspace_id,id);
   end if;
+  if not exists(select 1 from pg_constraint where conname='considerations_placement_link_unique') then
+    alter table public.considerations add constraint considerations_placement_link_unique
+      unique(workspace_id,id,"candidateId","demandId");
+  end if;
+  if not exists(select 1 from pg_constraint where conname='offers_placement_link_unique') then
+    alter table public.offers add constraint offers_placement_link_unique
+      unique(workspace_id,id,"candidateId","demandId");
+  end if;
 end $$;
 
 create table if not exists public.placements (
@@ -35,8 +43,12 @@ create table if not exists public.placements (
   unique (workspace_id,id),
   foreign key (workspace_id,"candidateId") references public.candidates(workspace_id,id),
   foreign key (workspace_id,"demandId","clientId") references public.demands(workspace_id,id,"clientId"),
-  foreign key (workspace_id,"considerationId") references public.considerations(workspace_id,id) on delete set null ("considerationId"),
-  foreign key (workspace_id,"offerId") references public.offers(workspace_id,id) on delete set null ("offerId"),
+  foreign key (workspace_id,"considerationId","candidateId","demandId")
+    references public.considerations(workspace_id,id,"candidateId","demandId")
+    on delete set null ("considerationId"),
+  foreign key (workspace_id,"offerId","candidateId","demandId")
+    references public.offers(workspace_id,id,"candidateId","demandId")
+    on delete set null ("offerId"),
   check ("endDate" is null or "endDate">="startDate")
 );
 create index if not exists placements_workspace_status on public.placements(workspace_id,status,"startDate");

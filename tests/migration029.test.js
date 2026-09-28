@@ -147,5 +147,15 @@ test('Phase 1: placement integrity prevents cross-client and invalid date record
       values('${candidate}','${demand}','${client}','Active',current_date,current_date-1);`),
     /check constraint/i,
   );
+  const otherCandidate = '00000000-0000-4000-8000-000000000026';
+  const otherConsideration = '00000000-0000-4000-8000-000000000027';
+  await db.exec(`insert into public.candidates(id,name,email) values('${otherCandidate}','Maya','maya@example.com');
+    insert into public.considerations(id,"candidateId","demandId",stage)
+    values('${otherConsideration}','${otherCandidate}','${demand}','Identified');`);
+  await assert.rejects(
+    db.exec(`insert into public.placements("candidateId","demandId","clientId","considerationId",status,"startDate")
+      values('${candidate}','${demand}','${client}','${otherConsideration}','Active',current_date);`),
+    /foreign key|constraint/i,
+  );
   await db.close();
 });

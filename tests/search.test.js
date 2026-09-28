@@ -218,3 +218,15 @@ test('search works against the real seeded workspace', () => {
     'a budget number never produces a budget disclosure',
   );
 });
+
+test('an admin gets one demand result when its fields and commercial note both match', () => {
+  const data = normalizeData(makeSeed());
+  const demand = data.demands[0];
+  data.demandCommercials = [
+    { id: 'commercial-1', demandId: demand.id, notes: `${demand.title} pricing` },
+  ];
+  const hits = searchWorkspace(data, demand.title, { isAdmin: true }).filter(
+    (result) => result.type === 'demand' && result.id === demand.id,
+  );
+  assert.equal(hits.length, 1);
+});
