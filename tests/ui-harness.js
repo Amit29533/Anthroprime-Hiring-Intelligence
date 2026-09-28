@@ -106,6 +106,7 @@ export async function loadApp() {
     ClientForm: CL.ClientForm,
     ClientDetail: CL.ClientDetail,
     ContactForm: CL.ContactForm,
+    PlacementForm: CL.PlacementForm,
     Interviews: IV.Interviews,
     ScheduleModal: IV.ScheduleModal,
     FeedbackModal: IV.FeedbackModal,

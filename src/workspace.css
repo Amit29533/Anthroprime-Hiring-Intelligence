@@ -264,6 +264,7 @@
 .client-meta dt{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#93a7a3}
 .client-meta dd{margin:2px 0 0;font-size:13px;color:#40605c}
 .client-meta dd a{display:inline-flex;align-items:center;gap:4px;overflow-wrap:anywhere}
+.form-section-title{margin:24px 0 14px;padding-top:20px;border-top:1px solid var(--border,#e6ebee);font-size:14px;color:#385864}
 .client-checkboxes{display:flex;flex-wrap:wrap;gap:18px;padding:0 2px 4px}
 /* --- Batch 17: users & roles administration --- */
 .member-list{list-style:none;margin:6px 0 20px;padding:0}

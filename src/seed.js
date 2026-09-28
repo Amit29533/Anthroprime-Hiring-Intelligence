@@ -835,6 +835,40 @@ export function makeSeed() {
       created: dateAgo(1),
     },
   ];
+  const placements = [
+    {
+      id: '96000000-0000-4000-8000-000000000001',
+      candidateId: candidates[5].id,
+      demandId: demands[2].id,
+      clientId: demands[2].clientId,
+      considerationId: considerations[6].id,
+      offerId: offers[0].id,
+      status: 'Planned',
+      startDate: dateAgo(-25),
+      endDate: null,
+      engagementType: 'Permanent',
+      workMode: demands[2].mode,
+      location: demands[2].location,
+      recruiter: 'Amit Singh',
+      notes: 'Joining plan recorded while the offer decision is pending.',
+      created: stampAgo(2),
+      updated: stampAgo(1),
+    },
+  ];
+  const placementCommercials = [
+    {
+      id: '97000000-0000-4000-8000-000000000001',
+      placementId: placements[0].id,
+      billRate: 42,
+      costRate: 31,
+      currency: 'INR',
+      basis: 'Annual',
+      billedAmount: null,
+      collectedAmount: null,
+      notes: 'Illustrative sample amounts in lakhs per annum.',
+      updated: stampAgo(1),
+    },
+  ];
   const tasks = [
     {
       id: '92000000-0000-4000-8000-000000000001',
@@ -1186,5 +1220,7 @@ export function makeSeed() {
     skills,
     personSkills,
     skillEvidence,
+    placements,
+    placementCommercials,
   };
 }

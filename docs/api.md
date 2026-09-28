@@ -11,7 +11,7 @@ workspace only. Cross-tenant safe; `anon` is denied.
 | ----- | ------ | -------------------------------------------------------------------------------------------------------------------- |
 | `day` | `date` | Defaults to `current_date - 30`. Rows are matched by `created`/`updated`/`date`/`submittedOn` etc., day granularity. |
 
-Response `jsonb` includes `since` and one array for each repository table: `candidates`, `demands`, `considerations`, `assessments`, `notes`, `enrichment`, `history`, `employmentHistory`, `compensationHistory`, `availabilityHistory`, `auditEvents`, `documents` (metadata only; no file bytes, storage paths or extracted CV text), `taxonomy`, `demandCommercials`, `settings`, `consents`, `interviews`, `offers`, `tasks`, `submissions`, `publicApplications` and `workflowRules`. Each array is ordered by its table id and each row omits `workspace_id`. Internal demand commercials are returned only to workspace admins; other members receive an empty `demandCommercials` array.
+Response `jsonb` includes `since` and one array for each repository table, including `candidates`, `demands`, `considerations`, `assessments`, `notes`, `enrichment`, histories, `auditEvents`, `documents` metadata, `taxonomy`, `demandCommercials`, `settings`, `consents`, `interviews`, `offers`, `tasks`, `submissions`, `publicApplications`, `workflowRules`, `placements` and `placementCommercials`. Each array is ordered by its table id and each row omits `workspace_id`. Internal demand and placement commercials are returned only to workspace admins; other members receive empty commercial arrays.
 
 Errors: `{ "error": "no workspace membership" }` when the caller has no membership; HTTP
 403-class permission error for `anon`.
@@ -99,10 +99,16 @@ response carries a `next` flag:
 | `page_block` | `int`  | `0`                 | 0-based block index; block `n` skips `n × page_size` rows per table. |
 | `page_size`  | `int`  | `200`               | Rows per table per block (min 1).                                    |
 
-Response adds `{ since, block, size, next, …22 feeds }`. `next` is `true` while any table
+Response adds `{ since, block, size, next, …table feeds }`. `next` is `true` while any table
 still has more rows in the window — including auxiliary tables without history triggers; keep
 calling with `page_block + 1` until it is `false`.
 `anon` is denied.
+
+## Placements and commercial outcomes (migration 029)
+
+`placements` records the operational deployment lifecycle against a candidate, demand and client. The database requires that the selected demand belongs to the same client, prevents overlapping live records for the same candidate/demand pair, validates the date range and keeps the record tenant-scoped. Recruiters and administrators may insert and update placement facts; deletion is not granted.
+
+`placementCommercials` stores at most one commercial record per placement: bill rate, cost rate, currency, billing basis, billed amount and collected amount. Only administrators can read or write this table. Both tables are audited and included in incremental sync; non-admin callers receive an empty `placementCommercials` array.
 
 ```js
 let block = 0,
@@ -148,10 +154,10 @@ pagination. The RPCs above are the stable contract those will wrap.
 
 `api_changes_since` and `api_changes_page` both carry two additional tables:
 
-| Table            | Key fields                                                                                     |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
+| Table            | Key fields                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `clients`        | `id`, `name`, `industry`, `location`, `website`, `owner`, `status`, `tier`, `paymentTerms`, `tags`, `created`, `updated` |
-| `clientContacts` | `id`, `clientId`, `name`, `title`, `email`, `phone`, `isPrimary`, `decisionMaker`, `created`, `updated` |
+| `clientContacts` | `id`, `clientId`, `name`, `title`, `email`, `phone`, `isPrimary`, `decisionMaker`, `created`, `updated`                  |
 
 Two existing tables gained a nullable link column that also travels in the feed: `demands.clientId`
 and `submissions.contactId`. Both are `ON DELETE SET NULL` restricted to the link column, so
@@ -165,14 +171,14 @@ These RPCs are **not** part of the sync feed. They administer access and are adm
 where noted. Each returns a JSON object and reports refusals as `{ "error": "..." }` rather than
 raising, so a client can surface the database's own wording.
 
-| RPC                                        | Who may call  | Returns                                                     |
-| ------------------------------------------ | ------------- | ----------------------------------------------------------- |
-| `api_workspace_members()`                  | any member    | `{ workspace, isAdmin, adminCount, members[] }` — `userId`, `email`, `role`, `isSelf` only |
-| `api_workspace_invites()`                  | admin         | pending invitations for the caller's workspace               |
-| `api_invite_member(p_email, p_role)`       | admin         | creates or updates a pending invitation; grants access at once if the address already has an account |
-| `api_revoke_invite(p_id)`                  | admin         | deletes a pending invitation                                 |
-| `api_set_member_role(p_user, p_role)`      | admin         | changes a role; refuses to demote the last administrator     |
-| `api_remove_member(p_user)`                | admin         | revokes access; refuses to remove the last administrator     |
+| RPC                                   | Who may call | Returns                                                                                              |
+| ------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- |
+| `api_workspace_members()`             | any member   | `{ workspace, isAdmin, adminCount, members[] }` — `userId`, `email`, `role`, `isSelf` only           |
+| `api_workspace_invites()`             | admin        | pending invitations for the caller's workspace                                                       |
+| `api_invite_member(p_email, p_role)`  | admin        | creates or updates a pending invitation; grants access at once if the address already has an account |
+| `api_revoke_invite(p_id)`             | admin        | deletes a pending invitation                                                                         |
+| `api_set_member_role(p_user, p_role)` | admin        | changes a role; refuses to demote the last administrator                                             |
+| `api_remove_member(p_user)`           | admin        | revokes access; refuses to remove the last administrator                                             |
 
 `public."workspaceInvites"` has no table grants at all — the RPCs are the only route in or out, and
 `memberships` remains unwritable from `authenticated` as it has been since migration 001. A trigger
@@ -185,14 +191,14 @@ service-role key is needed in the browser. Every mutation writes an `auditEvents
 `departments` joins both sync RPCs as an ordinary workspace table. The `demands` projection is
 `d.*`, so these new columns travel automatically:
 
-| Column                     | Meaning                                                                 |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `departmentId`             | nullable link to `departments`; `ON DELETE SET NULL` on that column only |
-| `approvalStatus`           | `Draft` \| `Pending approval` \| `Approved` \| `Rejected`               |
-| `approvedBy` / `approvedAt`| set by the database from the signed-in session — never accepted from a client |
-| `approvedTerms`            | server-generated snapshot of the terms that were approved                |
-| `approvalNote`             | reviewer's comment, or the automatic withdrawal reason                   |
-| `submittedForApprovalAt`   | when approval was requested                                              |
+| Column                      | Meaning                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `departmentId`              | nullable link to `departments`; `ON DELETE SET NULL` on that column only      |
+| `approvalStatus`            | `Draft` \| `Pending approval` \| `Approved` \| `Rejected`                     |
+| `approvedBy` / `approvedAt` | set by the database from the signed-in session — never accepted from a client |
+| `approvedTerms`             | server-generated snapshot of the terms that were approved                     |
+| `approvalNote`              | reviewer's comment, or the automatic withdrawal reason                        |
+| `submittedForApprovalAt`    | when approval was requested                                                   |
 
 Writes go through the ordinary `demands` table, not an RPC; the `demands_requisition_gate` trigger
 enforces the rules. Setting `approvalStatus` to `Approved` or `Rejected` as a non-admin raises
@@ -204,12 +210,12 @@ approval before a role can be published`.
 
 `reports` joins both sync RPCs as an ordinary workspace table.
 
-| Column        | Meaning                                                                    |
-| ------------- | -------------------------------------------------------------------------- |
-| `entity`      | which record type the report is about                                       |
-| `config`      | jsonb definition: `{ filters[], groupBy, measure, measureField, sort, limit }` |
-| `shared`      | reports are workspace-wide by default                                       |
-| `owner`       | who authored it, for attribution only — not an access control              |
+| Column   | Meaning                                                                        |
+| -------- | ------------------------------------------------------------------------------ |
+| `entity` | which record type the report is about                                          |
+| `config` | jsonb definition: `{ filters[], groupBy, measure, measureField, sort, limit }` |
+| `shared` | reports are workspace-wide by default                                          |
+| `owner`  | who authored it, for attribution only — not an access control                  |
 
 The table stores a **definition only**. There is no column in which a result could be cached, so
 a report always reflects the repository as it is now. Access control is not in this table: a
@@ -221,11 +227,11 @@ therefore grants nothing — do not treat it as a permission.
 
 Three tables join both sync RPCs: `skills`, `personSkills`, `skillEvidence`.
 
-| Table           | Writable?                                                                       |
-| --------------- | --------------------------------------------------------------------------------- |
-| `skills`        | insert/update by editors; delete revoked                                          |
+| Table           | Writable?                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `skills`        | insert/update by editors; delete revoked                                                                                                                           |
 | `personSkills`  | insert/update by editors; delete revoked. **Derived** — a trigger overwrites proficiency, confidence, validation, evidenceCount and lastEvidence from the evidence |
-| `skillEvidence` | **insert only.** UPDATE and DELETE are revoked from `authenticated`, like `history` |
+| `skillEvidence` | **insert only.** UPDATE and DELETE are revoked from `authenticated`, like `history`                                                                                |
 
 `public.skill_evidence_weight(text)` defines what each evidence type is worth (Assessment 100 →
 Self-declared 10); `src/skills.js` mirrors it and a test fails if the two drift. Writing to
