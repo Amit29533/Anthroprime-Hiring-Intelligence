@@ -31,6 +31,7 @@ import {
 } from './ui.jsx';
 import { Members } from './Members.jsx';
 import { DepartmentsPanel, CareersSeoPanel } from './Requisitions.jsx';
+import { BrandingPanel } from './Presentation.jsx';
 import { SkillInventoryPanel } from './Skills.jsx';
 import {
   uid,
@@ -1888,6 +1889,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onMod
           notify={notify}
         />
         <CareersSeoPanel data={data} notify={notify} />
+        <BrandingPanel data={data} onSave={onSave} notify={notify} />
         <section className="panel">
           <PanelHeading title="Workspace capabilities" />
           <div className="settings-body">

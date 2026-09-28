@@ -326,3 +326,10 @@
 .evidence-timeline small{display:block;margin-top:3px;font-size:11.5px;color:#95a7ae}
 .evidence-note{font-style:italic}
 .evidence-form{margin-top:16px;padding-top:16px;border-top:1px dashed #e3eaec}
+/* --- Batch 22: client-ready candidate presentation --- */
+.presentation-body{display:grid;grid-template-columns:270px 1fr;gap:20px;align-items:start}
+.presentation-options{display:flex;flex-direction:column;gap:11px}
+.presentation-options .checkbox-label{font-size:12.5px;line-height:1.5;align-items:flex-start}
+.presentation-options .badge{margin-left:5px}
+.presentation-preview{width:100%;height:58vh;border:1px solid #dce6e6;border-radius:8px;background:#fff}
+@media(max-width:900px){.presentation-body{grid-template-columns:1fr}.presentation-preview{height:44vh}}

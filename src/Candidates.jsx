@@ -26,6 +26,7 @@ import {
   Avatar,
 } from './ui.jsx';
 import { SkillEvidencePanel } from './Skills.jsx';
+import { PresentationModal } from './Presentation.jsx';
 import {
   freshness,
   money,
@@ -971,7 +972,8 @@ export function CandidateProfile({
     [followUp, setFollowUp] = useState(''),
     [channel, setChannel] = useState('Note'),
     [demand, setDemand] = useState(data.demands.find((d) => d.status === 'Open')?.id || ''),
-    [offerOpen, setOfferOpen] = useState(false);
+    [offerOpen, setOfferOpen] = useState(false),
+    [presentationOpen, setPresentationOpen] = useState(false);
   useEffect(() => {
     onTabChange && onTabChange(tab);
   }, [tab, onTabChange]);
@@ -1070,6 +1072,13 @@ export function CandidateProfile({
               </a>
               <button className="button secondary" onClick={() => setLetterOpen(true)}>
                 Generate letter
+              </button>
+              <button
+                className="button secondary"
+                title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
+                onClick={() => setPresentationOpen(true)}
+              >
+                Client-ready profile
               </button>
               <button
                 className="button secondary"
@@ -1502,6 +1511,16 @@ export function CandidateProfile({
           c={c}
           data={data}
           onClose={() => setLetterOpen(false)}
+          audit={audit}
+          notify={notify}
+        />
+      )}
+      {presentationOpen && !viewer && (
+        <PresentationModal
+          candidate={c}
+          demand={data.demands.find((d) => d.id === demand) || null}
+          data={data}
+          onClose={() => setPresentationOpen(false)}
           audit={audit}
           notify={notify}
         />
