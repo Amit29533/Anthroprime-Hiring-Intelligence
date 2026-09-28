@@ -227,7 +227,7 @@ test('one ceiling governs the form, the validator and the CSV importer', async (
 test('saving a view persists the search, filters and sort', async () => {
   await boot();
   await navTo('Candidates');
-  await change(screen.getByLabelText('Search your repository'), 'databricks');
+  await change(screen.getByLabelText('Search your workspace'), 'databricks');
   await settle();
   await withWindow(
     'prompt',

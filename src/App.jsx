@@ -10,8 +10,6 @@ import {
   Handshake,
   FileBarChart,
   Settings,
-  Search,
-  Bell,
   ChevronDown,
   Menu,
   X,
@@ -57,6 +55,7 @@ import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
 import { DepartmentForm } from './Requisitions.jsx';
 import { Reports } from './Reports.jsx';
 import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
+import { GlobalSearch, NotificationBell } from './Topbar.jsx';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -241,6 +240,18 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Take a global-search result to wherever that record lives. */
+  function openSearchResult(result) {
+    if (result.type === 'candidate') return setPersonId(result.id);
+    if (result.type === 'note') return setPersonId(result.parentId);
+    if (result.type === 'demand') return openDemand(result.id);
+    if (result.type === 'client') return openClient(result.id);
+    if (result.type === 'contact') return openClient(result.parentId);
+    if (result.type === 'referral') return navigate('Referrals');
+    if (result.type === 'skill') return navigate('Settings');
+    return undefined;
   }
 
   async function save(table, rows) {
@@ -445,6 +456,7 @@ export default function App() {
         onAdd={addCandidate}
         onImport={importCandidates}
         onComplete={(n) => save('notes', [{ ...n, completed: true }])}
+        user={{ name: userName, email: session?.user?.email || '' }}
       />
     );
   else if (page === 'Candidates')
@@ -686,30 +698,22 @@ export default function App() {
             <strong>{page}</strong>
           </div>
           <div className="topbar-actions">
-            <form
-              className="global-search"
-              onSubmit={(e) => {
-                e.preventDefault();
-                navigate('Candidates');
-              }}
-            >
-              <Search size={16} />
-              <input
-                aria-label="Search your repository"
-                placeholder="Search your repository"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <kbd>↵</kbd>
-            </form>
+            <GlobalSearch
+              data={data}
+              isAdmin={getRole() === 'admin'}
+              query={query}
+              setQuery={setQuery}
+              onOpen={openSearchResult}
+            />
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? 'Team workspace' : 'Demo workspace'}
             </button>
-            <IconButton
-              icon={Bell}
-              label="View follow-ups"
-              onClick={() => navigate('Activities')}
+            <NotificationBell
+              data={data}
+              user={{ name: userName, email: session?.user?.email || '' }}
+              isAdmin={getRole() === 'admin'}
+              navigate={navigate}
             />
             <Avatar name={userName} size="small" />
           </div>
