@@ -36,10 +36,13 @@ alter table public.departments enable row level security;
 revoke all on public.departments from anon;
 revoke delete on public.departments from authenticated;
 grant select, insert, update on public.departments to authenticated;
+drop policy if exists departments_read on public.departments;
 create policy departments_read on public.departments for select to authenticated
   using (workspace_id = public.current_workspace());
+drop policy if exists departments_insert on public.departments;
 create policy departments_insert on public.departments for insert to authenticated
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
+drop policy if exists departments_update on public.departments;
 create policy departments_update on public.departments for update to authenticated
   using (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id))
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
@@ -179,14 +182,17 @@ end;
 $$;
 
 drop trigger if exists demands_requisition_gate on public.demands;
+drop trigger if exists demands_requisition_gate on public.demands;
 create trigger demands_requisition_gate
   before insert or update on public.demands
   for each row execute function public.demands_requisition_gate();
 
 -- Departments follow the standard audit/stamp shape.
 drop trigger if exists track_change on public.departments;
+drop trigger if exists track_change on public.departments;
 create trigger track_change after insert or update on public.departments
   for each row execute function public.record_change();
+drop trigger if exists touch_updated_column on public.departments;
 drop trigger if exists touch_updated_column on public.departments;
 create trigger touch_updated_column before update on public.departments
   for each row execute function public.touch_updated_column();

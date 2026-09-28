@@ -46,9 +46,13 @@ do $$
 declare t text;
 begin
  foreach t in array array['offers','tasks'] loop
+  execute format('drop policy if exists %I on public.%I',t||'_read',t);
   execute format('create policy %I on public.%I for select to authenticated using (workspace_id=public.current_workspace())',t||'_read',t);
+  execute format('drop policy if exists %I on public.%I',t||'_insert',t);
   execute format('create policy %I on public.%I for insert to authenticated with check (public.can_edit_workspace(workspace_id))',t||'_insert',t);
+  execute format('drop policy if exists %I on public.%I',t||'_update',t);
   execute format('create policy %I on public.%I for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id))',t||'_update',t);
+  execute format('drop trigger if exists track_change on public.%I',t);
   execute format('create trigger track_change after insert or update on public.%I for each row execute function public.record_change()',t);
  end loop;
 end $$;

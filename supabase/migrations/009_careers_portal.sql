@@ -2,6 +2,7 @@
 -- form with consent, C5 client decision recording, §14 external mapping). Apply AFTER 001-008.
 begin;
 -- Anyone can see open roles; applications arrive through the security-definer RPC below.
+drop policy if exists demands_public_read on public.demands;
 create policy demands_public_read on public.demands for select to anon using (status='Open');
 grant select on public.demands to anon;
 
@@ -24,13 +25,20 @@ alter table public."publicApplications" enable row level security;
 revoke all on public."publicApplications" from anon;
 revoke delete on public."publicApplications" from authenticated;
 grant select,insert,update on public."publicApplications" to authenticated;
+drop policy if exists public_apps_read on public."publicApplications";
 create policy public_apps_read on public."publicApplications" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists public_apps_write on public."publicApplications";
 create policy public_apps_write on public."publicApplications" for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id));
+drop policy if exists public_apps_insert on public."publicApplications";
 create policy public_apps_insert on public."publicApplications" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
+drop trigger if exists track_change on public."publicApplications";
 create trigger track_change after insert or update on public."publicApplications" for each row execute function public.record_change();
 
 -- Anonymous careers-page application: the page posts the workspace id (public config) and the
 -- applicant payload; the RPC validates the bare minimum and stamps the workspace.
+-- Dropped first: this function's return type changes later in the chain, and a
+-- `create or replace` cannot change one. Without this, re-running the chain fails here.
+drop function if exists public.api_public_apply(uuid, jsonb);
 create or replace function public.api_public_apply(ws uuid, payload jsonb)
 returns uuid
 language plpgsql security definer set search_path = public as $$

@@ -8,15 +8,21 @@ alter table public.candidates
  add column if not exists "earliestStart" date,
  add column if not exists "activeStatus" text not null default 'Active',
  add column if not exists "skillsDetail" jsonb not null default '[]';
-alter table public.candidates add constraint candidates_active_status check("activeStatus" in ('Active','Passive'));
+do $$ begin
+  alter table public.candidates add constraint candidates_active_status check("activeStatus" in ('Active','Passive'));
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 alter table public.demands
  add column if not exists "niceToHave" text[] not null default '{}',
  add column if not exists "engagementType" text not null default 'Any',
  add column if not exists "minProficiency" text not null default 'Working',
  add column if not exists "skillMinimums" jsonb not null default '{}';
-alter table public.demands add constraint demands_engagement_type check("engagementType" in ('Any','Permanent','Contract','C2H','Subcontract'));
-alter table public.demands add constraint demands_min_proficiency check("minProficiency" in ('Exposure','Working','Proficient','Advanced','Expert'));
+do $$ begin
+  alter table public.demands add constraint demands_engagement_type check("engagementType" in ('Any','Permanent','Contract','C2H','Subcontract'));
+exception when duplicate_object then null; when duplicate_table then null; end $$;
+do $$ begin
+  alter table public.demands add constraint demands_min_proficiency check("minProficiency" in ('Exposure','Working','Proficient','Advanced','Expert'));
+exception when duplicate_object then null; when duplicate_table then null; end $$;
 
 create table if not exists public."employmentHistory" (
  id uuid primary key default gen_random_uuid(),
@@ -62,27 +68,35 @@ alter table public."employmentHistory" enable row level security;
 revoke all on public."employmentHistory" from anon;
 revoke update,delete on public."employmentHistory" from authenticated;
 grant select,insert on public."employmentHistory" to authenticated;
+drop policy if exists workspace_read on public."employmentHistory";
 create policy workspace_read on public."employmentHistory" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists workspace_insert on public."employmentHistory";
 create policy workspace_insert on public."employmentHistory" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
 
 alter table public."compensationHistory" enable row level security;
 revoke all on public."compensationHistory" from anon;
 revoke update,delete on public."compensationHistory" from authenticated;
 grant select,insert on public."compensationHistory" to authenticated;
+drop policy if exists workspace_read on public."compensationHistory";
 create policy workspace_read on public."compensationHistory" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists workspace_insert on public."compensationHistory";
 create policy workspace_insert on public."compensationHistory" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
 
 alter table public."availabilityHistory" enable row level security;
 revoke all on public."availabilityHistory" from anon;
 revoke update,delete on public."availabilityHistory" from authenticated;
 grant select,insert on public."availabilityHistory" to authenticated;
+drop policy if exists workspace_read on public."availabilityHistory";
 create policy workspace_read on public."availabilityHistory" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists workspace_insert on public."availabilityHistory";
 create policy workspace_insert on public."availabilityHistory" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
 
 alter table public."auditEvents" enable row level security;
 revoke all on public."auditEvents" from anon;
 revoke update,delete on public."auditEvents" from authenticated;
 grant select,insert on public."auditEvents" to authenticated;
+drop policy if exists workspace_read on public."auditEvents";
 create policy workspace_read on public."auditEvents" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists workspace_insert on public."auditEvents";
 create policy workspace_insert on public."auditEvents" for insert to authenticated with check (workspace_id=public.current_workspace());
 commit;

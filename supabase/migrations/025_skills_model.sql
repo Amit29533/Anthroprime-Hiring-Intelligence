@@ -91,10 +91,13 @@ alter table public.skills enable row level security;
 revoke all on public.skills from anon;
 revoke delete on public.skills from authenticated;
 grant select, insert, update on public.skills to authenticated;
+drop policy if exists skills_read on public.skills;
 create policy skills_read on public.skills for select to authenticated
   using (workspace_id = public.current_workspace());
+drop policy if exists skills_insert on public.skills;
 create policy skills_insert on public.skills for insert to authenticated
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
+drop policy if exists skills_update on public.skills;
 create policy skills_update on public.skills for update to authenticated
   using (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id))
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
@@ -103,10 +106,13 @@ alter table public."personSkills" enable row level security;
 revoke all on public."personSkills" from anon;
 revoke delete on public."personSkills" from authenticated;
 grant select, insert, update on public."personSkills" to authenticated;
+drop policy if exists person_skills_read on public."personSkills";
 create policy person_skills_read on public."personSkills" for select to authenticated
   using (workspace_id = public.current_workspace());
+drop policy if exists person_skills_insert on public."personSkills";
 create policy person_skills_insert on public."personSkills" for insert to authenticated
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
+drop policy if exists person_skills_update on public."personSkills";
 create policy person_skills_update on public."personSkills" for update to authenticated
   using (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id))
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
@@ -117,8 +123,10 @@ alter table public."skillEvidence" enable row level security;
 revoke all on public."skillEvidence" from anon;
 revoke update, delete on public."skillEvidence" from authenticated;
 grant select, insert on public."skillEvidence" to authenticated;
+drop policy if exists skill_evidence_read on public."skillEvidence";
 create policy skill_evidence_read on public."skillEvidence" for select to authenticated
   using (workspace_id = public.current_workspace());
+drop policy if exists skill_evidence_insert on public."skillEvidence";
 create policy skill_evidence_insert on public."skillEvidence" for insert to authenticated
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
 
@@ -210,6 +218,7 @@ end;
 $$;
 
 drop trigger if exists skill_evidence_applied on public."skillEvidence";
+drop trigger if exists skill_evidence_applied on public."skillEvidence";
 create trigger skill_evidence_applied
   after insert on public."skillEvidence"
   for each row execute function public.skill_evidence_applied();
@@ -219,10 +228,12 @@ declare tbl text;
 begin
   foreach tbl in array array['skills','personSkills','skillEvidence'] loop
     execute format('drop trigger if exists track_change on public.%I', tbl);
+    execute format('drop trigger if exists track_change on public.%I',tbl);
     execute format('create trigger track_change after insert or update on public.%I for each row execute function public.record_change()', tbl);
   end loop;
   foreach tbl in array array['skills','personSkills'] loop
     execute format('drop trigger if exists touch_updated_column on public.%I', tbl);
+    execute format('drop trigger if exists touch_updated_column on public.%I',tbl);
     execute format('create trigger touch_updated_column before update on public.%I for each row execute function public.touch_updated_column()', tbl);
   end loop;
 end $$;

@@ -99,7 +99,9 @@ Alternatively, build locally and upload the contents of `dist` using Netlify's m
 Static hosting does not itself store team records. Configure a separate Supabase project:
 
 1. Create a new Supabase project in your chosen region.
-2. Apply every migration in ascending numeric order, through `025_skills_model.sql`; do not skip a file:
+2. Apply every migration in ascending numeric order, through `025_skills_model.sql`; do not skip a file.
+   Every migration is safe to re-run: re-applying the whole chain in order is a no-op, so if you are unsure
+   which files you have already run, run them all again rather than guessing.
    - `001_ecod.sql` — core tables, workspace membership, RLS, constraints and append-only history.
    - `002_blueprint_r1.sql` — skill evidence, candidate preferences, structured employment/compensation/availability history and audit events.
    - `003_documents_taxonomy.sql` — document metadata/storage policies, workspace taxonomy and gap-map fields.

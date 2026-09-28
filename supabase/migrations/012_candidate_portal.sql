@@ -103,5 +103,7 @@ grant execute on function public.api_portal_revoke_consent(uuid) to authenticate
 
 -- Offer approvals (I7 groundwork): a 'Pending approval' state between Draft and Sent.
 alter table public.offers drop constraint if exists offers_status_check;
-alter table public.offers add constraint offers_status_check
+do $$ begin
+  alter table public.offers add constraint offers_status_check
   check (status in ('Draft','Pending approval','Sent','Accepted','Rejected','Withdrawn'));
+exception when duplicate_object then null; when duplicate_table then null; end $$;

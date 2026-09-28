@@ -10,6 +10,9 @@ alter table public.demands
 drop policy if exists demands_public_read on public.demands;
 revoke select on public.demands from anon, public;
 
+-- Dropped first: migration 023 widens this function's return type, and a
+-- `create or replace` cannot change one. Without this, re-running the chain fails here.
+drop function if exists public.api_public_open_roles(uuid);
 create or replace function public.api_public_open_roles(p_workspace uuid)
 returns table (
   id uuid,
@@ -41,6 +44,9 @@ grant execute on function public.api_public_open_roles(uuid) to anon, authentica
 -- Keep the email-based, no-account status feature inside the workspace named by the careers URL.
 -- The former one-argument RPC aggregated matching applications across every workspace.
 drop function if exists public.api_public_application_status(text);
+-- Dropped first: this function's return type changes later in the chain, and a
+-- `create or replace` cannot change one. Without this, re-running the chain fails here.
+drop function if exists public.api_public_application_status(uuid, text);
 create or replace function public.api_public_application_status(p_workspace uuid, p_email text)
 returns jsonb
 language sql
@@ -67,6 +73,9 @@ grant execute on function public.api_public_application_status(uuid, text) to an
 
 -- Direct RPC calls receive the same consent and role checks as the browser form. Applications
 -- can only target an explicitly published role which is still open in the supplied workspace.
+-- Dropped first: this function's return type changes later in the chain, and a
+-- `create or replace` cannot change one. Without this, re-running the chain fails here.
+drop function if exists public.api_public_apply(uuid, jsonb);
 create or replace function public.api_public_apply(ws uuid, payload jsonb)
 returns uuid
 language plpgsql

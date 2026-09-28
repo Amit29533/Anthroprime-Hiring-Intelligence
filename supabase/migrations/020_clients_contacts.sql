@@ -98,17 +98,23 @@ begin
     execute format('revoke all on public.%I from anon', tbl);
     execute format('grant select,insert,update,delete on public.%I to authenticated', tbl);
     execute format('drop policy if exists workspace_read on public.%I', tbl);
+    execute format('drop policy if exists workspace_read on public.%I',tbl);
     execute format('create policy workspace_read on public.%I for select to authenticated using (workspace_id=public.current_workspace())', tbl);
     execute format('drop policy if exists workspace_insert on public.%I', tbl);
+    execute format('drop policy if exists workspace_insert on public.%I',tbl);
     execute format('create policy workspace_insert on public.%I for insert to authenticated with check (public.can_edit_workspace(workspace_id))', tbl);
     execute format('drop policy if exists workspace_update on public.%I', tbl);
+    execute format('drop policy if exists workspace_update on public.%I',tbl);
     execute format('create policy workspace_update on public.%I for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id))', tbl);
     -- Deleting an account is destructive and cascades to its contacts, so it is admin-only.
     execute format('drop policy if exists workspace_delete on public.%I', tbl);
+    execute format('drop policy if exists workspace_delete on public.%I',tbl);
     execute format('create policy workspace_delete on public.%I for delete to authenticated using (public.is_admin() and workspace_id=public.current_workspace())', tbl);
     execute format('drop trigger if exists track_change on public.%I', tbl);
+    execute format('drop trigger if exists track_change on public.%I',tbl);
     execute format('create trigger track_change after insert or update on public.%I for each row execute function public.record_change()', tbl);
     execute format('drop trigger if exists touch_updated_column on public.%I', tbl);
+    execute format('drop trigger if exists touch_updated_column on public.%I',tbl);
     execute format('create trigger touch_updated_column before update on public.%I for each row execute function public.touch_updated_column()', tbl);
   end loop;
 end $$;

@@ -29,6 +29,7 @@ alter table public."demandCommercials" enable row level security;
 revoke all on public."demandCommercials" from anon;
 revoke all on public."demandCommercials" from authenticated;
 grant select,insert,update on public."demandCommercials" to authenticated;
+drop policy if exists commercials_admin_all on public."demandCommercials";
 create policy commercials_admin_all on public."demandCommercials" for all to authenticated
  using (public.is_admin()) with check (public.is_admin());
 
@@ -36,7 +37,10 @@ alter table public."settings" enable row level security;
 revoke all on public."settings" from anon;
 revoke delete on public."settings" from authenticated;
 grant select,insert,update on public."settings" to authenticated;
+drop policy if exists settings_read on public."settings";
 create policy settings_read on public."settings" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists settings_write on public."settings";
 create policy settings_write on public."settings" for insert to authenticated with check (public.is_admin());
+drop policy if exists settings_update on public."settings";
 create policy settings_update on public."settings" for update to authenticated using (public.is_admin()) with check (public.is_admin());
 commit;

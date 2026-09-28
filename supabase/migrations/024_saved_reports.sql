@@ -39,21 +39,27 @@ create index if not exists reports_workspace on public.reports (workspace_id, en
 alter table public.reports enable row level security;
 revoke all on public.reports from anon;
 grant select, insert, update, delete on public.reports to authenticated;
+drop policy if exists reports_read on public.reports;
 create policy reports_read on public.reports for select to authenticated
   using (workspace_id = public.current_workspace());
+drop policy if exists reports_insert on public.reports;
 create policy reports_insert on public.reports for insert to authenticated
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
+drop policy if exists reports_update on public.reports;
 create policy reports_update on public.reports for update to authenticated
   using (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id))
   with check (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
 -- Unlike repository records, a saved report is disposable metadata: an editor who can create one
 -- can delete it. Nothing in the talent repository is lost when a report definition goes away.
+drop policy if exists reports_delete on public.reports;
 create policy reports_delete on public.reports for delete to authenticated
   using (workspace_id = public.current_workspace() and public.can_edit_workspace(workspace_id));
 
 drop trigger if exists track_change on public.reports;
+drop trigger if exists track_change on public.reports;
 create trigger track_change after insert or update on public.reports
   for each row execute function public.record_change();
+drop trigger if exists touch_updated_column on public.reports;
 drop trigger if exists touch_updated_column on public.reports;
 create trigger touch_updated_column before update on public.reports
   for each row execute function public.touch_updated_column();
