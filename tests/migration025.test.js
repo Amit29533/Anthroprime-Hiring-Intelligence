@@ -294,3 +294,46 @@ test('Batch-21: a workspace with no legacy skills migrates to an empty, working 
   assert.equal(ps.confidence, 100);
   await db.close();
 });
+
+test('Batch-21 audit: deleting a demand clears its links without orphaning any tenant row', async () => {
+  // A composite foreign key declared `on delete set null` with no column list nulls EVERY
+  // referencing column — including workspace_id, which is NOT NULL. That made a demand
+  // undeletable and would have silently pushed rows out of their tenant if it were nullable.
+  const { db, act } = await boot();
+  await act(admin);
+  const demandId = '00000000-0000-4000-8000-000000000071';
+  await db.exec(
+    `insert into public.demands(id,title,client,skills,"minExperience","maxNotice",budget,location,mode,positions,priority,status,target,weights)
+     values('${demandId}','Role','M','{"SQL"}',3,30,20,'Pune','Remote',1,'Low','Open',current_date+30,'{"skills":35,"experience":20,"readiness":20,"availability":10,"budget":10,"location":5}');`,
+  );
+  await db.exec(
+    `insert into public.interviews(id,"candidateId","demandId",round,mode,"scheduledAt",status)
+     values('00000000-0000-4000-8000-000000000072','${aarav}','${demandId}','Tech','Video',now(),'Scheduled');
+     insert into public.offers(id,"candidateId","demandId",role,location,ctc,joining,status)
+     values('00000000-0000-4000-8000-000000000073','${aarav}','${demandId}','Role','Pune',20,current_date+30,'Draft');
+     insert into public.submissions(id,"candidateId","demandId","submittedOn")
+     values('00000000-0000-4000-8000-000000000074','${aarav}','${demandId}',current_date);`,
+  );
+
+  await db.exec(`reset role;delete from public.demands where id='${demandId}';`);
+
+  for (const [table, id] of [
+    ['interviews', '00000000-0000-4000-8000-000000000072'],
+    ['offers', '00000000-0000-4000-8000-000000000073'],
+    ['submissions', '00000000-0000-4000-8000-000000000074'],
+  ]) {
+    const row = (
+      await db.query(
+        `select workspace_id as ws, "demandId" as d from public.${table} where id='${id}'`,
+      )
+    ).rows[0];
+    assert.ok(row, `${table} row survives the demand being deleted`);
+    assert.equal(row.d, null, `${table}.demandId is cleared`);
+    assert.equal(
+      row.ws,
+      w1,
+      `${table} keeps its workspace — SET NULL is scoped to the link column`,
+    );
+  }
+  await db.close();
+});

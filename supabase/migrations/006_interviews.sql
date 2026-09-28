@@ -19,7 +19,7 @@ create table if not exists public.interviews (
  completed timestamptz, created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists interviews_when on public.interviews(workspace_id,"scheduledAt");
 

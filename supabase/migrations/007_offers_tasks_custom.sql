@@ -15,7 +15,7 @@ create table if not exists public.offers (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists offers_person on public.offers(workspace_id,"candidateId");
 
@@ -27,7 +27,7 @@ create table if not exists public.tasks (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists tasks_due on public.tasks(workspace_id,due);
 

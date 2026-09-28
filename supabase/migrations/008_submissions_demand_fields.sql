@@ -15,7 +15,7 @@ create table if not exists public.submissions (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists submissions_demand on public.submissions(workspace_id,"demandId");
 

@@ -17,7 +17,7 @@ create table if not exists public."publicApplications" (
  status text not null default 'pending' check(status in ('pending','accepted','dismissed')),
  created timestamptz not null default now(),
  unique(workspace_id,id),
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists public_apps_ws on public."publicApplications"(workspace_id,status);
 

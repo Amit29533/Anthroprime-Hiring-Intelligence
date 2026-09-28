@@ -434,9 +434,16 @@ export function suggestValues(data, entity, key, limit = 40) {
     .map(([value]) => value);
 }
 
+/**
+ * A CSV cell that cannot become a formula. Report values include candidate and client names,
+ * and a name can arrive from a public careers application — i.e. from an attacker. A leading
+ * `=`, `+`, `-`, `@`, tab or CR is executed by Excel and Sheets on open, so it is prefixed with
+ * an apostrophe. This matches `escapeFormulae: true`, which every other export here already uses.
+ */
 const csvCell = (value) => {
-  const text = value == null ? '' : String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  let text = value == null ? '' : String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
 /** CSV of a report result, carrying the provenance an audited export needs. */

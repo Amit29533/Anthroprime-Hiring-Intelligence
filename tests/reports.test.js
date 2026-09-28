@@ -543,3 +543,41 @@ test('reports run against the real seeded workspace', () => {
     'the total matches a hand calculation over the same rows',
   );
 });
+
+test('exported report cells can never become spreadsheet formulas', () => {
+  // Candidate and client names reach reports, and a name can arrive from a public careers
+  // application — i.e. from an attacker. Excel and Sheets execute a leading =, +, -, @, tab or
+  // CR on open, so every one must be neutralised, exactly as `escapeFormulae` does elsewhere.
+  const hostile = [
+    '=HYPERLINK("http://evil.example","Click")',
+    "+cmd|' /C calc'!A0",
+    '@SUM(1+1)*cmd',
+    '-2+3+cmd',
+    '\tleading tab',
+  ];
+  const data = {
+    candidates: hostile.map((name, i) => ({ id: String(i), name })),
+  };
+  const def = report({ name: 'Hostile', config: { groupBy: 'name', sort: 'label' } });
+  const csv = reportCsv(def, runReport(data, def));
+  for (const line of csv.split('\n').slice(3)) {
+    if (!line || line.startsWith('Name,')) continue;
+    const firstChar = line.startsWith('"') ? line[1] : line[0];
+    assert.equal(
+      firstChar,
+      "'",
+      `a cell beginning "${line.slice(0, 12)}" must be prefixed so it is not executed`,
+    );
+  }
+  // An ordinary value is left completely alone.
+  const plain = reportCsv(
+    report({ name: 'Plain', config: { groupBy: 'name' } }),
+    runReport(
+      { candidates: [{ id: '1', name: 'Aarav Sharma' }] },
+      report({ config: { groupBy: 'name' } }),
+    ),
+  );
+  assert.match(plain, /^Aarav Sharma,1$/m, 'a normal name is not mangled');
+  // Quoting still applies on top of the prefix.
+  assert.match(csv, /^"'=HYPERLINK/m);
+});
