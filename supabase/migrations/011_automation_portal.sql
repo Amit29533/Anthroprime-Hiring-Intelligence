@@ -16,11 +16,15 @@ create table if not exists public."workflowRules" (
 create index if not exists workflow_rules_ws on public."workflowRules"(workspace_id,enabled);
 alter table public."workflowRules" enable row level security;
 drop policy if exists workflow_rules_read on public."workflowRules";
+drop policy if exists workflow_rules_read on public."workflowRules";
 create policy workflow_rules_read on public."workflowRules" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists workflow_rules_write on public."workflowRules";
 drop policy if exists workflow_rules_write on public."workflowRules";
 create policy workflow_rules_write on public."workflowRules" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
 drop policy if exists workflow_rules_update on public."workflowRules";
+drop policy if exists workflow_rules_update on public."workflowRules";
 create policy workflow_rules_update on public."workflowRules" for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id));
+drop policy if exists workflow_rules_delete on public."workflowRules";
 drop policy if exists workflow_rules_delete on public."workflowRules";
 create policy workflow_rules_delete on public."workflowRules" for delete to authenticated using (public.can_edit_workspace(workspace_id));
 grant select,insert,update,delete on public."workflowRules" to authenticated;

@@ -17,6 +17,7 @@ import {
 import { PageHeader, Button, Stat, PanelHeading, Badge, Avatar, TextLink, Empty } from './ui.jsx';
 import { freshness, matchCandidate, today } from './domain.js';
 import { canWriteForRole, getRole } from './repository.js';
+import { identityFor, myQueue, ownerLooksUnmatched } from './worklist.js';
 export default function Dashboard({
   data,
   navigate,
@@ -26,8 +27,13 @@ export default function Dashboard({
   onAdd,
   onImport,
   onComplete,
+  user,
+  now = Date.now,
 }) {
   const viewer = !canWriteForRole(getRole());
+  const identity = identityFor(user || {});
+  const queue = myQueue(data, identity, { now: now(), isAdmin: getRole() === 'admin' });
+  const unmatched = ownerLooksUnmatched(data, identity);
   const ready = data.candidates.filter((c) => c.status === 'Ready').length;
   const open = data.demands.filter((d) => d.status === 'Open');
   const followups = data.notes
@@ -79,6 +85,54 @@ export default function Dashboard({
           tone="amber"
         />
       </div>
+      <section className="panel my-work">
+        <PanelHeading
+          title="Your work today"
+          subtitle={
+            unmatched
+              ? 'Nothing is owned by a name matching yours — this shows the whole desk instead.'
+              : 'Assigned to you, due now.'
+          }
+        />
+        <div className="my-work-grid">
+          <button className="my-work-cell" onClick={() => navigate('Activities')}>
+            <strong className={queue.overdueTasks.length ? 'text-red' : ''}>
+              {queue.overdueTasks.length}
+            </strong>
+            <span>Overdue</span>
+          </button>
+          <button className="my-work-cell" onClick={() => navigate('Activities')}>
+            <strong>{queue.tasksToday.length}</strong>
+            <span>Due today</span>
+          </button>
+          <button className="my-work-cell" onClick={() => navigate('Interviews')}>
+            <strong>{queue.interviewsToday.length}</strong>
+            <span>Interviews today</span>
+          </button>
+          <button className="my-work-cell" onClick={() => navigate('Demands')}>
+            <strong>{queue.myDemands.length}</strong>
+            <span>My open demands</span>
+          </button>
+          <button className="my-work-cell" onClick={() => navigate('Candidates')}>
+            <strong>{queue.myCandidates.length}</strong>
+            <span>My candidates</span>
+          </button>
+        </div>
+        {queue.overdueTasks.length > 0 && (
+          <ul className="client-list">
+            {queue.overdueTasks.slice(0, 4).map((t) => (
+              <li key={t.id}>
+                <div>
+                  <strong>{t.title}</strong>
+                  <small>Due {t.due}</small>
+                </div>
+                <Badge tone="red">Overdue</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <div className="dashboard-columns">
         <div className="main-column">
           <section className="match-banner">

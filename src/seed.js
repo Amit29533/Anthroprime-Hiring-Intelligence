@@ -1,5 +1,5 @@
 import { WEIGHTS } from './domain.js';
-import { blankSkillDetail } from './taxonomy.js';
+import { blankSkillDetail, domainOf } from './taxonomy.js';
 const dateAgo = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 const stampAgo = (days) => new Date(Date.now() - days * 86400000).toISOString();
 const people = [
@@ -400,6 +400,8 @@ export function makeSeed() {
       id: '20000000-0000-4000-8000-000000000001',
       title: 'Senior Databricks Architect',
       client: 'Meridian Technologies',
+      clientId: 'a0000000-0000-4000-8000-000000000001',
+      departmentId: 'c0000000-0000-4000-8000-000000000001',
       skills: ['Databricks', 'Databricks Genie', 'Unity Catalog', 'Azure'],
       niceToHave: ['Snowflake', 'Power BI'],
       minExperience: 7,
@@ -428,6 +430,8 @@ export function makeSeed() {
       id: '20000000-0000-4000-8000-000000000002',
       title: 'IAM Solutions Engineer',
       client: 'Northstar Financial',
+      clientId: 'a0000000-0000-4000-8000-000000000002',
+      departmentId: 'c0000000-0000-4000-8000-000000000003',
       skills: ['Microsoft Entra', 'IAM', 'Conditional Access', 'Azure'],
       niceToHave: [],
       minExperience: 5,
@@ -455,6 +459,9 @@ export function makeSeed() {
       id: '20000000-0000-4000-8000-000000000003',
       title: 'Senior Frontend Engineer',
       client: 'Aster Digital',
+      clientId: 'a0000000-0000-4000-8000-000000000003',
+      departmentId: 'c0000000-0000-4000-8000-000000000001',
+      businessUnit: 'Data & AI',
       skills: ['React', 'TypeScript', 'Node.js'],
       niceToHave: ['Figma'],
       minExperience: 4,
@@ -478,6 +485,9 @@ export function makeSeed() {
       id: '20000000-0000-4000-8000-000000000004',
       title: 'Cloud Platform Engineer',
       client: 'Meridian Technologies',
+      clientId: 'a0000000-0000-4000-8000-000000000001',
+      departmentId: 'c0000000-0000-4000-8000-000000000002',
+      businessUnit: 'Digital Engineering',
       skills: ['Azure', 'Terraform', 'Kubernetes'],
       niceToHave: [],
       minExperience: 5,
@@ -959,6 +969,194 @@ export function makeSeed() {
     },
   ];
 
+  // Client accounts for the three customers the sample demands already name, so the Clients
+  // screen opens with real rollups rather than an empty state.
+  // Batch 18: reusable business units. Requisitions roll up to the department that asked.
+
+  // Batch 21 — the blueprint §14 skills model, generated from the same `skills`/`skillsDetail`
+  // the migration back-fills from, so the demo workspace and a migrated workspace look alike.
+  const EV_WEIGHT = {
+    Assessment: 100,
+    Certification: 90,
+    'Client interview': 80,
+    'Recruiter-verified': 70,
+    Project: 60,
+    CV: 30,
+    'Self-declared': 10,
+  };
+  const skills = [];
+  const personSkills = [];
+  const skillEvidence = [];
+  const skillIndex = new Map();
+  let skillSeq = 0;
+  let psSeq = 0;
+  let evSeq = 0;
+  const pad = (n) => String(n).padStart(12, '0');
+  for (const c of candidates) {
+    for (const name of c.skills || []) {
+      const key = name.trim().toLowerCase();
+      if (!key) continue;
+      if (!skillIndex.has(key)) {
+        skillSeq += 1;
+        const row = {
+          id: `d0000000-0000-4000-8000-${pad(skillSeq)}`,
+          name: name.trim(),
+          domain: domainOf(name.trim()),
+          aliases: [],
+          notes: '',
+          created: dateAgo(300),
+        };
+        skills.push(row);
+        skillIndex.set(key, row);
+      }
+      const skill = skillIndex.get(key);
+      const detail = (c.skillsDetail || []).find(
+        (d) => (d.skill || '').trim().toLowerCase() === key,
+      );
+      const proficiency = detail?.proficiency || 'Exposure';
+      const evidenceType =
+        detail?.evidence && detail.evidence !== 'Unverified' ? detail.evidence : 'Self-declared';
+      psSeq += 1;
+      const ps = {
+        id: `e0000000-0000-4000-8000-${pad(psSeq)}`,
+        candidateId: c.id,
+        skillId: skill.id,
+        proficiency,
+        years: detail?.years ?? null,
+        lastUsed: detail?.lastUsed ?? null,
+        confidence: Math.min(100, EV_WEIGHT[evidenceType] || 0),
+        validated: (EV_WEIGHT[evidenceType] || 0) >= 70,
+        evidenceCount: 1,
+        lastEvidence: c.verified || dateAgo(60),
+        created: c.created || dateAgo(120),
+      };
+      personSkills.push(ps);
+      evSeq += 1;
+      skillEvidence.push({
+        id: `f0000000-0000-4000-8000-${pad(evSeq)}`,
+        personSkillId: ps.id,
+        evidenceType,
+        proficiency,
+        years: detail?.years ?? null,
+        lastUsed: detail?.lastUsed ?? null,
+        evidenceRef: '',
+        assessor: evidenceType === 'Assessment' ? 'Priya Raman' : '',
+        note: '',
+        date: stampAgo(60),
+      });
+    }
+  }
+
+  const departments = [
+    {
+      id: 'c0000000-0000-4000-8000-000000000001',
+      name: 'Data & AI',
+      head: 'Priya Raman',
+      costCentre: 'CC-2201',
+      notes: 'Platform, analytics and machine-learning engineering.',
+      created: dateAgo(320),
+    },
+    {
+      id: 'c0000000-0000-4000-8000-000000000002',
+      name: 'Digital Engineering',
+      head: 'Vikram Shah',
+      costCentre: 'CC-2204',
+      notes: 'Application modernisation and cloud delivery.',
+      created: dateAgo(280),
+    },
+    {
+      id: 'c0000000-0000-4000-8000-000000000003',
+      name: 'Cybersecurity',
+      head: 'Neha Kulkarni',
+      costCentre: 'CC-2209',
+      notes: 'Identity, access and security engineering.',
+      created: dateAgo(210),
+    },
+  ];
+
+  const clients = [
+    {
+      id: 'a0000000-0000-4000-8000-000000000001',
+      name: 'Meridian Technologies',
+      industry: 'Technology consulting',
+      location: 'Bengaluru',
+      website: 'https://meridian.example',
+      owner: 'Amit Singh',
+      status: 'Active',
+      tier: 'Strategic',
+      paymentTerms: 'Net 30',
+      notes: 'Lakehouse modernisation programme; two active data demands.',
+      tags: ['Data & AI'],
+      created: dateAgo(210),
+    },
+    {
+      id: 'a0000000-0000-4000-8000-000000000002',
+      name: 'Northstar Financial',
+      industry: 'Banking',
+      location: 'Mumbai',
+      website: 'https://northstar.example',
+      owner: 'Amit Singh',
+      status: 'Active',
+      tier: 'Key',
+      paymentTerms: 'Net 45',
+      notes: 'Security and identity work; background checks required before submission.',
+      tags: ['Security'],
+      created: dateAgo(160),
+    },
+    {
+      id: 'a0000000-0000-4000-8000-000000000003',
+      name: 'Aster Digital',
+      industry: 'Digital products',
+      location: 'Hyderabad',
+      website: '',
+      owner: 'Amit Singh',
+      status: 'Prospect',
+      tier: 'Standard',
+      paymentTerms: '',
+      notes: 'First demand with this account — terms still being agreed.',
+      tags: [],
+      created: dateAgo(45),
+    },
+  ];
+  const clientContacts = [
+    {
+      id: 'b0000000-0000-4000-8000-000000000001',
+      clientId: 'a0000000-0000-4000-8000-000000000001',
+      name: 'Rohit Nair',
+      title: 'Head of Data Engineering',
+      email: 'rohit.nair@meridian.example',
+      phone: '',
+      isPrimary: true,
+      decisionMaker: true,
+      notes: 'Runs the technical panel for architect roles.',
+      created: dateAgo(205),
+    },
+    {
+      id: 'b0000000-0000-4000-8000-000000000002',
+      clientId: 'a0000000-0000-4000-8000-000000000001',
+      name: 'Sneha Kulkarni',
+      title: 'Talent Acquisition Partner',
+      email: 'sneha.kulkarni@meridian.example',
+      phone: '',
+      isPrimary: false,
+      decisionMaker: false,
+      notes: 'Coordinates scheduling and paperwork.',
+      created: dateAgo(150),
+    },
+    {
+      id: 'b0000000-0000-4000-8000-000000000003',
+      clientId: 'a0000000-0000-4000-8000-000000000002',
+      name: 'Vikram Desai',
+      title: 'CISO',
+      email: 'vikram.desai@northstar.example',
+      phone: '',
+      isPrimary: true,
+      decisionMaker: true,
+      notes: '',
+      created: dateAgo(158),
+    },
+  ];
+
   return {
     candidates,
     demands,
@@ -982,5 +1180,11 @@ export function makeSeed() {
     submissions,
     publicApplications,
     workflowRules,
+    clients,
+    clientContacts,
+    departments,
+    skills,
+    personSkills,
+    skillEvidence,
   };
 }

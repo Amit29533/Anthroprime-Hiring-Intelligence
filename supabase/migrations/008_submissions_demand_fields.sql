@@ -15,7 +15,7 @@ create table if not exists public.submissions (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists submissions_demand on public.submissions(workspace_id,"demandId");
 
@@ -23,9 +23,13 @@ alter table public.submissions enable row level security;
 revoke all on public.submissions from anon;
 revoke delete on public.submissions from authenticated;
 grant select,insert,update on public.submissions to authenticated;
+drop policy if exists submissions_read on public.submissions;
 create policy submissions_read on public.submissions for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists submissions_insert on public.submissions;
 create policy submissions_insert on public.submissions for insert to authenticated with check (public.can_edit_workspace(workspace_id));
+drop policy if exists submissions_update on public.submissions;
 create policy submissions_update on public.submissions for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id));
+drop trigger if exists track_change on public.submissions;
 create trigger track_change after insert or update on public.submissions for each row execute function public.record_change();
 
 -- Re-publish the sync RPC so submissions travel with the same updated_since feed.

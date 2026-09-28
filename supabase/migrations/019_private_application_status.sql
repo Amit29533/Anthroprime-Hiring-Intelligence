@@ -43,7 +43,7 @@ grant execute on function public.api_public_application_status(uuid, text, uuid)
 -- The apply RPC returns a separate high-entropy code; the application id itself is not used as
 -- a public status credential. Existing direct callers must adopt the JSON response shape.
 drop function if exists public.api_public_apply(uuid, jsonb);
-create function public.api_public_apply(ws uuid, payload jsonb)
+create or replace function public.api_public_apply(ws uuid, payload jsonb)
 returns jsonb
 language plpgsql
 security definer

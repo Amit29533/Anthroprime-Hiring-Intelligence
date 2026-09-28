@@ -27,6 +27,7 @@ import {
   submitVia,
   allText,
   withWindow,
+  pressPrefixed,
 } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { validateCandidate, MAX_EXPERIENCE_YEARS, MAX_NOTICE_DAYS } from '../src/domain.js';
@@ -227,7 +228,7 @@ test('one ceiling governs the form, the validator and the CSV importer', async (
 test('saving a view persists the search, filters and sort', async () => {
   await boot();
   await navTo('Candidates');
-  await change(screen.getByLabelText('Search your repository'), 'databricks');
+  await change(screen.getByLabelText('Search your workspace'), 'databricks');
   await settle();
   await withWindow(
     'prompt',
@@ -277,8 +278,11 @@ test('bulk readiness updates every selected profile', async () => {
   await click(boxes[2]);
   await settle();
   assert.ok(screen.getByText('2 selected'), 'the bulk bar reports the selection');
-  await choose('Bulk set readiness', 'Ready');
-  await press('Apply status');
+  // Bulk actions are now two-step: choose, preview what will change, then commit.
+  await choose('Bulk action', 'status');
+  await choose('Bulk value', 'Ready');
+  await press('Preview');
+  await pressPrefixed('Apply to');
   await settle(3);
   assert.ok(
     store().candidates.filter((c) => c.status === 'Ready').length >= 2,

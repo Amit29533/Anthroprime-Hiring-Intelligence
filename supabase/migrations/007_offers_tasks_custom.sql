@@ -15,7 +15,7 @@ create table if not exists public.offers (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists offers_person on public.offers(workspace_id,"candidateId");
 
@@ -27,7 +27,7 @@ create table if not exists public.tasks (
  created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists tasks_due on public.tasks(workspace_id,due);
 
@@ -46,9 +46,13 @@ do $$
 declare t text;
 begin
  foreach t in array array['offers','tasks'] loop
+  execute format('drop policy if exists %I on public.%I',t||'_read',t);
   execute format('create policy %I on public.%I for select to authenticated using (workspace_id=public.current_workspace())',t||'_read',t);
+  execute format('drop policy if exists %I on public.%I',t||'_insert',t);
   execute format('create policy %I on public.%I for insert to authenticated with check (public.can_edit_workspace(workspace_id))',t||'_insert',t);
+  execute format('drop policy if exists %I on public.%I',t||'_update',t);
   execute format('create policy %I on public.%I for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id))',t||'_update',t);
+  execute format('drop trigger if exists track_change on public.%I',t);
   execute format('create trigger track_change after insert or update on public.%I for each row execute function public.record_change()',t);
  end loop;
 end $$;

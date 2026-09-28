@@ -1,11 +1,11 @@
 -- ECOD initial schema. Apply once to a NEW Supabase project using SQL Editor.
 -- No anonymous access. Workspace membership is provisioned by an administrator.
 begin;
-create table public.workspaces (
+create table if not exists public.workspaces (
  id uuid primary key default gen_random_uuid(), name text not null,
  created_at timestamptz not null default now()
 );
-create table public.memberships (
+create table if not exists public.memberships (
  user_id uuid primary key references auth.users(id) on delete cascade,
  workspace_id uuid not null references public.workspaces(id),
  role text not null check(role in ('admin','recruiter','viewer')) default 'recruiter'
@@ -24,13 +24,15 @@ $$;
 revoke all on function public.current_workspace() from public, anon;
 revoke all on function public.can_edit_workspace(uuid) from public, anon;
 grant execute on function public.current_workspace(), public.can_edit_workspace(uuid) to authenticated;
+drop policy if exists workspace_read on public.workspaces;
 create policy workspace_read on public.workspaces for select to authenticated using(id=public.current_workspace());
+drop policy if exists membership_self_read on public.memberships;
 create policy membership_self_read on public.memberships for select to authenticated using(user_id=auth.uid());
 grant select on public.workspaces,public.memberships to authenticated;
 revoke all on public.workspaces,public.memberships from anon;
 revoke insert,update,delete on public.workspaces,public.memberships from authenticated;
 
-create table public.candidates (
+create table if not exists public.candidates (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  name text not null check(length(trim(name))>0), email text not null default '', phone text not null default '',
@@ -46,17 +48,17 @@ create table public.candidates (
  check("relevantExperience" is null or experience is null or "relevantExperience"<=experience),
  unique(workspace_id,id)
 );
-create unique index candidates_email_unique on public.candidates(workspace_id,lower(trim(email))) where trim(email)<>'';
-create unique index candidates_phone_unique on public.candidates(workspace_id,ltrim(regexp_replace(phone,'[^0-9]','','g'),'0')) where regexp_replace(phone,'[^0-9]','','g')<>'';
-create index candidates_skills on public.candidates using gin(skills);
-create index candidates_workspace on public.candidates(workspace_id);
+create unique index if not exists candidates_email_unique on public.candidates(workspace_id,lower(trim(email))) where trim(email)<>'';
+create unique index if not exists candidates_phone_unique on public.candidates(workspace_id,ltrim(regexp_replace(phone,'[^0-9]','','g'),'0')) where regexp_replace(phone,'[^0-9]','','g')<>'';
+create index if not exists candidates_skills on public.candidates using gin(skills);
+create index if not exists candidates_workspace on public.candidates(workspace_id);
 
-create function public.valid_weights(w jsonb) returns boolean language sql immutable set search_path='' as $$
+create or replace function public.valid_weights(w jsonb) returns boolean language sql immutable set search_path='' as $$
  select jsonb_typeof(w)='object'
  and (select count(*)=6 and sum(value::numeric)=100 and min(value::numeric)>=0 and max(value::numeric)<=100 from jsonb_each_text(w))
  and w ?& array['skills','experience','readiness','availability','budget','location']
 $$;
-create table public.demands (
+create table if not exists public.demands (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  title text not null check(length(trim(title))>0), client text not null check(length(trim(client))>0),
@@ -69,7 +71,7 @@ create table public.demands (
  target date not null, description text not null default '', created date not null default current_date,
  weights jsonb not null check(public.valid_weights(weights)), unique(workspace_id,id)
 );
-create table public.considerations (
+create table if not exists public.considerations (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  "candidateId" uuid not null, "demandId" uuid not null,
@@ -80,7 +82,7 @@ create table public.considerations (
  foreign key(workspace_id,"demandId") references public.demands(workspace_id,id),
  check(stage not in ('Rejected','Withdrawn') or length(trim(reason))>0)
 );
-create table public.assessments (
+create table if not exists public.assessments (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  "candidateId" uuid not null, "demandId" uuid,
@@ -90,7 +92,7 @@ create table public.assessments (
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id),
  foreign key(workspace_id,"demandId") references public.demands(workspace_id,id)
 );
-create table public.notes (
+create table if not exists public.notes (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  "candidateId" uuid not null, text text not null check(length(trim(text))>0),
@@ -98,7 +100,7 @@ create table public.notes (
  author text not null default '',
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id)
 );
-create table public.enrichment (
+create table if not exists public.enrichment (
  id uuid primary key default gen_random_uuid(),
  workspace_id uuid not null default public.current_workspace() references public.workspaces(id),
  "candidateId" uuid not null, title text not null, description text not null,
@@ -107,13 +109,13 @@ create table public.enrichment (
  created date not null default current_date,
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id)
 );
-create table public.history (
+create table if not exists public.history (
  id uuid primary key default gen_random_uuid(), workspace_id uuid not null references public.workspaces(id),
  "entityId" uuid not null, "entityType" text not null, action text not null,
  date timestamptz not null default now(), actor text not null, snapshot jsonb
 );
-create index history_entity on public.history(workspace_id,"entityId",date desc);
-create function public.record_change() returns trigger
+create index if not exists history_entity on public.history(workspace_id,"entityId",date desc);
+create or replace function public.record_change() returns trigger
 language plpgsql security definer set search_path='' as $$
 begin
  insert into public.history(workspace_id,"entityId","entityType",action,actor,snapshot)
@@ -131,9 +133,13 @@ begin
   execute format('revoke all on public.%I from anon',table_name);
   execute format('revoke delete on public.%I from authenticated',table_name);
   execute format('grant select,insert,update on public.%I to authenticated',table_name);
+  execute format('drop policy if exists workspace_read on public.%I',table_name);
   execute format('create policy workspace_read on public.%I for select to authenticated using (workspace_id=public.current_workspace())',table_name);
+  execute format('drop policy if exists workspace_insert on public.%I',table_name);
   execute format('create policy workspace_insert on public.%I for insert to authenticated with check (public.can_edit_workspace(workspace_id))',table_name);
+  execute format('drop policy if exists workspace_update on public.%I',table_name);
   execute format('create policy workspace_update on public.%I for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id))',table_name);
+  execute format('drop trigger if exists track_change on public.%I',table_name);
   execute format('create trigger track_change after insert or update on public.%I for each row execute function public.record_change()',table_name);
  end loop;
 end $$;
@@ -141,5 +147,6 @@ alter table public.history enable row level security;
 revoke all on public.history from anon;
 revoke insert,update,delete on public.history from authenticated;
 grant select on public.history to authenticated;
+drop policy if exists history_read on public.history;
 create policy history_read on public.history for select to authenticated using(workspace_id=public.current_workspace());
 commit;

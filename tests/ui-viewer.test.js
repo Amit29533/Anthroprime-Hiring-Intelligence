@@ -40,7 +40,7 @@ test('viewer can inspect the dashboard and repository but cannot start mutations
   assert.equal(screen.queryByRole('button', { name: 'Create demand' }), null);
   assert.equal(screen.queryByRole('button', { name: /Find matching talent/ }), null);
   assert.equal(screen.queryByRole('button', { name: /Import candidates/ }), null);
-  assert.equal(document.querySelector('[aria-label^="Complete follow-up"]'), null);
+  assert.equal(document.querySelector('[aria-label^="Complete follow-up"]') === null, true);
   cleanup();
 
   await mount(M.Candidates, {

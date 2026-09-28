@@ -22,6 +22,7 @@ import {
   Avatar,
 } from './ui.jsx';
 import { uid, today, money } from './domain.js';
+import { InterviewCalendar, SlotPublisher } from './Calendar.jsx';
 import {
   ROUNDS,
   MODES,
@@ -373,7 +374,8 @@ function InviteLink({ iv, candidate, demand, settings, notify }) {
 
 export function Interviews({ data, onSave, onOpen, busy, notify, audit }) {
   const viewer = !canWriteForRole(getRole());
-  const [modal, setModal] = useState(null); // {type:'schedule'|'feedback'|'offer', ...}
+  const [modal, setModal] = useState(null); // {type:'schedule'|'feedback'|'offer'|'slots', ...}
+  const [view, setView] = useState('list');
   const ivs = [...data.interviews].sort(
     (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt),
   );
@@ -530,6 +532,22 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit }) {
         title="Interviews & offers"
         description="Schedule panels, keep outcomes structured and comparable, keep the feedback bar honest, and track offers to acceptance."
       >
+        <div className="view-toggle" role="group" aria-label="Interview view">
+          <button
+            className={view === 'list' ? 'active' : ''}
+            onClick={() => setView('list')}
+            aria-pressed={view === 'list'}
+          >
+            List
+          </button>
+          <button
+            className={view === 'calendar' ? 'active' : ''}
+            onClick={() => setView('calendar')}
+            aria-pressed={view === 'calendar'}
+          >
+            Week
+          </button>
+        </div>
         {!viewer && (
           <Button icon={Plus} onClick={() => setModal({ type: 'schedule' })}>
             Schedule interview
@@ -574,85 +592,108 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit }) {
           </label>
         )}
       </PageHeader>
-      <div className="stats-grid">
-        <Stat
-          label="Upcoming"
-          value={stats.upcoming}
-          detail="Scheduled interviews ahead of the panel"
-          icon={Clock}
+      {view === 'calendar' ? (
+        <InterviewCalendar
+          data={data}
+          onOpenCandidate={onOpen}
+          onPublish={viewer ? null : () => setModal({ type: 'slots' })}
         />
-        <Stat
-          label="Completed"
-          value={stats.completed}
-          detail={`${stats.recommended} recommended (${stats.recommendRate == null ? '—' : stats.recommendRate + '%'})`}
-          icon={CheckCircle2}
-        />
-        <Stat
-          label="Average rating"
-          value={stats.avgOverall ?? '—'}
-          detail={`${stats.aboveBar} above the feedback bar`}
-          icon={CalendarClock}
-        />
-        <Stat
-          label="Cancelled / no-show"
-          value={stats.cancelled + stats.noShow}
-          detail={`${stats.cancelled} cancelled · ${stats.noShow} no-shows`}
-          icon={XCircle}
-        />
-        <Stat
-          label="Open offers"
-          value={offers.open}
-          detail={`${offers.sent} awaiting response · ${offers.drafts} drafts`}
-          icon={CalendarClock}
-        />
-        <Stat
-          label="Accepted offers"
-          value={offers.accepted}
-          detail={
-            offers.acceptRate == null ? 'No decisions yet' : offers.acceptRate + '% acceptance rate'
-          }
-          icon={CheckCircle2}
-        />
-      </div>
-      <section className="panel">
-        <PanelHeading
-          title="Upcoming interviews"
-          subtitle="The next panels on the calendar, with invite drafts and outcome capture ready"
-        />
-        <div className="iv-list">
-          {upcoming.map((iv) => row(iv, true))}
-          {!upcoming.length && (
-            <Empty
-              title="Nothing scheduled"
-              text="Schedule an interview to see it here with invite drafts and outcome actions."
+      ) : (
+        <>
+          <div className="stats-grid">
+            <Stat
+              label="Upcoming"
+              value={stats.upcoming}
+              detail="Scheduled interviews ahead of the panel"
+              icon={Clock}
             />
-          )}
-        </div>
-      </section>
-      <section className="panel">
-        <PanelHeading
-          title="Past interviews"
-          subtitle="Completed, cancelled and no-show interviews with recorded feedback"
-        />
-        <div className="iv-list">
-          {past.map((iv) => row(iv, false))}
-          {!past.length && (
-            <Empty
-              title="No history yet"
-              text="Completed interviews and their feedback will appear here."
+            <Stat
+              label="Completed"
+              value={stats.completed}
+              detail={`${stats.recommended} recommended (${stats.recommendRate == null ? '—' : stats.recommendRate + '%'})`}
+              icon={CheckCircle2}
             />
-          )}
-        </div>
-      </section>
-      <OffersSection
-        data={data}
-        onSave={onSave}
-        onOpen={onOpen}
-        busy={busy}
-        notify={notify}
-        audit={audit}
-        openModal={setModal}
-      />
+            <Stat
+              label="Average rating"
+              value={stats.avgOverall ?? '—'}
+              detail={`${stats.aboveBar} above the feedback bar`}
+              icon={CalendarClock}
+            />
+            <Stat
+              label="Cancelled / no-show"
+              value={stats.cancelled + stats.noShow}
+              detail={`${stats.cancelled} cancelled · ${stats.noShow} no-shows`}
+              icon={XCircle}
+            />
+            <Stat
+              label="Open offers"
+              value={offers.open}
+              detail={`${offers.sent} awaiting response · ${offers.drafts} drafts`}
+              icon={CalendarClock}
+            />
+            <Stat
+              label="Accepted offers"
+              value={offers.accepted}
+              detail={
+                offers.acceptRate == null
+                  ? 'No decisions yet'
+                  : offers.acceptRate + '% acceptance rate'
+              }
+              icon={CheckCircle2}
+            />
+          </div>
+          <section className="panel">
+            <PanelHeading
+              title="Upcoming interviews"
+              subtitle="The next panels on the calendar, with invite drafts and outcome capture ready"
+            />
+            <div className="iv-list">
+              {upcoming.map((iv) => row(iv, true))}
+              {!upcoming.length && (
+                <Empty
+                  title="Nothing scheduled"
+                  text="Schedule an interview to see it here with invite drafts and outcome actions."
+                />
+              )}
+            </div>
+          </section>
+          <section className="panel">
+            <PanelHeading
+              title="Past interviews"
+              subtitle="Completed, cancelled and no-show interviews with recorded feedback"
+            />
+            <div className="iv-list">
+              {past.map((iv) => row(iv, false))}
+              {!past.length && (
+                <Empty
+                  title="No history yet"
+                  text="Completed interviews and their feedback will appear here."
+                />
+              )}
+            </div>
+          </section>
+          <OffersSection
+            data={data}
+            onSave={onSave}
+            onOpen={onOpen}
+            busy={busy}
+            notify={notify}
+            audit={audit}
+            openModal={setModal}
+          />
+        </>
+      )}
+      {modal?.type === 'slots' && !viewer && (
+        <SlotPublisher
+          data={data}
+          candidateId={modal.candidateId}
+          demandId={modal.demandId}
+          onClose={() => setModal(null)}
+          onSave={onSave}
+          notify={notify}
+          busy={busy}
+        />
+      )}
       {modal?.type === 'schedule' && !viewer && (
         <ScheduleModal
           onClose={() => setModal(null)}

@@ -7,9 +7,9 @@ import {
   Layers,
   ClipboardCheck,
   ChartNoAxesCombined,
+  Handshake,
+  FileBarChart,
   Settings,
-  Search,
-  Bell,
   ChevronDown,
   Menu,
   X,
@@ -17,10 +17,12 @@ import {
   ShieldCheck,
   LoaderCircle,
   CalendarClock,
+  Building2,
 } from 'lucide-react';
 import {
   loadData,
   saveRows,
+  deleteRows,
   cloud,
   getSupabase,
   getRole,
@@ -49,16 +51,26 @@ import {
   DispositionModal,
 } from './Workflows.jsx';
 import { Interviews } from './Interviews.jsx';
+import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
+import { DepartmentForm } from './Requisitions.jsx';
+import { Reports } from './Reports.jsx';
+import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
+import { GlobalSearch, NotificationBell } from './Topbar.jsx';
+import { AssignmentRuleForm } from './Assignment.jsx';
+import { applyAssignment } from './assignment.js';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
   ['Demands', BriefcaseBusiness],
+  ['Clients', Building2],
   ['Pipeline', Columns3],
   ['Talent pools', Layers],
   ['Assessments', ClipboardCheck],
   ['Interviews', CalendarClock],
   ['Activities', Activity],
+  ['Referrals', Handshake],
   ['Analytics', ChartNoAxesCombined],
+  ['Reports', FileBarChart],
 ];
 export default function App() {
   const [data, setData] = useState(emptyData()),
@@ -72,6 +84,7 @@ export default function App() {
     [personId, setPersonId] = useState(null),
     [personTab, setPersonTab] = useState('Overview'),
     [demandId, setDemandId] = useState(null),
+    [clientId, setClientId] = useState(null),
     [pipelineDemand, setPipelineDemand] = useState(null),
     [candidateFilter, setCandidateFilter] = useState(null),
     [busy, setBusy] = useState(false),
@@ -98,6 +111,7 @@ export default function App() {
         setPersonId(null);
         setPersonTab('Overview');
         setDemandId(null);
+        setClientId(null);
         setPipelineDemand(null);
         setCandidateFilter(null);
         setModal(null);
@@ -193,8 +207,15 @@ export default function App() {
     setMobile(false);
     setPersonId(null);
     setDemandId(null);
+    setClientId(null);
     setCandidateFilter(filter);
     if (p !== 'Candidates') setQuery('');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+  const openClient = (id) => {
+    setPage('Clients');
+    setClientId(id);
+    setMobile(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const openDemand = (id) => {
@@ -204,6 +225,37 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const automating = useRef(false);
+  async function remove(table, ids) {
+    if (cloud && !canWriteForRole(getRole())) {
+      setToast('Your workspace role is view-only. Ask an administrator to change your access.');
+      return false;
+    }
+    setBusy(true);
+    try {
+      const next = await deleteRows(table, ids, dataRef.current);
+      dataRef.current = next;
+      setData(next);
+      return true;
+    } catch (e) {
+      setToast(e.message || 'That could not be deleted.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Take a global-search result to wherever that record lives. */
+  function openSearchResult(result) {
+    if (result.type === 'candidate') return setPersonId(result.id);
+    if (result.type === 'note') return setPersonId(result.parentId);
+    if (result.type === 'demand') return openDemand(result.id);
+    if (result.type === 'client') return openClient(result.id);
+    if (result.type === 'contact') return openClient(result.parentId);
+    if (result.type === 'referral') return navigate('Referrals');
+    if (result.type === 'skill') return navigate('Settings');
+    return undefined;
+  }
+
   async function save(table, rows) {
     if (cloud && !canWriteForRole(getRole())) {
       setToast('Your workspace role is view-only. Ask an administrator to change your access.');
@@ -213,6 +265,24 @@ export default function App() {
     saving.current = true;
     setBusy(true);
     const before = rows.map((r) => dataRef.current[table].find((x) => x.id === r.id) || null);
+    // Assignment rules (Phase D) fill an empty owner as a record is created. They only ever act
+    // on rows that are genuinely new and genuinely unowned, so an existing owner is never moved.
+    let assignedBy = '';
+    if (table === 'candidates' || table === 'demands') {
+      const fresh = rows.filter((r, i) => !before[i]);
+      const assigned = applyAssignment(dataRef.current, table, fresh);
+      if (assigned.length) {
+        assignedBy = assigned[0]._rule;
+        rows = rows.map((r) => {
+          const hit = assigned.find((a) => a.id === r.id);
+          if (!hit) return r;
+          // `_rule` is annotation for the toast, not a column — strip it before saving.
+          const row = { ...hit };
+          delete row._rule;
+          return row;
+        });
+      }
+    }
     let ok = false;
     try {
       const result = await saveRows(table, rows, dataRef.current);
@@ -226,7 +296,13 @@ export default function App() {
       };
       dataRef.current = next;
       setData(next);
-      setToast(rows.length > 1 ? `${rows.length} records saved.` : 'Saved to your repository.');
+      setToast(
+        assignedBy
+          ? `Saved and assigned by “${assignedBy}”.`
+          : rows.length > 1
+            ? `${rows.length} records saved.`
+            : 'Saved to your repository.',
+      );
       ok = true;
     } catch (e) {
       let message = e.message;
@@ -379,7 +455,8 @@ export default function App() {
     importCandidates = () => setModal({ type: 'import' }),
     newAssessment = (candidateId) => setModal({ type: 'assessment', candidateId });
   const person = data.candidates.find((c) => c.id === personId),
-    demand = data.demands.find((d) => d.id === demandId);
+    demand = data.demands.find((d) => d.id === demandId),
+    client = (data.clients || []).find((c) => c.id === clientId);
   const userName = cloud
     ? session?.user?.user_metadata?.full_name ||
       session?.user?.email?.split('@')[0] ||
@@ -405,6 +482,7 @@ export default function App() {
         onAdd={addCandidate}
         onImport={importCandidates}
         onComplete={(n) => save('notes', [{ ...n, completed: true }])}
+        user={{ name: userName, email: session?.user?.email || '' }}
       />
     );
   else if (page === 'Candidates')
@@ -421,6 +499,7 @@ export default function App() {
         notify={setToast}
         audit={audit}
         onSave={save}
+        busy={busy}
       />
     );
   else if (page === 'Demands')
@@ -441,9 +520,33 @@ export default function App() {
         onSave={save}
         busy={busy}
         audit={audit}
+        onOpenClient={openClient}
+        notify={setToast}
       />
     ) : (
       <Demands data={data} onNew={newDemand} onOpen={openDemand} />
+    );
+  else if (page === 'Clients')
+    content = client ? (
+      <ClientDetail
+        key={client.id}
+        client={client}
+        data={data}
+        onBack={() => setClientId(null)}
+        onEdit={(c) => setModal({ type: 'client', client: c })}
+        onAddContact={(id) => setModal({ type: 'contact', clientId: id })}
+        onEditContact={(c) => setModal({ type: 'contact', contact: c, clientId: c.clientId })}
+        onOpenDemand={openDemand}
+        onOpenCandidate={setPersonId}
+      />
+    ) : (
+      <Clients
+        data={data}
+        onNew={() => setModal({ type: 'client' })}
+        onOpen={setClientId}
+        onSave={save}
+        busy={busy}
+      />
     );
   else if (page === 'Pipeline')
     content = (
@@ -492,6 +595,28 @@ export default function App() {
       />
     );
   else if (page === 'Analytics') content = <Analytics data={data} navigate={navigate} />;
+  else if (page === 'Referrals')
+    content = (
+      <Referrals
+        data={data}
+        onNew={() => setModal({ type: 'referral' })}
+        onEdit={(referral) => setModal({ type: 'referral', referral })}
+        onConvert={(referral) => setModal({ type: 'convertReferral', referral })}
+        onOpenCandidate={setPersonId}
+        busy={busy}
+      />
+    );
+  else if (page === 'Reports')
+    content = (
+      <Reports
+        data={data}
+        onSave={save}
+        onDelete={remove}
+        notify={setToast}
+        audit={audit}
+        busy={busy}
+      />
+    );
   else
     content = (
       <WorkspaceSettings
@@ -501,6 +626,8 @@ export default function App() {
         notify={setToast}
         audit={audit}
         onSave={save}
+        onDelete={remove}
+        onModal={setModal}
       />
     );
   return (
@@ -556,6 +683,7 @@ export default function App() {
               {name === 'Demands' && (
                 <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
               )}
+              {name === 'Clients' && <b>{(data.clients || []).length}</b>}
             </button>
           ))}
         </nav>
@@ -598,30 +726,22 @@ export default function App() {
             <strong>{page}</strong>
           </div>
           <div className="topbar-actions">
-            <form
-              className="global-search"
-              onSubmit={(e) => {
-                e.preventDefault();
-                navigate('Candidates');
-              }}
-            >
-              <Search size={16} />
-              <input
-                aria-label="Search your repository"
-                placeholder="Search your repository"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <kbd>↵</kbd>
-            </form>
+            <GlobalSearch
+              data={data}
+              isAdmin={getRole() === 'admin'}
+              query={query}
+              setQuery={setQuery}
+              onOpen={openSearchResult}
+            />
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? 'Team workspace' : 'Demo workspace'}
             </button>
-            <IconButton
-              icon={Bell}
-              label="View follow-ups"
-              onClick={() => navigate('Activities')}
+            <NotificationBell
+              data={data}
+              user={{ name: userName, email: session?.user?.email || '' }}
+              isAdmin={getRole() === 'admin'}
+              navigate={navigate}
             />
             <Avatar name={userName} size="small" />
           </div>
@@ -718,6 +838,64 @@ export default function App() {
           onClose={() => setModal(null)}
           onSave={save}
           onCreated={openDemand}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'client' && (
+        <ClientForm
+          client={modal.client}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          onCreated={openClient}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'contact' && (
+        <ContactForm
+          contact={modal.contact}
+          clientId={modal.clientId}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'assignmentRule' && (
+        <AssignmentRuleForm
+          rule={modal.rule}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'referral' && (
+        <ReferralForm
+          referral={modal.referral}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'convertReferral' && (
+        <ConvertReferralModal
+          referral={modal.referral}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          audit={audit}
+          notify={setToast}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'department' && (
+        <DepartmentForm
+          department={modal.department}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
           busy={busy}
         />
       )}

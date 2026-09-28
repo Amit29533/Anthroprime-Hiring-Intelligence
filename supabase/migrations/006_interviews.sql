@@ -19,7 +19,7 @@ create table if not exists public.interviews (
  completed timestamptz, created timestamptz not null default now(),
  unique(workspace_id,id),
  foreign key(workspace_id,"candidateId") references public.candidates(workspace_id,id) on delete cascade,
- foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null
+ foreign key(workspace_id,"demandId") references public.demands(workspace_id,id) on delete set null ("demandId")
 );
 create index if not exists interviews_when on public.interviews(workspace_id,"scheduledAt");
 
@@ -27,9 +27,13 @@ alter table public.interviews enable row level security;
 revoke all on public.interviews from anon;
 revoke delete on public.interviews from authenticated;
 grant select,insert,update on public.interviews to authenticated;
+drop policy if exists interviews_read on public.interviews;
 create policy interviews_read on public.interviews for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists interviews_insert on public.interviews;
 create policy interviews_insert on public.interviews for insert to authenticated with check (public.can_edit_workspace(workspace_id));
+drop policy if exists interviews_update on public.interviews;
 create policy interviews_update on public.interviews for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id));
+drop trigger if exists track_change on public.interviews;
 create trigger track_change after insert or update on public.interviews for each row execute function public.record_change();
 
 -- Re-publish the sync RPC so interviews travel with the same updated_since feed.

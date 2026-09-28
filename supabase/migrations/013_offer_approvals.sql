@@ -38,6 +38,7 @@ end;
 $$;
 
 drop trigger if exists offers_approval_gate on public.offers;
+drop trigger if exists offers_approval_gate on public.offers;
 create trigger offers_approval_gate
   before insert or update on public.offers
   for each row execute function public.offers_approval_gate();

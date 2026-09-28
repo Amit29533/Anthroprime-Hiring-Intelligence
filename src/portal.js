@@ -1,8 +1,52 @@
-import { MAX_NOTICE_DAYS } from './domain.js';
+import { uid, MAX_NOTICE_DAYS } from './domain.js';
 
 // Batch 11 — candidate portal core (pure, unit-tested). The projection is deliberately
 // curated: applications, interviews, offers and consents only — never internal notes,
 // owner/source metadata or the internal current-CTC figure.
+/** Slots a candidate may still choose from: theirs, open, and in the future. */
+export const bookableSlots = (candidateId, data, now = Date.now()) =>
+  (data?.interviewSlots || [])
+    .filter(
+      (s) =>
+        s.candidateId === candidateId &&
+        s.status === 'Open' &&
+        new Date(s.startsAt).getTime() > now,
+    )
+    .sort((a, b) => String(a.startsAt).localeCompare(String(b.startsAt)));
+
+/**
+ * The rows a booking writes, mirroring `api_portal_book_slot` so demo mode behaves like cloud.
+ * Returns `{ error }` when the slot is no longer available — the same single message the RPC
+ * uses, so a candidate cannot tell "taken" from "not yours".
+ */
+export function bookSlotRows(candidateId, slotId, data, now = Date.now()) {
+  const slot = bookableSlots(candidateId, data, now).find((s) => s.id === slotId);
+  if (!slot) return { error: 'that time is no longer available' };
+  const interviewId = uid();
+  return {
+    interview: {
+      id: interviewId,
+      candidateId,
+      demandId: slot.demandId || null,
+      round: slot.round,
+      mode: slot.mode,
+      scheduledAt: slot.startsAt,
+      durationMins: slot.durationMins,
+      status: 'Scheduled',
+      interviewers: slot.interviewer ? [slot.interviewer] : [],
+      notes: 'Booked by the candidate from the portal',
+      created: new Date(now).toISOString(),
+    },
+    // Choosing one time withdraws the other offers for that round, exactly as the RPC does.
+    slots: [
+      { ...slot, status: 'Booked', bookedAt: new Date(now).toISOString(), interviewId },
+      ...bookableSlots(candidateId, data, now)
+        .filter((s) => s.id !== slotId && s.round === slot.round)
+        .map((s) => ({ ...s, status: 'Cancelled' })),
+    ],
+  };
+}
+
 export function portalOverview(c, data) {
   return {
     profile: {
@@ -22,6 +66,7 @@ export function portalOverview(c, data) {
       skillsDetail: c.skillsDetail || [],
       summary: c.summary || '',
     },
+    slots: bookableSlots(c.id, data),
     applications: (data.considerations || [])
       .filter((k) => k.candidateId === c.id)
       .map((k) => {

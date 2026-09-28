@@ -143,3 +143,91 @@ ignored by the `where` clause.
 
 Write endpoints beyond the public apply, per-table REST resources, and cursor-based
 pagination. The RPCs above are the stable contract those will wrap.
+
+## Client accounts (migration 020)
+
+`api_changes_since` and `api_changes_page` both carry two additional tables:
+
+| Table            | Key fields                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `clients`        | `id`, `name`, `industry`, `location`, `website`, `owner`, `status`, `tier`, `paymentTerms`, `tags`, `created`, `updated` |
+| `clientContacts` | `id`, `clientId`, `name`, `title`, `email`, `phone`, `isPrimary`, `decisionMaker`, `created`, `updated` |
+
+Two existing tables gained a nullable link column that also travels in the feed: `demands.clientId`
+and `submissions.contactId`. Both are `ON DELETE SET NULL` restricted to the link column, so
+deleting an account clears the reference without affecting the demand or submission record.
+`clients.name` is unique per workspace, case- and whitespace-insensitively, and at most one contact
+per account may have `isPrimary = true`.
+
+## Membership administration (migration 021)
+
+These RPCs are **not** part of the sync feed. They administer access and are admin-only except
+where noted. Each returns a JSON object and reports refusals as `{ "error": "..." }` rather than
+raising, so a client can surface the database's own wording.
+
+| RPC                                        | Who may call  | Returns                                                     |
+| ------------------------------------------ | ------------- | ----------------------------------------------------------- |
+| `api_workspace_members()`                  | any member    | `{ workspace, isAdmin, adminCount, members[] }` — `userId`, `email`, `role`, `isSelf` only |
+| `api_workspace_invites()`                  | admin         | pending invitations for the caller's workspace               |
+| `api_invite_member(p_email, p_role)`       | admin         | creates or updates a pending invitation; grants access at once if the address already has an account |
+| `api_revoke_invite(p_id)`                  | admin         | deletes a pending invitation                                 |
+| `api_set_member_role(p_user, p_role)`      | admin         | changes a role; refuses to demote the last administrator     |
+| `api_remove_member(p_user)`                | admin         | revokes access; refuses to remove the last administrator     |
+
+`public."workspaceInvites"` has no table grants at all — the RPCs are the only route in or out, and
+`memberships` remains unwritable from `authenticated` as it has been since migration 001. A trigger
+on `auth.users` (`claim_workspace_invite`) redeems a pending invitation at sign-up, which is why no
+service-role key is needed in the browser. Every mutation writes an `auditEvents` row with
+`entityType = 'membership'`.
+
+## Departments and requisition approval (migration 022)
+
+`departments` joins both sync RPCs as an ordinary workspace table. The `demands` projection is
+`d.*`, so these new columns travel automatically:
+
+| Column                     | Meaning                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `departmentId`             | nullable link to `departments`; `ON DELETE SET NULL` on that column only |
+| `approvalStatus`           | `Draft` \| `Pending approval` \| `Approved` \| `Rejected`               |
+| `approvedBy` / `approvedAt`| set by the database from the signed-in session — never accepted from a client |
+| `approvedTerms`            | server-generated snapshot of the terms that were approved                |
+| `approvalNote`             | reviewer's comment, or the automatic withdrawal reason                   |
+| `submittedForApprovalAt`   | when approval was requested                                              |
+
+Writes go through the ordinary `demands` table, not an RPC; the `demands_requisition_gate` trigger
+enforces the rules. Setting `approvalStatus` to `Approved` or `Rejected` as a non-admin raises
+`Only a workspace admin can approve or reject a requisition`. Publishing an unapproved role while
+`settings.custom->>'requisitionApprovals'` is true raises `This workspace requires requisition
+approval before a role can be published`.
+
+## Saved reports (migration 024)
+
+`reports` joins both sync RPCs as an ordinary workspace table.
+
+| Column        | Meaning                                                                    |
+| ------------- | -------------------------------------------------------------------------- |
+| `entity`      | which record type the report is about                                       |
+| `config`      | jsonb definition: `{ filters[], groupBy, measure, measureField, sort, limit }` |
+| `shared`      | reports are workspace-wide by default                                       |
+| `owner`       | who authored it, for attribution only — not an access control              |
+
+The table stores a **definition only**. There is no column in which a result could be cached, so
+a report always reflects the repository as it is now. Access control is not in this table: a
+report is evaluated client-side against rows the reader's own RLS already allowed them to load,
+and `src/reports.js` additionally withholds admin-only fields from non-admin readers. `owner`
+therefore grants nothing — do not treat it as a permission.
+
+## Skills model (migration 025)
+
+Three tables join both sync RPCs: `skills`, `personSkills`, `skillEvidence`.
+
+| Table           | Writable?                                                                       |
+| --------------- | --------------------------------------------------------------------------------- |
+| `skills`        | insert/update by editors; delete revoked                                          |
+| `personSkills`  | insert/update by editors; delete revoked. **Derived** — a trigger overwrites proficiency, confidence, validation, evidenceCount and lastEvidence from the evidence |
+| `skillEvidence` | **insert only.** UPDATE and DELETE are revoked from `authenticated`, like `history` |
+
+`public.skill_evidence_weight(text)` defines what each evidence type is worth (Assessment 100 →
+Self-declared 10); `src/skills.js` mirrors it and a test fails if the two drift. Writing to
+`personSkills` directly is permitted but pointless: the next evidence row recomputes it. Treat the
+evidence as the source of truth and the person-skill as a cache the database maintains.

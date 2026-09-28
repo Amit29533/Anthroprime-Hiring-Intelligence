@@ -8,6 +8,7 @@ import { BriefcaseBusiness, MapPin, Clock, Send, CheckCircle2, ShieldCheck } fro
 import { cloud, getSupabase, loadData, saveRows } from './repository.js';
 import { makeSeed } from './seed.js';
 import { normalizeData } from './schema.js';
+import { jobPostingJsonLd, jobListJsonLd, pageMeta } from './jobPosting.js';
 import './workspace.css';
 
 const WS_KEY = 'ecod-careers-workspace';
@@ -226,6 +227,142 @@ function ApplyForm({ role, onDone }) {
   );
 }
 
+/**
+ * Refer someone (Zoho D6). Most employees are not ATS users, so this is how a referral actually
+ * reaches the recruiter. The form insists the referrer confirms they have the person's
+ * permission — that is not consent in the §12 sense, only the referred person can give that,
+ * but it records who asserted it. Nothing is ever read back: the RPC is write-only.
+ */
+function ReferSomeone({ roles }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    referrerName: '',
+    referrerEmail: '',
+    refereeName: '',
+    refereeEmail: '',
+    refereePhone: '',
+    relationship: '',
+    note: '',
+    demandId: '',
+    confirmPermission: false,
+  });
+  const [state, setState] = useState({ busy: false, done: false, error: '' });
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  async function submit(e) {
+    e.preventDefault();
+    setState({ busy: true, done: false, error: '' });
+    try {
+      if (cloud) {
+        const ws =
+          new URLSearchParams(location.search).get('ws') || localStorage.getItem(WS_KEY) || '';
+        const supabase = await getSupabase();
+        const { error } = await supabase.rpc('api_public_refer', { ws, payload: form });
+        if (error) throw error;
+      } else {
+        // Demo mode writes to the same browser store the recruiter app reads.
+        const workspace = await loadData();
+        await saveRows(
+          'referrals',
+          [
+            {
+              ...form,
+              demandId: form.demandId || null,
+              id: crypto.randomUUID(),
+              status: 'New',
+              rewardStatus: 'Not eligible',
+              source: 'Careers page',
+              created: new Date().toISOString().slice(0, 10),
+            },
+          ],
+          workspace,
+        );
+      }
+      setState({ busy: false, done: true, error: '' });
+    } catch (err) {
+      setState({ busy: false, done: false, error: err.message || 'That could not be submitted.' });
+    }
+  }
+
+  if (state.done)
+    return (
+      <section className="careers-refer">
+        <h2>Thank you</h2>
+        <p>
+          Your referral has reached our recruiters. We will contact them directly — and we will not
+          tell them anything about you beyond your name.
+        </p>
+      </section>
+    );
+
+  return (
+    <section className="careers-refer">
+      <h2>Know someone who would fit?</h2>
+      {!open ? (
+        <button className="apply-btn" onClick={() => setOpen(true)}>
+          Refer someone
+        </button>
+      ) : (
+        <form onSubmit={submit}>
+          <div className="careers-form-grid">
+            <label>
+              Your name
+              <input value={form.referrerName} onChange={set('referrerName')} required />
+            </label>
+            <label>
+              Your email
+              <input type="email" value={form.referrerEmail} onChange={set('referrerEmail')} />
+            </label>
+            <label>
+              Their name
+              <input value={form.refereeName} onChange={set('refereeName')} required />
+            </label>
+            <label>
+              Their email
+              <input type="email" value={form.refereeEmail} onChange={set('refereeEmail')} />
+            </label>
+            <label>
+              Their phone
+              <input value={form.refereePhone} onChange={set('refereePhone')} />
+            </label>
+            <label>
+              How do you know them?
+              <input value={form.relationship} onChange={set('relationship')} />
+            </label>
+            <label className="careers-form-wide">
+              Role
+              <select value={form.demandId} onChange={set('demandId')}>
+                <option value="">No specific role</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="careers-form-wide">
+              Why would they be a good fit?
+              <textarea rows={2} value={form.note} onChange={set('note')} />
+            </label>
+          </div>
+          <label className="careers-consent">
+            <input
+              type="checkbox"
+              checked={form.confirmPermission}
+              onChange={(e) => setForm({ ...form, confirmPermission: e.target.checked })}
+            />
+            I have asked them, and they are happy for us to get in touch.
+          </label>
+          {state.error && <p className="form-error">{state.error}</p>}
+          <button className="apply-btn" disabled={state.busy || !form.confirmPermission}>
+            {state.busy ? 'Sending…' : 'Send referral'}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function StatusCheck() {
   const [email, setEmail] = useState('');
   const [statusCode, setStatusCode] = useState('');
@@ -333,20 +470,95 @@ function StatusCheck() {
   );
 }
 
+/** Replace (never duplicate) a managed tag in <head>, keyed by a data attribute. */
+function setHeadTag(key, tag, attrs) {
+  if (typeof document === 'undefined') return;
+  const selector = `[data-careers-seo="${key}"]`;
+  document.head.querySelectorAll(selector).forEach((node) => node.remove());
+  const el = document.createElement(tag);
+  el.setAttribute('data-careers-seo', key);
+  for (const [name, value] of Object.entries(attrs)) {
+    if (name === 'text') el.textContent = value;
+    else el.setAttribute(name, value);
+  }
+  document.head.appendChild(el);
+}
+
+/**
+ * Publish page metadata and schema.org JobPosting markup for whatever is currently on screen.
+ * A single role gets its own title, canonical URL and JobPosting; the listing gets an ItemList.
+ * This is what makes the page eligible for a Google Jobs rich result.
+ */
+export function applyCareersSeo(role, roles, options = {}) {
+  if (typeof document === 'undefined') return null;
+  const meta = pageMeta(role, options);
+  document.title = meta.title;
+  setHeadTag('description', 'meta', { name: 'description', content: meta.description });
+  setHeadTag('canonical', 'link', { rel: 'canonical', href: meta.canonical });
+  setHeadTag('robots', 'meta', { name: 'robots', content: 'index, follow' });
+  setHeadTag('og:title', 'meta', { property: 'og:title', content: meta.title });
+  setHeadTag('og:description', 'meta', { property: 'og:description', content: meta.description });
+  setHeadTag('og:type', 'meta', { property: 'og:type', content: meta.ogType });
+  setHeadTag('og:url', 'meta', { property: 'og:url', content: meta.canonical });
+  setHeadTag('twitter:card', 'meta', { name: 'twitter:card', content: 'summary' });
+
+  const json = role ? jobPostingJsonLd(role, options) : jobListJsonLd(roles, options);
+  if (json)
+    setHeadTag('jsonld', 'script', { type: 'application/ld+json', text: JSON.stringify(json) });
+  else document.head.querySelectorAll('[data-careers-seo="jsonld"]').forEach((n) => n.remove());
+  return json;
+}
+
 export function CareersApp() {
   const { loading, roles, error } = useOpenRoles();
   const [applying, setApplying] = useState(null);
+  // A deep link to one role gives that posting its own indexable URL, which is what Google Jobs
+  // wants. Without it every job would share a single listing URL.
+  const params = typeof location === 'undefined' ? null : new URLSearchParams(location.search);
+  const [focusId, setFocusId] = useState(() => params?.get('role') || '');
+  const workspace = params?.get('ws') || '';
+  const focused = focusId ? roles.find((r) => r.id === focusId) || null : null;
+  const visible = focused ? [focused] : roles;
+  const seoOptions = {
+    origin: typeof location === 'undefined' ? '' : location.origin,
+    path: typeof location === 'undefined' ? '/careers.html' : location.pathname,
+    workspace,
+  };
+
+  useEffect(() => {
+    if (loading) return;
+    applyCareersSeo(focused, roles, seoOptions);
+    // A deep link to a role that is no longer published must not leave a dead page.
+    if (focusId && !focused && roles.length) setFocusId('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, focusId, roles]);
+
+  function showRole(id) {
+    setFocusId(id);
+    if (typeof history !== 'undefined' && typeof location !== 'undefined') {
+      const next = new URLSearchParams(location.search);
+      if (id) next.set('role', id);
+      else next.delete('role');
+      history.pushState({}, '', `${location.pathname}?${next.toString()}`);
+    }
+  }
   return (
     <div className="careers-page">
       <header className="careers-hero">
         <span className="careers-brand">
           AnthroPrime<small>ECOD · TALENT INTELLIGENCE</small>
         </span>
-        <h1>Open roles</h1>
+        <h1>{focused ? focused.title : 'Open roles'}</h1>
         <p>
-          Every role below is live with our client partners. Apply directly — a recruiter reviews
-          every application, and your consent choices are recorded and respected.
+          {focused
+            ? `${focused.client} · ${focused.location} · ${focused.mode}`
+            : 'Every role below is live with our client partners. Apply directly — a recruiter reviews every application, and your consent choices are recorded and respected.'}
         </p>
+        {focused && (
+          <button className="careers-back" onClick={() => showRole('')}>
+            ← All open roles
+          </button>
+        )}
       </header>
       <main className="careers-main">
         {loading && <p className="careers-loading">Loading open roles…</p>}
@@ -355,10 +567,24 @@ export function CareersApp() {
           <p className="careers-loading">No open roles right now — check back soon.</p>
         )}
         <div className="careers-list">
-          {roles.map((r) => (
+          {visible.map((r) => (
             <section className="careers-role" key={r.id}>
               <div className="careers-role-head">
-                <h2>{r.title}</h2>
+                <h2>
+                  {focused ? (
+                    r.title
+                  ) : (
+                    <a
+                      href={`?${workspace ? `ws=${encodeURIComponent(workspace)}&` : ''}role=${r.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        showRole(r.id);
+                      }}
+                    >
+                      {r.title}
+                    </a>
+                  )}
+                </h2>
                 <button
                   className="apply-btn"
                   onClick={() => setApplying(applying === r.id ? null : r.id)}
@@ -394,6 +620,7 @@ export function CareersApp() {
           ))}
         </div>
       </main>
+      <ReferSomeone roles={roles} />
       <StatusCheck />
       <footer className="careers-footer">
         <span>AnthroPrime · ECOD Talent Intelligence</span>

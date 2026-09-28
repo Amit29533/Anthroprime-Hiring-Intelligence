@@ -133,3 +133,14 @@ export async function pressIn(row, label) {
   await settle(4);
   return btn;
 }
+
+/** Click a button whose visible text starts with `prefix` (e.g. "Apply to 3"). */
+export async function pressPrefixed(prefix) {
+  const match = [...scope().querySelectorAll('button')].find((b) =>
+    b.textContent.trim().startsWith(prefix),
+  );
+  assert.ok(match, `a button starting with "${prefix}" is on screen`);
+  await click(match);
+  await settle(4);
+  return match;
+}

@@ -28,8 +28,11 @@ alter table public."consents" enable row level security;
 revoke all on public."consents" from anon;
 revoke delete on public."consents" from authenticated;
 grant select,insert,update on public."consents" to authenticated;
+drop policy if exists consents_read on public."consents";
 create policy consents_read on public."consents" for select to authenticated using (workspace_id=public.current_workspace());
+drop policy if exists consents_write on public."consents";
 create policy consents_write on public."consents" for insert to authenticated with check (public.can_edit_workspace(workspace_id));
+drop policy if exists consents_update on public."consents";
 create policy consents_update on public."consents" for update to authenticated using (public.can_edit_workspace(workspace_id)) with check (public.can_edit_workspace(workspace_id));
 
 create or replace function public.api_changes_since(day date default current_date - 30)

@@ -5,7 +5,12 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { cloud, getSupabase, loadData, saveRows } from './repository.js';
 
-import { portalOverview, applyPortalUpdate, validatePortalPayload } from './portal.js';
+import {
+  portalOverview,
+  applyPortalUpdate,
+  validatePortalPayload,
+  bookSlotRows,
+} from './portal.js';
 import './workspace.css';
 
 const label = {
@@ -28,7 +33,7 @@ function Pill({ kind, children }) {
   return <span className={`status-pill ${kind || ''}`}>{children}</span>;
 }
 
-function Overview({ view, onSave, busy, msg }) {
+function Overview({ view, onSave, busy, msg, onBook, booking }) {
   const p = view.profile;
   const [form, setForm] = useState({
     notice: p.notice ?? '',
@@ -155,6 +160,34 @@ function Overview({ view, onSave, busy, msg }) {
           <p className="careers-loading">No applications yet.</p>
         )}
       </section>
+      {(view.slots || []).length > 0 && (
+        <section className="careers-status portal-card">
+          <h2>Choose an interview time</h2>
+          <p className="careers-publish-hint">
+            Pick whichever suits you. The other times are released as soon as you choose, so nobody
+            is left holding a slot you do not need.
+          </p>
+          <div className="status-results">
+            {view.slots.map((s) => (
+              <div key={s.id} className="status-row">
+                <strong>
+                  {new Date(s.startsAt).toLocaleString('en-IN', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </strong>
+                <span>
+                  {s.round} · {s.mode}
+                  {s.durationMins ? ` · ${s.durationMins} min` : ''}
+                </span>
+                <button className="apply-btn" disabled={booking} onClick={() => onBook(s.id)}>
+                  {booking === s.id ? 'Booking…' : 'Book this time'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {view.interviews.length > 0 && (
         <section className="careers-status portal-card">
           <h2>Your interviews</h2>
@@ -260,7 +293,8 @@ export function PortalApp() {
     [pw, setPw] = useState(''),
     [demoEmail, setDemoEmail] = useState('');
   const [msg, setMsg] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [booking, setBooking] = useState('');
   useEffect(() => {
     if (cloud) return;
     let active = true;
@@ -362,6 +396,35 @@ export function PortalApp() {
     }
     setBusy(false);
   }
+  /** Book an interview slot. Cloud goes through the atomic RPC; demo mirrors it locally. */
+  async function book(slotId) {
+    setBooking(slotId);
+    try {
+      if (cloud) {
+        const supabase = await getSupabase();
+        const { data: result, error } = await supabase.rpc('api_portal_book_slot', {
+          p_slot: slotId,
+        });
+        if (error) throw error;
+        if (result?.error) throw new Error(result.error);
+        await refresh();
+      } else {
+        if (!demoCandidate || !demoData)
+          throw new Error('Your demo session is no longer linked to a profile.');
+        const rows = bookSlotRows(demoCandidate.id, slotId, demoData);
+        if (rows.error) throw new Error(rows.error);
+        await saveRows('interviews', [rows.interview], demoData);
+        const refreshed = await loadData();
+        await saveRows('interviewSlots', rows.slots, refreshed);
+        setDemoData(await loadData());
+      }
+      setMsg('Your interview is booked. The other times have been released.');
+    } catch (e) {
+      setMsg(e.message || 'That time could not be booked.');
+    }
+    setBooking('');
+  }
+
   return (
     <div className="careers-page">
       <header className="careers-hero" style={{ padding: '40px 8vw 32px' }}>
@@ -449,7 +512,9 @@ export function PortalApp() {
           </section>
         </main>
       )}
-      {view && <Overview view={view} onSave={save} busy={busy} msg={msg} />}
+      {view && (
+        <Overview view={view} onSave={save} busy={busy} msg={msg} onBook={book} booking={booking} />
+      )}
       <footer className="careers-footer">
         <span>AnthroPrime · ECOD Talent Intelligence</span>
         <span>You can request access, correction or erasure of your data at any time.</span>

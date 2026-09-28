@@ -21,12 +21,17 @@ export function getSupabase() {
 
 let currentRole = cloud ? 'viewer' : 'admin'; // cloud access stays restrictive until membership resolves
 export const getRole = () => currentRole;
+// The workspace the signed-in account belongs to. The public careers URL needs it as ?ws=, so
+// the settings screen can show a link that actually works instead of a placeholder.
+let currentWorkspaceId = '';
+export const getWorkspaceId = () => currentWorkspaceId;
 export const canWriteForRole = (role) => role === 'admin' || role === 'recruiter';
 export const canExportForRole = canWriteForRole;
 
 // A new cloud identity must not inherit the previous account's UI permissions while loading.
 export function resetRoleForSessionChange() {
   currentRole = cloud ? 'viewer' : 'admin';
+  currentWorkspaceId = '';
 }
 export { TABLES, emptyData, normalizeData } from './schema.js';
 import { TABLES, emptyData, normalizeData } from './schema.js';
@@ -36,7 +41,10 @@ export async function loadData() {
   if (!cloud) {
     currentRole = 'admin';
     const stored = localStorage.getItem(STORAGE);
-    if (!stored) return makeSeed();
+    // Normalize the seed too. makeSeed() only produces the tables it has sample data for, so a
+    // fresh demo workspace was missing the key for any newer table (reports, referrals) and the
+    // first save to one crashed on `current[table]`.
+    if (!stored) return normalizeData(makeSeed());
     let parsed;
     try {
       parsed = JSON.parse(stored);
@@ -63,6 +71,7 @@ export async function loadData() {
   currentRole = ['admin', 'recruiter', 'viewer'].includes(membership.role)
     ? membership.role
     : 'viewer';
+  currentWorkspaceId = membership.workspace_id || '';
   await Promise.all(
     TABLES.map(async (table) => {
       let from = 0;
@@ -128,6 +137,26 @@ export async function saveRows(table, rows, current) {
   };
   localStorage.setItem(STORAGE, JSON.stringify(next));
   return { rows, history: next.history };
+}
+
+/**
+ * Delete rows. Only tables whose DELETE policy grants editors the right are permitted here —
+ * repository records are never deletable from the product, because history and audit depend on
+ * them existing. A saved report is disposable metadata, so it is.
+ */
+export const DELETABLE_TABLES = ['reports', 'assignmentRules'];
+
+export async function deleteRows(table, ids, current) {
+  if (!DELETABLE_TABLES.includes(table))
+    throw new Error(`${table} records cannot be deleted from the product.`);
+  if (cloud) {
+    const supabase = await getSupabase();
+    const { error } = await supabase.from(table).delete().in('id', ids);
+    if (error) throw error;
+  }
+  const next = { ...current, [table]: current[table].filter((r) => !ids.includes(r.id)) };
+  if (!cloud) localStorage.setItem(STORAGE, JSON.stringify(next));
+  return next;
 }
 
 // Blueprint §12 — view/export audit trail. Silent: no toast, errors swallowed by the caller.

@@ -25,6 +25,9 @@ import {
   Modal,
   Avatar,
 } from './ui.jsx';
+import { SkillEvidencePanel } from './Skills.jsx';
+import { PresentationModal } from './Presentation.jsx';
+import { BulkBar, UndoBar } from './BulkBar.jsx';
 import {
   freshness,
   money,
@@ -127,6 +130,7 @@ export function Candidates({
   notify,
   audit,
   onSave,
+  busy,
 }) {
   const settingsRow = data.settings.find((r) => r && r.id === 'workspace');
   const savedViews = settingsRow?.custom?.savedViews || [];
@@ -138,7 +142,6 @@ export function Candidates({
     }
   });
   const col = (k, label) => ({ k, label, visible: columns[k] !== false });
-  const [bulkStatus, setBulkStatus] = useState('Ready');
   const [semantic, setSemantic] = useState(false);
   const [status, setStatus] = useState(initialFilter?.status || 'All candidates'),
     [queue, setQueue] = useState(initialFilter?.queue || ''),
@@ -150,6 +153,7 @@ export function Candidates({
     [tag, setTag] = useState(''),
     [sort, setSort] = useState('name'),
     [selected, setSelected] = useState([]),
+    [bulkUndo, setBulkUndo] = useState(null),
     [page, setPage] = useState(1);
   const queueDef = queueById(queue);
   const filteredRows = useMemo(() => {
@@ -481,33 +485,24 @@ export function Candidates({
           </div>
         </div>
         {selected.length > 0 && canWriteForRole(getRole()) && (
-          <div className="bulk-bar">
-            <span>{selected.length} selected</span>
-            <select
-              aria-label="Bulk set readiness"
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value)}
-            >
-              {['Ready', 'Near-ready', 'Assessing', 'Unavailable'].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-            <Button
-              className="small"
-              onClick={async () => {
-                const updates = rows
-                  .filter((c) => selected.includes(c.id) && c.status !== bulkStatus)
-                  .map((c) => ({ ...c, status: bulkStatus }));
-                if (!updates.length) return notify('Selected candidates already have that status.');
-                if (await onSave('candidates', updates))
-                  notify(
-                    `${updates.length} profile${updates.length === 1 ? '' : 's'} set to ${bulkStatus}.`,
-                  );
-              }}
-            >
-              Apply status
-            </Button>
-          </div>
+          <BulkBar
+            data={data}
+            selected={selected}
+            onSave={onSave}
+            notify={notify}
+            busy={busy}
+            onClear={() => setSelected([])}
+            onUndoReady={setBulkUndo}
+          />
+        )}
+        {selected.length === 0 && bulkUndo && (
+          <UndoBar
+            undo={bulkUndo}
+            onSave={onSave}
+            notify={notify}
+            busy={busy}
+            onDismiss={() => setBulkUndo(null)}
+          />
         )}
         {parsed && parsed.used && (
           <div className="sem-chips">
@@ -709,7 +704,10 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
       email: form.email.trim().toLowerCase(),
       skills: skillList(skills),
       created: form.created || today(),
-      owner: form.owner || 'Recruiter',
+      // Deliberately left empty rather than defaulted to a placeholder like "Recruiter". A
+      // fake owner makes "assigned to me" meaningless and stops assignment rules from ever
+      // firing, because a rule only fills an owner that is genuinely absent.
+      owner: form.owner || '',
     };
     for (const k of ['experience', 'relevantExperience', 'notice', 'current', 'expected'])
       c[k] = form[k] === '' || form[k] == null ? null : Number(form[k]);
@@ -970,7 +968,8 @@ export function CandidateProfile({
     [followUp, setFollowUp] = useState(''),
     [channel, setChannel] = useState('Note'),
     [demand, setDemand] = useState(data.demands.find((d) => d.status === 'Open')?.id || ''),
-    [offerOpen, setOfferOpen] = useState(false);
+    [offerOpen, setOfferOpen] = useState(false),
+    [presentationOpen, setPresentationOpen] = useState(false);
   useEffect(() => {
     onTabChange && onTabChange(tab);
   }, [tab, onTabChange]);
@@ -1069,6 +1068,13 @@ export function CandidateProfile({
               </a>
               <button className="button secondary" onClick={() => setLetterOpen(true)}>
                 Generate letter
+              </button>
+              <button
+                className="button secondary"
+                title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
+                onClick={() => setPresentationOpen(true)}
+              >
+                Client-ready profile
               </button>
               <button
                 className="button secondary"
@@ -1252,6 +1258,13 @@ export function CandidateProfile({
                   </Button>
                 )}
               </div>
+              <SkillEvidencePanel
+                candidate={c}
+                data={data}
+                onSave={onSave}
+                notify={notify}
+                busy={busy}
+              />
               <SkillsEditor candidate={c} onSave={onSave} busy={busy} readOnly={viewer} />
               <DomainSkills c={c} />
               <p className="supporting-text">
@@ -1494,6 +1507,16 @@ export function CandidateProfile({
           c={c}
           data={data}
           onClose={() => setLetterOpen(false)}
+          audit={audit}
+          notify={notify}
+        />
+      )}
+      {presentationOpen && !viewer && (
+        <PresentationModal
+          candidate={c}
+          demand={data.demands.find((d) => d.id === demand) || null}
+          data={data}
+          onClose={() => setPresentationOpen(false)}
           audit={audit}
           notify={notify}
         />

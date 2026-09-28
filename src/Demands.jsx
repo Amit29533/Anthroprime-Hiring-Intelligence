@@ -49,6 +49,9 @@ import { coolingOffCheck } from './portal.js';
 import { deriveGaps } from './gaps.js';
 import { marginPct } from './analytics.js';
 import { canWriteForRole, getRole } from './repository.js';
+import { applyClientToDemand, contactsFor, contactLabel } from './clients.js';
+import { ApprovalPanel, ApprovalWarning } from './Requisitions.jsx';
+import { publishBlockedReason } from './requisitions.js';
 // Weights are compared at a fixed precision: binary floats make 33.4+33.3+33.3 equal
 // 99.99999999999999, which used to reject a demand the recruiter could see summed to 100.
 export const weightSum = (weights) =>
@@ -60,6 +63,9 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
       demand || {
         title: '',
         client: '',
+        clientId: null,
+        departmentId: null,
+        approvalStatus: 'Draft',
         skills: [],
         niceToHave: [],
         tags: [],
@@ -89,6 +95,9 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
     [stageSet, setStageSet] = useState(demand?.stageSet || []),
     [parsed, setParsed] = useState(false),
     [error, setError] = useState('');
+  // The publish checkbox is gated on approval, and the warning explains when an edit would
+  // withdraw one. Both mirror the database trigger in migration 022.
+  const publishBlock = publishBlockedReason(form, data);
   const field = (key, type = 'text', props = {}) => (
     <input
       name={key}
@@ -124,6 +133,7 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
       custom: form.custom || {},
       owner: owner || '',
       businessUnit: businessUnit || '',
+      departmentId: form.departmentId || null,
       engagementType: form.engagementType || 'Any',
       minProficiency: form.minProficiency || 'Working',
       skillMinimums: form.skillMinimums || {},
@@ -181,7 +191,39 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
             )}
           </div>
           <Field label="Role title *">{field('title', 'text', { required: true })}</Field>
-          <Field label="Client *">{field('client', 'text', { required: true })}</Field>
+          <Field
+            label="Client *"
+            hint={
+              (data.clients || []).length
+                ? 'Pick an account to roll this demand up, or type a new name.'
+                : 'Create client accounts to roll demands up by customer.'
+            }
+          >
+            <input
+              name="client"
+              list="client-account-options"
+              value={form.client}
+              required
+              onChange={(e) => {
+                const typed = e.target.value;
+                const match = (data.clients || []).find(
+                  (c) => c.name.trim().toLowerCase() === typed.trim().toLowerCase(),
+                );
+                // Selecting a known account links the demand; typing a new name clears the link
+                // so the free-text value never silently points at the wrong account.
+                setForm(
+                  match
+                    ? applyClientToDemand({ ...form, client: typed }, match)
+                    : { ...form, client: typed, clientId: null },
+                );
+              }}
+            />
+            <datalist id="client-account-options">
+              {(data.clients || []).map((c) => (
+                <option key={c.id} value={c.name} />
+              ))}
+            </datalist>
+          </Field>
           <Field
             label="Must-have skills *"
             wide
@@ -257,13 +299,30 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
           </Field>
           <Field
             label="Business unit"
-            hint="The client-side unit or practice this demand belongs to."
+            hint={
+              form.departmentId
+                ? 'Linked to a department record, so requisitions roll up to it.'
+                : 'Type a known department name to link this requisition to it.'
+            }
           >
             <input
               value={businessUnit}
-              onChange={(e) => setBusinessUnit(e.target.value)}
+              list="department-names"
+              onChange={(e) => {
+                const value = e.target.value;
+                setBusinessUnit(value);
+                const match = (data.departments || []).find(
+                  (dep) => dep.name.trim().toLowerCase() === value.trim().toLowerCase(),
+                );
+                setForm((f) => ({ ...f, departmentId: match ? match.id : null }));
+              }}
               placeholder="Data & AI"
             />
+            <datalist id="department-names">
+              {(data.departments || []).map((dep) => (
+                <option key={dep.id} value={dep.name} />
+              ))}
+            </datalist>
           </Field>
           <Field label="Minimum relevant experience *">
             {field('minExperience', 'number', { required: true, min: 0, max: 50, step: 0.5 })}
@@ -328,18 +387,26 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
               </select>
             </Field>
           )}
+          <ApprovalWarning before={demand} after={form} data={data} />
           <div className="per-skill-min wide careers-publish-control">
             <label className="careers-publish-label">
               <input
                 type="checkbox"
                 checked={form.careersVisible === true}
+                disabled={!!publishBlock}
                 onChange={(e) => setForm({ ...form, careersVisible: e.target.checked })}
               />
               Publish this role on the public careers page
             </label>
             <p className="careers-publish-hint">
-              Only explicitly published roles that are still Open appear to applicants. Budget,
-              matching weights and internal tags are never included in the public listing.
+              {publishBlock ? (
+                <strong>{publishBlock}</strong>
+              ) : (
+                <>
+                  Only explicitly published roles that are still Open appear to applicants. Budget,
+                  matching weights and internal tags are never included in the public listing.
+                </>
+              )}
             </p>
           </div>
           {skillList(skills).length > 0 && (
@@ -558,6 +625,8 @@ export function DemandDetail({
   onSave,
   busy,
   audit,
+  onOpenClient,
+  notify,
 }) {
   const viewer = !canWriteForRole(getRole());
   const [onlyQualified, setOnlyQualified] = useState(false),
@@ -575,6 +644,8 @@ export function DemandDetail({
         [c.name, c.title, ...c.skills].join(' ').toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => b.m.score - a.m.score);
+  const account = (data.clients || []).find((c) => c.id === d.clientId) || null;
+  const accountPrimary = account ? contactsFor(data, account.id).find((c) => c.isPrimary) : null;
   return (
     <>
       <button className="back-link" onClick={onBack}>
@@ -586,6 +657,11 @@ export function DemandDetail({
         title={d.title}
         description={`${d.location} · ${d.mode} · ${d.positions} open positions · Target ${d.target}`}
       >
+        {account && onOpenClient && (
+          <Button variant="secondary" onClick={() => onOpenClient(account.id)}>
+            Client account
+          </Button>
+        )}
         {!viewer && (
           <Button variant="secondary" icon={Pencil} onClick={() => onEdit(d)}>
             Edit demand
@@ -595,6 +671,14 @@ export function DemandDetail({
           View pipeline
         </Button>
       </PageHeader>
+      <ApprovalPanel
+        demand={d}
+        data={data}
+        onSave={onSave}
+        notify={notify}
+        audit={audit}
+        busy={busy}
+      />
       <div className="matching-layout">
         <aside className="panel requirements">
           <PanelHeading title="The brief" action={<Badge>{d.status}</Badge>} />
@@ -625,7 +709,18 @@ export function DemandDetail({
                 ['Min must-have proficiency', d.minProficiency || 'Working'],
                 ['Priority', d.priority],
                 ...(d.owner ? [['Demand owner', d.owner]] : []),
-                ...(d.businessUnit ? [['Business unit', d.businessUnit]] : []),
+                ...(d.businessUnit
+                  ? [
+                      [
+                        'Business unit',
+                        d.departmentId ? `${d.businessUnit} (department)` : d.businessUnit,
+                      ],
+                    ]
+                  : []),
+                ...(account ? [['Client account', `${account.name} · ${account.status}`]] : []),
+                ...(accountPrimary
+                  ? [['Primary client contact', contactLabel(accountPrimary)]]
+                  : []),
               ].map(([l, v]) => (
                 <div key={l}>
                   <dt>{l}</dt>
@@ -1280,9 +1375,13 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
   const eligible = pipeline
     .map((a) => data.candidates.find((c) => c.id === a.candidateId))
     .filter(Boolean);
+  const accountContacts = d.clientId ? contactsFor(data, d.clientId) : [];
+  const defaultContact = accountContacts.find((c) => c.isPrimary) || accountContacts[0] || null;
   const [form, setForm] = useState({
     candidateId: eligible[0]?.id || '',
-    clientContact: '',
+    // Prefill from the account's primary contact when the demand is linked to a client record.
+    clientContact: defaultContact?.email || '',
+    contactId: defaultContact?.id || null,
     method: 'Email',
     notes: '',
   });
@@ -1323,6 +1422,7 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
         ? { consent: consent.state, assessments: pack.assessments, interviews: pack.interviews }
         : {},
       clientContact: form.clientContact.trim(),
+      contactId: form.contactId || null,
     };
     if (await onSave('submissions', [record])) {
       audit &&
@@ -1367,10 +1467,36 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
               ))}
             </select>
           </Field>
+          {accountContacts.length > 0 && (
+            <Field label="Recorded contact" hint="Contacts saved against this client account.">
+              <select
+                value={form.contactId || ''}
+                onChange={(e) => {
+                  const picked = accountContacts.find((c) => c.id === e.target.value) || null;
+                  setForm({
+                    ...form,
+                    contactId: picked?.id || null,
+                    clientContact: picked?.email || form.clientContact,
+                  });
+                }}
+              >
+                <option value="">Other / type below</option>
+                {accountContacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {contactLabel(c)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Client contact *" hint="Where the submission goes.">
             <input
               value={form.clientContact}
-              onChange={(e) => setForm({ ...form, clientContact: e.target.value })}
+              onChange={(e) =>
+                // Typing over a prefilled address detaches the link so the stored contactId
+                // always matches the address actually used.
+                setForm({ ...form, clientContact: e.target.value, contactId: null })
+              }
               placeholder={`hiring@${(d.client || 'client').toLowerCase().replace(/[^a-z]+/g, '')}.example`}
             />
           </Field>

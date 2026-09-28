@@ -26,6 +26,7 @@ declare
 begin
   foreach tbl in array array['documents','consents','taxonomy','demandCommercials','settings','workflowRules'] loop
     execute format('drop trigger if exists touch_updated_column on public.%I', tbl);
+    execute format('drop trigger if exists touch_updated_column on public.%I',tbl);
     execute format('create trigger touch_updated_column before update on public.%I for each row execute function public.touch_updated_column()', tbl);
   end loop;
 end;
