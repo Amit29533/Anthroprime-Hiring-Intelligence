@@ -37,14 +37,19 @@ const numberOrNull = (value) =>
 
 export function validatePlacement(form, data, id = null) {
   const errors = {};
+  const candidate = (data?.candidates || []).find((row) => row.id === form?.candidateId);
+  const demand = (data?.demands || []).find((row) => row.id === form?.demandId);
+  const client = (data?.clients || []).find((row) => row.id === form?.clientId);
   if (!form?.candidateId) errors.candidateId = 'Select a candidate.';
+  else if (!candidate) errors.candidateId = 'The selected candidate no longer exists.';
   if (!form?.demandId) errors.demandId = 'Select a demand.';
+  else if (!demand) errors.demandId = 'The selected demand no longer exists.';
   if (!form?.clientId) errors.clientId = 'The demand must belong to a client account.';
+  else if (!client) errors.clientId = 'The selected client account no longer exists.';
   if (!PLACEMENT_STATUSES.includes(form?.status)) errors.status = 'Unknown placement status.';
   if (!form?.startDate) errors.startDate = 'Start date is required.';
   if (form?.startDate && form?.endDate && form.endDate < form.startDate)
     errors.endDate = 'End date cannot be before the start date.';
-  const demand = (data?.demands || []).find((row) => row.id === form?.demandId);
   if (demand && demand.clientId !== form.clientId)
     errors.demandId = 'The selected demand does not belong to this client.';
   if (

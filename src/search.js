@@ -232,7 +232,18 @@ export function searchWorkspace(data, query, { isAdmin = false, limit = 20 } = {
     }
   }
 
-  return out.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, limit);
+  // The same entity can match more than one source (for example, a demand's title and its
+  // admin-only commercial note). Return one navigable result per record; duplicate results also
+  // produce duplicate React keys and make keyboard selection ambiguous.
+  const unique = new Map();
+  for (const result of out) {
+    const key = `${result.type}:${result.id}`;
+    const current = unique.get(key);
+    if (!current || result.score > current.score) unique.set(key, result);
+  }
+  return [...unique.values()]
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .slice(0, limit);
 }
 
 /** Group a ranked list into display sections, preserving rank order within each. */

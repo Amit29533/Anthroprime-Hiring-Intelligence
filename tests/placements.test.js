@@ -81,6 +81,19 @@ test('placement validation requires a real client demand, dates and one live row
     data,
   );
   assert.match(wrongDate.endDate, /before/);
+
+  const missing = validatePlacement(
+    {
+      ...blankPlacement('missing-client'),
+      candidateId: 'missing-candidate',
+      demandId: 'missing-demand',
+      startDate: '2026-09-10',
+    },
+    data,
+  );
+  assert.match(missing.candidateId, /no longer exists/);
+  assert.match(missing.demandId, /no longer exists/);
+  assert.match(missing.clientId, /no longer exists/);
 });
 
 test('commercial validation rejects negative amounts and margin stays explainable', () => {

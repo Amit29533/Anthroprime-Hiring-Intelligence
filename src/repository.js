@@ -182,5 +182,5 @@ export async function logAuditEvent(event, current) {
 
 export async function resetDemo() {
   localStorage.removeItem(STORAGE);
-  return makeSeed();
+  return normalizeData(makeSeed());
 }
