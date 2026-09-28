@@ -1,31 +1,62 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
-test('Batch-10 migration: automation rules are member-gated and the public status RPC leaks only minimal fields',async()=>{
- const db=new PGlite();
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
- for(const f of ['001_ecod.sql','002_blueprint_r1.sql','003_documents_taxonomy.sql','004_admin_settings.sql','005_consents_sync.sql','006_interviews.sql','007_offers_tasks_custom.sql','008_submissions_demand_fields.sql','009_careers_portal.sql','010_sync_pagination.sql','011_automation_portal.sql'])
-  await db.exec(await readFile(new URL(`../supabase/migrations/${f}`,import.meta.url),'utf8'));
- const admin='00000000-0000-4000-8000-000000000001';
- await db.exec(`insert into auth.users values('${admin}','admin@example.com');insert into public.workspaces(id,name) values('00000000-0000-4000-8000-000000000011','A');insert into public.memberships values('${admin}','00000000-0000-4000-8000-000000000011','admin');`);
- await db.exec(`select set_config('request.jwt.claim.sub','${admin}',false);set role authenticated;`);
- await db.exec(`insert into public."workflowRules"(id,name,"triggerTable","triggerField",op,value,actions) values ('00000000-0000-4000-8000-0000000000c1','Offer accepted → onboarding','offers','status','eq','Accepted','[{"type":"task","title":"Onboard","dueDays":2}]'::jsonb);`);
- const rules=await db.query(`select name,enabled from public."workflowRules"`);
- assert.equal(rules.rows.length,1);assert.equal(rules.rows[0].enabled,true);
- await db.exec(`insert into public."publicApplications"("demandId",name,email,message,"consentContact","consentSharing") values (null,'Devika Nair','devika@example.com','hello',true,false);`);
- await db.exec('reset role;set role anon;');
- await assert.rejects(()=>db.exec(`select * from public."workflowRules";`),/permission/i,'anon cannot read rules');
- const status=await db.query(`select api_public_application_status('Devika@Example.com ') as s`);
- const row=status.rows[0].s[0];
- assert.equal(row.role,'General application');
- assert.equal(row.status,'pending');
- assert.ok(row.ref&&row.ref.length===8,'short reference returned');
- assert.deepEqual(Object.keys(row).sort(),['location','ref','role','status','submittedOn'],'only minimal fields are exposed');
- const none=await db.query(`select api_public_application_status('nobody@example.com') as s`);
- assert.deepEqual(none.rows[0].s,[],'unknown emails get an empty list');
- await db.exec('reset role;set role authenticated;');
- const mine=await db.query(`select api_public_application_status('devika@example.com') as s`);
- assert.equal(mine.rows[0].s.length,1,'members can use the lookup too');
- await db.close();
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+test('Batch-10 migration: automation rules are member-gated and the public status RPC leaks only minimal fields', async () => {
+  const db = new PGlite();
+  await db.exec(
+    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
+  );
+  for (const f of [
+    '001_ecod.sql',
+    '002_blueprint_r1.sql',
+    '003_documents_taxonomy.sql',
+    '004_admin_settings.sql',
+    '005_consents_sync.sql',
+    '006_interviews.sql',
+    '007_offers_tasks_custom.sql',
+    '008_submissions_demand_fields.sql',
+    '009_careers_portal.sql',
+    '010_sync_pagination.sql',
+    '011_automation_portal.sql',
+  ])
+    await db.exec(await readFile(new URL(`../supabase/migrations/${f}`, import.meta.url), 'utf8'));
+  const admin = '00000000-0000-4000-8000-000000000001';
+  await db.exec(
+    `insert into auth.users values('${admin}','admin@example.com');insert into public.workspaces(id,name) values('00000000-0000-4000-8000-000000000011','A');insert into public.memberships values('${admin}','00000000-0000-4000-8000-000000000011','admin');`,
+  );
+  await db.exec(
+    `select set_config('request.jwt.claim.sub','${admin}',false);set role authenticated;`,
+  );
+  await db.exec(
+    `insert into public."workflowRules"(id,name,"triggerTable","triggerField",op,value,actions) values ('00000000-0000-4000-8000-0000000000c1','Offer accepted → onboarding','offers','status','eq','Accepted','[{"type":"task","title":"Onboard","dueDays":2}]'::jsonb);`,
+  );
+  const rules = await db.query(`select name,enabled from public."workflowRules"`);
+  assert.equal(rules.rows.length, 1);
+  assert.equal(rules.rows[0].enabled, true);
+  await db.exec(
+    `insert into public."publicApplications"("demandId",name,email,message,"consentContact","consentSharing") values (null,'Devika Nair','devika@example.com','hello',true,false);`,
+  );
+  await db.exec('reset role;set role anon;');
+  await assert.rejects(
+    () => db.exec(`select * from public."workflowRules";`),
+    /permission/i,
+    'anon cannot read rules',
+  );
+  const status = await db.query(`select api_public_application_status('Devika@Example.com ') as s`);
+  const row = status.rows[0].s[0];
+  assert.equal(row.role, 'General application');
+  assert.equal(row.status, 'pending');
+  assert.ok(row.ref && row.ref.length === 8, 'short reference returned');
+  assert.deepEqual(
+    Object.keys(row).sort(),
+    ['location', 'ref', 'role', 'status', 'submittedOn'],
+    'only minimal fields are exposed',
+  );
+  const none = await db.query(`select api_public_application_status('nobody@example.com') as s`);
+  assert.deepEqual(none.rows[0].s, [], 'unknown emails get an empty list');
+  await db.exec('reset role;set role authenticated;');
+  const mine = await db.query(`select api_public_application_status('devika@example.com') as s`);
+  assert.equal(mine.rows[0].s.length, 1, 'members can use the lookup too');
+  await db.close();
 });

@@ -1,40 +1,83 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
-test('Batch-6 migration: offers and tasks are tenant-scoped, audit-trailed and synced; custom jsonb round-trips',async()=>{
- const db=new PGlite();
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
- for(const f of ['001_ecod.sql','002_blueprint_r1.sql','003_documents_taxonomy.sql','004_admin_settings.sql','005_consents_sync.sql','006_interviews.sql','007_offers_tasks_custom.sql'])
-  await db.exec(await readFile(new URL(`../supabase/migrations/${f}`,import.meta.url),'utf8'));
- const admin='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
- const w1='00000000-0000-4000-8000-000000000011',w2='00000000-0000-4000-8000-000000000012';
- const c1='00000000-0000-4000-8000-000000000021';
- await db.exec(`insert into auth.users values('${admin}','admin@example.com'),('${other}','other@example.com');insert into public.workspaces(id,name) values('${w1}','A'),('${w2}','B');insert into public.memberships values('${admin}','${w1}','admin'),('${other}','${w2}','recruiter');`);
- const act=async user=>db.exec(`reset role;select set_config('request.jwt.claim.sub','${user}',false);set role authenticated;`);
- await act(admin);
- await db.exec(`insert into candidates(id,name,email,custom) values('${c1}','Offer Person','offer@example.com','{"Background check":"Clear"}');`);
- await db.exec(`insert into offers("candidateId",role,ctc,joining,status,notes) values('${c1}','Senior Frontend Engineer',31,current_date+25,'Sent','Standard terms');`);
- await db.exec(`insert into tasks(title,due,"candidateId") values('Collect documents',current_date-1,'${c1}');`);
- await assert.rejects(()=>db.exec(`insert into offers("candidateId",status) values('${c1}','Signed');`),/offers_status_check|check/i,'unknown offer status is rejected');
- await assert.rejects(()=>db.exec(`insert into offers("candidateId",status) values('${c1}','sent');`),/check/i,'status is case-sensitive by constraint');
- // custom jsonb round-trip
- const cust=await db.query(`select custom from candidates where id='${c1}'`);
- assert.equal(cust.rows[0].custom['Background check'],'Clear');
- await act(other);
- assert.equal((await db.query('select count(*)::int as count from offers')).rows[0].count,0,'cross-tenant offers never leak');
- assert.equal((await db.query('select count(*)::int as count from tasks')).rows[0].count,0,'cross-tenant tasks never leak');
- const otherFeed=await db.query(`select api_changes_since('2026-01-01') as feed`);
- assert.equal(otherFeed.rows[0].feed.offers.length,0);
- await act(admin);
- await db.exec(`update offers set status='Accepted',"decidedDate"=current_date where "candidateId"='${c1}';`);
- const feed=await db.query(`select api_changes_since('2026-01-01') as feed`);
- assert.equal(feed.rows[0].feed.offers.length,1,'offers travel in the sync payload');
- assert.equal(feed.rows[0].feed.tasks.length,1,'tasks travel in the sync payload');
- assert.equal(feed.rows[0].feed.offers[0].status,'Accepted');
- const hist=await db.query(`select count(*)::int as count from history where "entityType" in ('offers','tasks')`);
- assert.equal(hist.rows[0].count,3,'offer insert+update and task insert are audit-trailed');
- await db.exec('reset role;set role anon;');
- await assert.rejects(()=>db.exec('select count(*) from offers;'),/permission/i);
- await db.close();
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+test('Batch-6 migration: offers and tasks are tenant-scoped, audit-trailed and synced; custom jsonb round-trips', async () => {
+  const db = new PGlite();
+  await db.exec(
+    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
+  );
+  for (const f of [
+    '001_ecod.sql',
+    '002_blueprint_r1.sql',
+    '003_documents_taxonomy.sql',
+    '004_admin_settings.sql',
+    '005_consents_sync.sql',
+    '006_interviews.sql',
+    '007_offers_tasks_custom.sql',
+  ])
+    await db.exec(await readFile(new URL(`../supabase/migrations/${f}`, import.meta.url), 'utf8'));
+  const admin = '00000000-0000-4000-8000-000000000001',
+    other = '00000000-0000-4000-8000-000000000002';
+  const w1 = '00000000-0000-4000-8000-000000000011',
+    w2 = '00000000-0000-4000-8000-000000000012';
+  const c1 = '00000000-0000-4000-8000-000000000021';
+  await db.exec(
+    `insert into auth.users values('${admin}','admin@example.com'),('${other}','other@example.com');insert into public.workspaces(id,name) values('${w1}','A'),('${w2}','B');insert into public.memberships values('${admin}','${w1}','admin'),('${other}','${w2}','recruiter');`,
+  );
+  const act = async (user) =>
+    db.exec(
+      `reset role;select set_config('request.jwt.claim.sub','${user}',false);set role authenticated;`,
+    );
+  await act(admin);
+  await db.exec(
+    `insert into candidates(id,name,email,custom) values('${c1}','Offer Person','offer@example.com','{"Background check":"Clear"}');`,
+  );
+  await db.exec(
+    `insert into offers("candidateId",role,ctc,joining,status,notes) values('${c1}','Senior Frontend Engineer',31,current_date+25,'Sent','Standard terms');`,
+  );
+  await db.exec(
+    `insert into tasks(title,due,"candidateId") values('Collect documents',current_date-1,'${c1}');`,
+  );
+  await assert.rejects(
+    () => db.exec(`insert into offers("candidateId",status) values('${c1}','Signed');`),
+    /offers_status_check|check/i,
+    'unknown offer status is rejected',
+  );
+  await assert.rejects(
+    () => db.exec(`insert into offers("candidateId",status) values('${c1}','sent');`),
+    /check/i,
+    'status is case-sensitive by constraint',
+  );
+  // custom jsonb round-trip
+  const cust = await db.query(`select custom from candidates where id='${c1}'`);
+  assert.equal(cust.rows[0].custom['Background check'], 'Clear');
+  await act(other);
+  assert.equal(
+    (await db.query('select count(*)::int as count from offers')).rows[0].count,
+    0,
+    'cross-tenant offers never leak',
+  );
+  assert.equal(
+    (await db.query('select count(*)::int as count from tasks')).rows[0].count,
+    0,
+    'cross-tenant tasks never leak',
+  );
+  const otherFeed = await db.query(`select api_changes_since('2026-01-01') as feed`);
+  assert.equal(otherFeed.rows[0].feed.offers.length, 0);
+  await act(admin);
+  await db.exec(
+    `update offers set status='Accepted',"decidedDate"=current_date where "candidateId"='${c1}';`,
+  );
+  const feed = await db.query(`select api_changes_since('2026-01-01') as feed`);
+  assert.equal(feed.rows[0].feed.offers.length, 1, 'offers travel in the sync payload');
+  assert.equal(feed.rows[0].feed.tasks.length, 1, 'tasks travel in the sync payload');
+  assert.equal(feed.rows[0].feed.offers[0].status, 'Accepted');
+  const hist = await db.query(
+    `select count(*)::int as count from history where "entityType" in ('offers','tasks')`,
+  );
+  assert.equal(hist.rows[0].count, 3, 'offer insert+update and task insert are audit-trailed');
+  await db.exec('reset role;set role anon;');
+  await assert.rejects(() => db.exec('select count(*) from offers;'), /permission/i);
+  await db.close();
 });
