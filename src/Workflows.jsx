@@ -44,6 +44,7 @@ import {
   stageLabelsMap,
 } from './domain.js';
 import { readCSV, previewImport, sameImportReview, IMPORT_FIELDS } from './import.js';
+import { readXLSX, isXlsxName } from './xlsx.js';
 import { qualityQueues, retentionDue, anonymizeCandidate } from './quality.js';
 import { deriveGaps } from './gaps.js';
 import { duplicatePairs, mergePreview, MERGE_FIELDS, MERGE_FOLLOW_TABLES } from './dedupe.js';
@@ -257,21 +258,24 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
       onClose();
     }
   }
+  /** Accept a parsed sheet from either source and set up the same mapping step. */
+  function accept(result, note = '') {
+    setRaw(result);
+    setMapping(
+      Object.fromEntries(
+        IMPORT_FIELDS.map((f) => [
+          f,
+          result.headers.find((h) => h.replace(/[ _]/g, '').toLowerCase() === f.toLowerCase()) ||
+            '',
+        ]),
+      ),
+    );
+    setError(note);
+    setPreview(null);
+  }
   function parse(value) {
     try {
-      const result = readCSV(value);
-      setRaw(result);
-      setMapping(
-        Object.fromEntries(
-          IMPORT_FIELDS.map((f) => [
-            f,
-            result.headers.find((h) => h.replace(/[ _]/g, '').toLowerCase() === f.toLowerCase()) ||
-              '',
-          ]),
-        ),
-      );
-      setError('');
-      setPreview(null);
+      accept(readCSV(value));
     } catch (e) {
       setError(e.message);
     }
@@ -279,9 +283,24 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
   async function fileChanged(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return setError('Choose a CSV file smaller than 5 MB.');
-    if (!file.name.toLowerCase().endsWith('.csv'))
-      return setError('Choose a .csv file. Export an Excel workbook as CSV first.');
+    if (file.size > 5 * 1024 * 1024) return setError('Choose a file smaller than 5 MB.');
+    const name = file.name.toLowerCase();
+    if (isXlsxName(name)) {
+      try {
+        const result = await readXLSX(await file.arrayBuffer());
+        // Only the first sheet is read; say so rather than let the user assume otherwise.
+        accept(
+          result,
+          result.sheetCount > 1
+            ? `Read “${result.sheet}” only — this workbook has ${result.sheetCount} sheets, and the rest were ignored.`
+            : '',
+        );
+      } catch (err) {
+        setError(err.message);
+      }
+      return;
+    }
+    if (!name.endsWith('.csv')) return setError('Choose a .csv or .xlsx file.');
     parse(await file.text());
   }
   const valid = preview?.filter((p) => !p.error) || [];
@@ -326,9 +345,13 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
           <>
             <label className="file-drop">
               <Upload size={32} />
-              <strong>Choose a candidate CSV</strong>
-              <span>Up to 5 MB · 5,000 rows · UTF-8 CSV</span>
-              <input type="file" accept=".csv,text/csv" onChange={fileChanged} />
+              <strong>Choose a candidate spreadsheet</strong>
+              <span>Excel .xlsx or UTF-8 .csv · up to 5 MB · 5,000 rows</span>
+              <input
+                type="file"
+                accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={fileChanged}
+              />
             </label>
             <label className="file-drop">
               <Upload size={32} />
