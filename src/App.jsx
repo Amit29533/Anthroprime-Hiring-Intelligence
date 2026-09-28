@@ -51,6 +51,7 @@ import {
 } from './Workflows.jsx';
 import { Interviews } from './Interviews.jsx';
 import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
+import { DepartmentForm } from './Requisitions.jsx';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -455,6 +456,7 @@ export default function App() {
         busy={busy}
         audit={audit}
         onOpenClient={openClient}
+        notify={setToast}
       />
     ) : (
       <Demands data={data} onNew={newDemand} onOpen={openDemand} />
@@ -537,6 +539,7 @@ export default function App() {
         notify={setToast}
         audit={audit}
         onSave={save}
+        onModal={setModal}
       />
     );
   return (
@@ -772,6 +775,15 @@ export default function App() {
         <ContactForm
           contact={modal.contact}
           clientId={modal.clientId}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'department' && (
+        <DepartmentForm
+          department={modal.department}
           data={data}
           onClose={() => setModal(null)}
           onSave={save}

@@ -50,6 +50,8 @@ import { deriveGaps } from './gaps.js';
 import { marginPct } from './analytics.js';
 import { canWriteForRole, getRole } from './repository.js';
 import { applyClientToDemand, contactsFor, contactLabel } from './clients.js';
+import { ApprovalPanel, ApprovalWarning } from './Requisitions.jsx';
+import { publishBlockedReason } from './requisitions.js';
 // Weights are compared at a fixed precision: binary floats make 33.4+33.3+33.3 equal
 // 99.99999999999999, which used to reject a demand the recruiter could see summed to 100.
 export const weightSum = (weights) =>
@@ -62,6 +64,8 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
         title: '',
         client: '',
         clientId: null,
+        departmentId: null,
+        approvalStatus: 'Draft',
         skills: [],
         niceToHave: [],
         tags: [],
@@ -91,6 +95,9 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
     [stageSet, setStageSet] = useState(demand?.stageSet || []),
     [parsed, setParsed] = useState(false),
     [error, setError] = useState('');
+  // The publish checkbox is gated on approval, and the warning explains when an edit would
+  // withdraw one. Both mirror the database trigger in migration 022.
+  const publishBlock = publishBlockedReason(form, data);
   const field = (key, type = 'text', props = {}) => (
     <input
       name={key}
@@ -126,6 +133,7 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
       custom: form.custom || {},
       owner: owner || '',
       businessUnit: businessUnit || '',
+      departmentId: form.departmentId || null,
       engagementType: form.engagementType || 'Any',
       minProficiency: form.minProficiency || 'Working',
       skillMinimums: form.skillMinimums || {},
@@ -291,13 +299,30 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
           </Field>
           <Field
             label="Business unit"
-            hint="The client-side unit or practice this demand belongs to."
+            hint={
+              form.departmentId
+                ? 'Linked to a department record, so requisitions roll up to it.'
+                : 'Type a known department name to link this requisition to it.'
+            }
           >
             <input
               value={businessUnit}
-              onChange={(e) => setBusinessUnit(e.target.value)}
+              list="department-names"
+              onChange={(e) => {
+                const value = e.target.value;
+                setBusinessUnit(value);
+                const match = (data.departments || []).find(
+                  (dep) => dep.name.trim().toLowerCase() === value.trim().toLowerCase(),
+                );
+                setForm((f) => ({ ...f, departmentId: match ? match.id : null }));
+              }}
               placeholder="Data & AI"
             />
+            <datalist id="department-names">
+              {(data.departments || []).map((dep) => (
+                <option key={dep.id} value={dep.name} />
+              ))}
+            </datalist>
           </Field>
           <Field label="Minimum relevant experience *">
             {field('minExperience', 'number', { required: true, min: 0, max: 50, step: 0.5 })}
@@ -362,18 +387,26 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
               </select>
             </Field>
           )}
+          <ApprovalWarning before={demand} after={form} data={data} />
           <div className="per-skill-min wide careers-publish-control">
             <label className="careers-publish-label">
               <input
                 type="checkbox"
                 checked={form.careersVisible === true}
+                disabled={!!publishBlock}
                 onChange={(e) => setForm({ ...form, careersVisible: e.target.checked })}
               />
               Publish this role on the public careers page
             </label>
             <p className="careers-publish-hint">
-              Only explicitly published roles that are still Open appear to applicants. Budget,
-              matching weights and internal tags are never included in the public listing.
+              {publishBlock ? (
+                <strong>{publishBlock}</strong>
+              ) : (
+                <>
+                  Only explicitly published roles that are still Open appear to applicants. Budget,
+                  matching weights and internal tags are never included in the public listing.
+                </>
+              )}
             </p>
           </div>
           {skillList(skills).length > 0 && (
@@ -593,6 +626,7 @@ export function DemandDetail({
   busy,
   audit,
   onOpenClient,
+  notify,
 }) {
   const viewer = !canWriteForRole(getRole());
   const [onlyQualified, setOnlyQualified] = useState(false),
@@ -637,6 +671,14 @@ export function DemandDetail({
           View pipeline
         </Button>
       </PageHeader>
+      <ApprovalPanel
+        demand={d}
+        data={data}
+        onSave={onSave}
+        notify={notify}
+        audit={audit}
+        busy={busy}
+      />
       <div className="matching-layout">
         <aside className="panel requirements">
           <PanelHeading title="The brief" action={<Badge>{d.status}</Badge>} />
@@ -667,7 +709,14 @@ export function DemandDetail({
                 ['Min must-have proficiency', d.minProficiency || 'Working'],
                 ['Priority', d.priority],
                 ...(d.owner ? [['Demand owner', d.owner]] : []),
-                ...(d.businessUnit ? [['Business unit', d.businessUnit]] : []),
+                ...(d.businessUnit
+                  ? [
+                      [
+                        'Business unit',
+                        d.departmentId ? `${d.businessUnit} (department)` : d.businessUnit,
+                      ],
+                    ]
+                  : []),
                 ...(account ? [['Client account', `${account.name} · ${account.status}`]] : []),
                 ...(accountPrimary
                   ? [['Primary client contact', contactLabel(accountPrimary)]]

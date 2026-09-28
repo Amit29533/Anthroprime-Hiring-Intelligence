@@ -284,3 +284,10 @@
 .role-reference dt{font-size:12px;font-weight:600;color:#41756a;text-transform:uppercase;letter-spacing:.04em}
 .role-reference dd{margin:0;font-size:13px;color:#7b919c;line-height:1.7}
 .role-reference dd small{display:block;margin-top:4px;font-size:12px;color:#95a7ae}
+/* --- Batch 18: requisition approval & departments --- */
+.requisition-panel{margin:18px 24px 0}
+.approval-actions{display:flex;flex-wrap:wrap;gap:10px;padding-top:6px}
+.approval-actions .button{font-size:13px}
+.approval-note{margin:4px 0 16px;padding:12px 15px;border-left:3px solid #cddbd7;background:#f7faf9;color:#6d8790;font-size:13px;line-height:1.7;font-style:italic}
+.constraint-warning{padding:14px 16px;border:1px solid #f0dcc4;background:#fdf6ea;border-radius:7px;color:#96713c;font-size:13px;line-height:1.7}
+.constraint-warning strong{display:block;color:#7d5c2c;margin-bottom:3px;font-style:normal}

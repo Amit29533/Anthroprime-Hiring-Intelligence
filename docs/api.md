@@ -179,3 +179,23 @@ raising, so a client can surface the database's own wording.
 on `auth.users` (`claim_workspace_invite`) redeems a pending invitation at sign-up, which is why no
 service-role key is needed in the browser. Every mutation writes an `auditEvents` row with
 `entityType = 'membership'`.
+
+## Departments and requisition approval (migration 022)
+
+`departments` joins both sync RPCs as an ordinary workspace table. The `demands` projection is
+`d.*`, so these new columns travel automatically:
+
+| Column                     | Meaning                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `departmentId`             | nullable link to `departments`; `ON DELETE SET NULL` on that column only |
+| `approvalStatus`           | `Draft` \| `Pending approval` \| `Approved` \| `Rejected`               |
+| `approvedBy` / `approvedAt`| set by the database from the signed-in session — never accepted from a client |
+| `approvedTerms`            | server-generated snapshot of the terms that were approved                |
+| `approvalNote`             | reviewer's comment, or the automatic withdrawal reason                   |
+| `submittedForApprovalAt`   | when approval was requested                                              |
+
+Writes go through the ordinary `demands` table, not an RPC; the `demands_requisition_gate` trigger
+enforces the rules. Setting `approvalStatus` to `Approved` or `Rejected` as a non-admin raises
+`Only a workspace admin can approve or reject a requisition`. Publishing an unapproved role while
+`settings.custom->>'requisitionApprovals'` is true raises `This workspace requires requisition
+approval before a role can be published`.

@@ -401,6 +401,7 @@ export function makeSeed() {
       title: 'Senior Databricks Architect',
       client: 'Meridian Technologies',
       clientId: 'a0000000-0000-4000-8000-000000000001',
+      departmentId: 'c0000000-0000-4000-8000-000000000001',
       skills: ['Databricks', 'Databricks Genie', 'Unity Catalog', 'Azure'],
       niceToHave: ['Snowflake', 'Power BI'],
       minExperience: 7,
@@ -430,6 +431,7 @@ export function makeSeed() {
       title: 'IAM Solutions Engineer',
       client: 'Northstar Financial',
       clientId: 'a0000000-0000-4000-8000-000000000002',
+      departmentId: 'c0000000-0000-4000-8000-000000000003',
       skills: ['Microsoft Entra', 'IAM', 'Conditional Access', 'Azure'],
       niceToHave: [],
       minExperience: 5,
@@ -458,6 +460,8 @@ export function makeSeed() {
       title: 'Senior Frontend Engineer',
       client: 'Aster Digital',
       clientId: 'a0000000-0000-4000-8000-000000000003',
+      departmentId: 'c0000000-0000-4000-8000-000000000001',
+      businessUnit: 'Data & AI',
       skills: ['React', 'TypeScript', 'Node.js'],
       niceToHave: ['Figma'],
       minExperience: 4,
@@ -482,6 +486,8 @@ export function makeSeed() {
       title: 'Cloud Platform Engineer',
       client: 'Meridian Technologies',
       clientId: 'a0000000-0000-4000-8000-000000000001',
+      departmentId: 'c0000000-0000-4000-8000-000000000002',
+      businessUnit: 'Digital Engineering',
       skills: ['Azure', 'Terraform', 'Kubernetes'],
       niceToHave: [],
       minExperience: 5,
@@ -965,6 +971,34 @@ export function makeSeed() {
 
   // Client accounts for the three customers the sample demands already name, so the Clients
   // screen opens with real rollups rather than an empty state.
+  // Batch 18: reusable business units. Requisitions roll up to the department that asked.
+  const departments = [
+    {
+      id: 'c0000000-0000-4000-8000-000000000001',
+      name: 'Data & AI',
+      head: 'Priya Raman',
+      costCentre: 'CC-2201',
+      notes: 'Platform, analytics and machine-learning engineering.',
+      created: dateAgo(320),
+    },
+    {
+      id: 'c0000000-0000-4000-8000-000000000002',
+      name: 'Digital Engineering',
+      head: 'Vikram Shah',
+      costCentre: 'CC-2204',
+      notes: 'Application modernisation and cloud delivery.',
+      created: dateAgo(280),
+    },
+    {
+      id: 'c0000000-0000-4000-8000-000000000003',
+      name: 'Cybersecurity',
+      head: 'Neha Kulkarni',
+      costCentre: 'CC-2209',
+      notes: 'Identity, access and security engineering.',
+      created: dateAgo(210),
+    },
+  ];
+
   const clients = [
     {
       id: 'a0000000-0000-4000-8000-000000000001',
@@ -1073,5 +1107,6 @@ export function makeSeed() {
     workflowRules,
     clients,
     clientContacts,
+    departments,
   };
 }

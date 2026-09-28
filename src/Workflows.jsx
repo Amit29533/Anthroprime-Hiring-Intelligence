@@ -30,6 +30,7 @@ import {
   Stat,
 } from './ui.jsx';
 import { Members } from './Members.jsx';
+import { DepartmentsPanel } from './Requisitions.jsx';
 import {
   uid,
   today,
@@ -1781,7 +1782,7 @@ export function Analytics({ data, navigate }) {
     </>
   );
 }
-export function Settings({ data, session, onReload, notify, audit, onSave }) {
+export function Settings({ data, session, onReload, notify, audit, onSave, onModal }) {
   const viewer = cloud && !canWriteForRole(getRole());
   const [since, setSince] = useState(''),
     [restoreBusy, setRestoreBusy] = useState(false);
@@ -1874,6 +1875,13 @@ export function Settings({ data, session, onReload, notify, audit, onSave }) {
           </div>
         </section>
         <Members notify={notify} audit={audit} />
+        <DepartmentsPanel
+          data={data}
+          onSave={onSave}
+          onNew={() => onModal?.({ type: 'department' })}
+          onEdit={(department) => onModal?.({ type: 'department', department })}
+          notify={notify}
+        />
         <section className="panel">
           <PanelHeading title="Workspace capabilities" />
           <div className="settings-body">

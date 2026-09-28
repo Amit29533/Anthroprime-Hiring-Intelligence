@@ -26,6 +26,7 @@ export const TABLES = [
   'workflowRules',
   'clients',
   'clientContacts',
+  'departments',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -60,6 +61,22 @@ export function normalizeData(data) {
     // Demands created before batch 16 carry only the free-text client name; an unlinked demand
     // stays valid and simply does not roll up into an account record.
     d.clientId = d.clientId || null;
+    // Batch 18: a requisition that predates the approval workflow is a draft, and an
+    // unlinked demand keeps only its free-text business unit.
+    d.departmentId = d.departmentId || null;
+    d.approvalStatus = d.approvalStatus || 'Draft';
+    d.approvalNote = d.approvalNote || '';
+    d.approvedBy = d.approvedBy || '';
+    d.approvedAt = d.approvedAt || null;
+    d.approvedTerms = d.approvedTerms || null;
+    d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.departments = out.departments || [];
+  for (const d of out.departments) {
+    d.name = d.name || '';
+    d.head = d.head || '';
+    d.costCentre = d.costCentre || '';
+    d.notes = d.notes || '';
   }
   out.clients = out.clients || [];
   for (const c of out.clients) {
