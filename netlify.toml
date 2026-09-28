@@ -1,17 +1,9 @@
 [build]
   command = "pnpm run build"
   publish = "dist"
+
 [build.environment]
   NODE_VERSION = "22"
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Frame-Options = "DENY"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+
+# Vite copies public/_redirects and public/_headers into dist for both Git and manual deploys.
+# Keep SPA routing and security headers in those files as the single source of truth.

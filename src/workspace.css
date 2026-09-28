@@ -235,3 +235,11 @@
 .domain-groups{margin:10px 0;border-top:1px dashed var(--border,#e5e5e5);padding-top:8px}
 .domain-group{display:flex;gap:10px;font-size:13px;margin:4px 0}
 .domain-group strong{min-width:150px;color:#40605c}
+.readonly-banner{margin:16px 24px 0;padding:11px 14px;border:1px solid #b8c9e0;border-radius:9px;background:#f0f5fb;color:#294b70;font-size:13px}
+.skill-editor{border:0;padding:0;margin:0;min-width:0}
+.careers-publish-label{display:flex;align-items:center;gap:9px;font-size:13px;color:#425c66;cursor:pointer}
+.careers-publish-hint{font-size:12px;color:#7b919c;line-height:1.6;margin:9px 0 0 24px}
+.application-status-code{overflow-wrap:anywhere}
+.application-status-code code{display:inline-block;max-width:100%;padding:2px 6px;border-radius:5px;background:#d5e9dc;color:#245b43;font-size:12px;word-break:break-all}
+.status-form{flex-wrap:wrap}
+.status-form input{flex:1 1 210px}

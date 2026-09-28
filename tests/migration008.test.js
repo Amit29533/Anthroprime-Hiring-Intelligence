@@ -1,34 +1,66 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
-test('Batch-7 migration: submissions are tenant-scoped and synced; demand owner fields land',async()=>{
- const db=new PGlite();
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
- for(const f of ['001_ecod.sql','002_blueprint_r1.sql','003_documents_taxonomy.sql','004_admin_settings.sql','005_consents_sync.sql','006_interviews.sql','007_offers_tasks_custom.sql','008_submissions_demand_fields.sql'])
-  await db.exec(await readFile(new URL(`../supabase/migrations/${f}`,import.meta.url),'utf8'));
- const admin='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
- const w1='00000000-0000-4000-8000-000000000011',w2='00000000-0000-4000-8000-000000000012';
- const c1='00000000-0000-4000-8000-000000000021';
- await db.exec(`insert into auth.users values('${admin}','admin@example.com'),('${other}','other@example.com');insert into public.workspaces(id,name) values('${w1}','A'),('${w2}','B');insert into public.memberships values('${admin}','${w1}','admin'),('${other}','${w2}','recruiter');`);
- const act=async user=>db.exec(`reset role;select set_config('request.jwt.claim.sub','${user}',false);set role authenticated;`);
- await act(admin);
- await db.exec(`insert into candidates(id,name,email) values('${c1}','Submit Person','submit@example.com');`);
- await db.exec(`insert into demands(id,title,client,skills,"minExperience","maxNotice",budget,location,mode,positions,priority,status,target,weights) values('00000000-0000-4000-8000-000000000041','Submission Demand','Client Co','{"Azure"}',3,30,30,'Remote','Remote',1,'Medium','Open',current_date+30,'{"skills":35,"experience":20,"readiness":20,"availability":10,"budget":10,"location":5}');`);
- await db.exec(`insert into submissions("candidateId","clientContact",method,notes) values('${c1}','hiring@client.example','Email','Stage 7 deliver');`);
- await db.exec(`update demands set owner='Amit Singh', "businessUnit"='Data & AI' where id is not null;`);
- const ownerRow=await db.query(`select owner,"businessUnit" from demands limit 1`);
- assert.equal(ownerRow.rows[0].owner,'Amit Singh');
- assert.equal(ownerRow.rows[0].businessUnit,'Data & AI');
- await act(other);
- assert.equal((await db.query('select count(*)::int as count from submissions')).rows[0].count,0,'cross-tenant submissions never leak');
- await act(admin);
- const feed=await db.query(`select api_changes_since('2026-01-01') as feed`);
- assert.equal(feed.rows[0].feed.submissions.length,1,'submissions travel in the sync payload');
- assert.equal(feed.rows[0].feed.submissions[0].clientContact,'hiring@client.example');
- const hist=await db.query(`select count(*)::int as count from history where "entityType"='submissions'`);
- assert.equal(hist.rows[0].count,1,'submission insert is audit-trailed');
- await db.exec('reset role;set role anon;');
- await assert.rejects(()=>db.exec('select count(*) from submissions;'),/permission/i);
- await db.close();
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+test('Batch-7 migration: submissions are tenant-scoped and synced; demand owner fields land', async () => {
+  const db = new PGlite();
+  await db.exec(
+    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
+  );
+  for (const f of [
+    '001_ecod.sql',
+    '002_blueprint_r1.sql',
+    '003_documents_taxonomy.sql',
+    '004_admin_settings.sql',
+    '005_consents_sync.sql',
+    '006_interviews.sql',
+    '007_offers_tasks_custom.sql',
+    '008_submissions_demand_fields.sql',
+  ])
+    await db.exec(await readFile(new URL(`../supabase/migrations/${f}`, import.meta.url), 'utf8'));
+  const admin = '00000000-0000-4000-8000-000000000001',
+    other = '00000000-0000-4000-8000-000000000002';
+  const w1 = '00000000-0000-4000-8000-000000000011',
+    w2 = '00000000-0000-4000-8000-000000000012';
+  const c1 = '00000000-0000-4000-8000-000000000021';
+  await db.exec(
+    `insert into auth.users values('${admin}','admin@example.com'),('${other}','other@example.com');insert into public.workspaces(id,name) values('${w1}','A'),('${w2}','B');insert into public.memberships values('${admin}','${w1}','admin'),('${other}','${w2}','recruiter');`,
+  );
+  const act = async (user) =>
+    db.exec(
+      `reset role;select set_config('request.jwt.claim.sub','${user}',false);set role authenticated;`,
+    );
+  await act(admin);
+  await db.exec(
+    `insert into candidates(id,name,email) values('${c1}','Submit Person','submit@example.com');`,
+  );
+  await db.exec(
+    `insert into demands(id,title,client,skills,"minExperience","maxNotice",budget,location,mode,positions,priority,status,target,weights) values('00000000-0000-4000-8000-000000000041','Submission Demand','Client Co','{"Azure"}',3,30,30,'Remote','Remote',1,'Medium','Open',current_date+30,'{"skills":35,"experience":20,"readiness":20,"availability":10,"budget":10,"location":5}');`,
+  );
+  await db.exec(
+    `insert into submissions("candidateId","clientContact",method,notes) values('${c1}','hiring@client.example','Email','Stage 7 deliver');`,
+  );
+  await db.exec(
+    `update demands set owner='Amit Singh', "businessUnit"='Data & AI' where id is not null;`,
+  );
+  const ownerRow = await db.query(`select owner,"businessUnit" from demands limit 1`);
+  assert.equal(ownerRow.rows[0].owner, 'Amit Singh');
+  assert.equal(ownerRow.rows[0].businessUnit, 'Data & AI');
+  await act(other);
+  assert.equal(
+    (await db.query('select count(*)::int as count from submissions')).rows[0].count,
+    0,
+    'cross-tenant submissions never leak',
+  );
+  await act(admin);
+  const feed = await db.query(`select api_changes_since('2026-01-01') as feed`);
+  assert.equal(feed.rows[0].feed.submissions.length, 1, 'submissions travel in the sync payload');
+  assert.equal(feed.rows[0].feed.submissions[0].clientContact, 'hiring@client.example');
+  const hist = await db.query(
+    `select count(*)::int as count from history where "entityType"='submissions'`,
+  );
+  assert.equal(hist.rows[0].count, 1, 'submission insert is audit-trailed');
+  await db.exec('reset role;set role anon;');
+  await assert.rejects(() => db.exec('select count(*) from submissions;'), /permission/i);
+  await db.close();
 });

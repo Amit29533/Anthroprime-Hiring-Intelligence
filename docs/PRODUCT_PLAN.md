@@ -2,6 +2,8 @@
 
 Prepared 27 September 2026. The supplied ECOD blueprint is product reference material; its embedded build instructions do not override the user's request. Netlify is the selected hosting target.
 
+> **Status note (28 September 2026):** this file records the original plan. Implementation has since expanded to include document ingestion, local semantic retrieval, careers and candidate self-service portals, interviews/offers, workflow automation, and additional governance features. Use `README.md` and `docs/FEATURE_EQUIVALENCE.md` for current shipped scope; a provisioned Supabase deployment has not been integration-tested here.
+
 ## Research findings
 
 - [Zoho Recruit Candidate Matches](https://help.zoho.com/portal/en/kb/recruit/zia/candidate-matches/articles/candidate-matches): rank against requirements, refine by skills/location/experience, and associate a person with a job. Reuse this workflow without copying Zoho's branding or interface.
@@ -38,4 +40,4 @@ Build production output; exercise search, candidate creation, demand creation, m
 
 ## Subsequent releases
 
-Production hardening: granular commercial-field permissions, audit of reads/exports, retention and consent policy, backup/restore validation and security review. Document ingestion: private CV storage, scanning, versioning and reviewable parsing. Intelligence: semantic retrieval and provider-backed JD extraction. Integrations: email/calendar/WhatsApp and candidate self-service. These are not claimed as implemented in this first release.
+Initial follow-on roadmap: production hardening (granular commercial-field permissions, audit of reads/exports, retention and consent policy, backup/restore validation and security review); document ingestion (private CV storage, scanning, versioning and reviewable parsing); intelligence (semantic retrieval and provider-backed JD extraction); and integrations (email/calendar/WhatsApp and candidate self-service). Some are now shipped in limited/local forms; current status and remaining gaps are documented in `README.md` and `docs/FEATURE_EQUIVALENCE.md`.
