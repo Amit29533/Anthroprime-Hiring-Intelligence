@@ -1,5 +1,5 @@
 import { WEIGHTS } from './domain.js';
-import { blankSkillDetail } from './taxonomy.js';
+import { blankSkillDetail, domainOf } from './taxonomy.js';
 const dateAgo = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 const stampAgo = (days) => new Date(Date.now() - days * 86400000).toISOString();
 const people = [
@@ -972,6 +972,81 @@ export function makeSeed() {
   // Client accounts for the three customers the sample demands already name, so the Clients
   // screen opens with real rollups rather than an empty state.
   // Batch 18: reusable business units. Requisitions roll up to the department that asked.
+
+  // Batch 21 — the blueprint §14 skills model, generated from the same `skills`/`skillsDetail`
+  // the migration back-fills from, so the demo workspace and a migrated workspace look alike.
+  const EV_WEIGHT = {
+    Assessment: 100,
+    Certification: 90,
+    'Client interview': 80,
+    'Recruiter-verified': 70,
+    Project: 60,
+    CV: 30,
+    'Self-declared': 10,
+  };
+  const skills = [];
+  const personSkills = [];
+  const skillEvidence = [];
+  const skillIndex = new Map();
+  let skillSeq = 0;
+  let psSeq = 0;
+  let evSeq = 0;
+  const pad = (n) => String(n).padStart(12, '0');
+  for (const c of candidates) {
+    for (const name of c.skills || []) {
+      const key = name.trim().toLowerCase();
+      if (!key) continue;
+      if (!skillIndex.has(key)) {
+        skillSeq += 1;
+        const row = {
+          id: `d0000000-0000-4000-8000-${pad(skillSeq)}`,
+          name: name.trim(),
+          domain: domainOf(name.trim()),
+          aliases: [],
+          notes: '',
+          created: dateAgo(300),
+        };
+        skills.push(row);
+        skillIndex.set(key, row);
+      }
+      const skill = skillIndex.get(key);
+      const detail = (c.skillsDetail || []).find(
+        (d) => (d.skill || '').trim().toLowerCase() === key,
+      );
+      const proficiency = detail?.proficiency || 'Exposure';
+      const evidenceType =
+        detail?.evidence && detail.evidence !== 'Unverified' ? detail.evidence : 'Self-declared';
+      psSeq += 1;
+      const ps = {
+        id: `e0000000-0000-4000-8000-${pad(psSeq)}`,
+        candidateId: c.id,
+        skillId: skill.id,
+        proficiency,
+        years: detail?.years ?? null,
+        lastUsed: detail?.lastUsed ?? null,
+        confidence: Math.min(100, EV_WEIGHT[evidenceType] || 0),
+        validated: (EV_WEIGHT[evidenceType] || 0) >= 70,
+        evidenceCount: 1,
+        lastEvidence: c.verified || dateAgo(60),
+        created: c.created || dateAgo(120),
+      };
+      personSkills.push(ps);
+      evSeq += 1;
+      skillEvidence.push({
+        id: `f0000000-0000-4000-8000-${pad(evSeq)}`,
+        personSkillId: ps.id,
+        evidenceType,
+        proficiency,
+        years: detail?.years ?? null,
+        lastUsed: detail?.lastUsed ?? null,
+        evidenceRef: '',
+        assessor: evidenceType === 'Assessment' ? 'Priya Raman' : '',
+        note: '',
+        date: stampAgo(60),
+      });
+    }
+  }
+
   const departments = [
     {
       id: 'c0000000-0000-4000-8000-000000000001',
@@ -1108,5 +1183,8 @@ export function makeSeed() {
     clients,
     clientContacts,
     departments,
+    skills,
+    personSkills,
+    skillEvidence,
   };
 }

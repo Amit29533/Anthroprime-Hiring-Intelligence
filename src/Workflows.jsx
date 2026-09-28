@@ -31,6 +31,7 @@ import {
 } from './ui.jsx';
 import { Members } from './Members.jsx';
 import { DepartmentsPanel, CareersSeoPanel } from './Requisitions.jsx';
+import { SkillInventoryPanel } from './Skills.jsx';
 import {
   uid,
   today,
@@ -1491,6 +1492,10 @@ export function Analytics({ data, navigate }) {
         />
       </div>
       <div className="analytics-grid">
+        <SkillInventoryPanel
+          data={data}
+          onOpenCandidate={(id) => navigate('Candidates', { personId: id })}
+        />
         <section className="panel">
           <PanelHeading
             title="Skill inventory"

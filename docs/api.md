@@ -216,3 +216,18 @@ a report always reflects the repository as it is now. Access control is not in t
 report is evaluated client-side against rows the reader's own RLS already allowed them to load,
 and `src/reports.js` additionally withholds admin-only fields from non-admin readers. `owner`
 therefore grants nothing — do not treat it as a permission.
+
+## Skills model (migration 025)
+
+Three tables join both sync RPCs: `skills`, `personSkills`, `skillEvidence`.
+
+| Table           | Writable?                                                                       |
+| --------------- | --------------------------------------------------------------------------------- |
+| `skills`        | insert/update by editors; delete revoked                                          |
+| `personSkills`  | insert/update by editors; delete revoked. **Derived** — a trigger overwrites proficiency, confidence, validation, evidenceCount and lastEvidence from the evidence |
+| `skillEvidence` | **insert only.** UPDATE and DELETE are revoked from `authenticated`, like `history` |
+
+`public.skill_evidence_weight(text)` defines what each evidence type is worth (Assessment 100 →
+Self-declared 10); `src/skills.js` mirrors it and a test fails if the two drift. Writing to
+`personSkills` directly is permitted but pointless: the next evidence row recomputes it. Treat the
+evidence as the source of truth and the person-skill as a cache the database maintains.

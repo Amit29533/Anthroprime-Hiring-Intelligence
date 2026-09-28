@@ -28,6 +28,9 @@ export const TABLES = [
   'clientContacts',
   'departments',
   'reports',
+  'skills',
+  'personSkills',
+  'skillEvidence',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -71,6 +74,33 @@ export function normalizeData(data) {
     d.approvedAt = d.approvedAt || null;
     d.approvedTerms = d.approvedTerms || null;
     d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.skills = out.skills || [];
+  for (const s of out.skills) {
+    s.name = s.name || '';
+    s.domain = s.domain || '';
+    s.aliases = Array.isArray(s.aliases) ? s.aliases : [];
+    s.notes = s.notes || '';
+  }
+  out.personSkills = out.personSkills || [];
+  for (const p of out.personSkills) {
+    p.proficiency = p.proficiency || 'Exposure';
+    p.years = p.years == null ? null : Number(p.years);
+    p.lastUsed = p.lastUsed || null;
+    p.confidence = Number(p.confidence) || 0;
+    p.validated = p.validated === true;
+    p.evidenceCount = Number(p.evidenceCount) || 0;
+    p.lastEvidence = p.lastEvidence || null;
+  }
+  out.skillEvidence = out.skillEvidence || [];
+  for (const e of out.skillEvidence) {
+    e.evidenceType = e.evidenceType || 'Self-declared';
+    e.proficiency = e.proficiency || 'Exposure';
+    e.years = e.years == null ? null : Number(e.years);
+    e.lastUsed = e.lastUsed || null;
+    e.evidenceRef = e.evidenceRef || '';
+    e.assessor = e.assessor || '';
+    e.note = e.note || '';
   }
   out.reports = out.reports || [];
   for (const r of out.reports) {

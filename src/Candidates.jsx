@@ -25,6 +25,7 @@ import {
   Modal,
   Avatar,
 } from './ui.jsx';
+import { SkillEvidencePanel } from './Skills.jsx';
 import {
   freshness,
   money,
@@ -1252,6 +1253,13 @@ export function CandidateProfile({
                   </Button>
                 )}
               </div>
+              <SkillEvidencePanel
+                candidate={c}
+                data={data}
+                onSave={onSave}
+                notify={notify}
+                busy={busy}
+              />
               <SkillsEditor candidate={c} onSave={onSave} busy={busy} readOnly={viewer} />
               <DomainSkills c={c} />
               <p className="supporting-text">

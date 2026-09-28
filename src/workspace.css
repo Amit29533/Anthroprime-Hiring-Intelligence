@@ -309,3 +309,20 @@
 .report-total span{font-size:13px;color:#7b919c}
 .report-total small{display:flex;align-items:center;gap:6px;font-size:12px;color:#95a7ae;margin-top:6px;line-height:1.6}
 @media(max-width:1100px){.report-layout{grid-template-columns:1fr}}
+/* --- Batch 21: skills model --- */
+.skill-evidence-list{list-style:none;margin:14px 0 0;padding:0}
+.skill-evidence-list > li{border:1px solid #e5ecee;border-radius:8px;padding:15px 17px;margin-bottom:11px;background:#fff}
+.skill-evidence-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.skill-evidence-head strong{font-size:14.5px;font-weight:600;color:#3b5862}
+.skill-domain{display:block;font-size:11.5px;color:#93a7ae;margin-top:3px}
+.skill-evidence-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.skill-evidence-tags .badge{display:inline-flex;align-items:center;gap:4px}
+.skill-evidence-meta{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:11px;font-size:12px;color:#8a9ca4}
+.skill-evidence-meta > span{display:inline-flex;align-items:center;gap:5px}
+.evidence-timeline{list-style:none;margin:14px 0 0;padding:0 0 0 16px;border-left:2px solid #e3ecee}
+.evidence-timeline li{position:relative;padding:0 0 14px 14px;font-size:13px;color:#5d7780}
+.evidence-timeline li::before{content:'';position:absolute;left:-21px;top:5px;width:8px;height:8px;border-radius:50%;background:#9ec3b4;border:2px solid #fff}
+.evidence-timeline li:last-child{padding-bottom:0}
+.evidence-timeline small{display:block;margin-top:3px;font-size:11.5px;color:#95a7ae}
+.evidence-note{font-style:italic}
+.evidence-form{margin-top:16px;padding-top:16px;border-top:1px dashed #e3eaec}
