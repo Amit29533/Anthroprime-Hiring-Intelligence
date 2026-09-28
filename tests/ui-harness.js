@@ -40,7 +40,7 @@ export async function load(path) {
 
 /** Every component the workspace shell can render, keyed for convenience. */
 export async function loadApp() {
-  const [A, C, D, W, IV, DB, CA, PO, CL, ME, RQ, RP, SK] = await Promise.all([
+  const [A, C, D, W, IV, DB, CA, PO, CL, ME, RQ, RP, SK, RF] = await Promise.all([
     load('/src/App.jsx'),
     load('/src/Candidates.jsx'),
     load('/src/Demands.jsx'),
@@ -54,6 +54,7 @@ export async function loadApp() {
     load('/src/Requisitions.jsx'),
     load('/src/Reports.jsx'),
     load('/src/Skills.jsx'),
+    load('/src/Referrals.jsx'),
   ]);
   return {
     App: A.default,
@@ -79,6 +80,9 @@ export async function loadApp() {
     Login: W.Login,
     DispositionModal: W.DispositionModal,
     Reports: RP.Reports,
+    Referrals: RF.Referrals,
+    ReferralForm: RF.ReferralForm,
+    ConvertReferralModal: RF.ConvertReferralModal,
     SkillEvidencePanel: SK.SkillEvidencePanel,
     SkillInventoryPanel: SK.SkillInventoryPanel,
     Members: ME.Members,

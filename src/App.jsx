@@ -7,6 +7,7 @@ import {
   Layers,
   ClipboardCheck,
   ChartNoAxesCombined,
+  Handshake,
   FileBarChart,
   Settings,
   Search,
@@ -55,6 +56,7 @@ import { Interviews } from './Interviews.jsx';
 import { Clients, ClientForm, ClientDetail, ContactForm } from './Clients.jsx';
 import { DepartmentForm } from './Requisitions.jsx';
 import { Reports } from './Reports.jsx';
+import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -65,6 +67,7 @@ const nav = [
   ['Assessments', ClipboardCheck],
   ['Interviews', CalendarClock],
   ['Activities', Activity],
+  ['Referrals', Handshake],
   ['Analytics', ChartNoAxesCombined],
   ['Reports', FileBarChart],
 ];
@@ -553,6 +556,17 @@ export default function App() {
       />
     );
   else if (page === 'Analytics') content = <Analytics data={data} navigate={navigate} />;
+  else if (page === 'Referrals')
+    content = (
+      <Referrals
+        data={data}
+        onNew={() => setModal({ type: 'referral' })}
+        onEdit={(referral) => setModal({ type: 'referral', referral })}
+        onConvert={(referral) => setModal({ type: 'convertReferral', referral })}
+        onOpenCandidate={setPersonId}
+        busy={busy}
+      />
+    );
   else if (page === 'Reports')
     content = (
       <Reports
@@ -812,6 +826,26 @@ export default function App() {
           data={data}
           onClose={() => setModal(null)}
           onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'referral' && (
+        <ReferralForm
+          referral={modal.referral}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'convertReferral' && (
+        <ConvertReferralModal
+          referral={modal.referral}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          audit={audit}
+          notify={setToast}
           busy={busy}
         />
       )}

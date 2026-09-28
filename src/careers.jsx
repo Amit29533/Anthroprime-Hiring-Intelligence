@@ -227,6 +227,142 @@ function ApplyForm({ role, onDone }) {
   );
 }
 
+/**
+ * Refer someone (Zoho D6). Most employees are not ATS users, so this is how a referral actually
+ * reaches the recruiter. The form insists the referrer confirms they have the person's
+ * permission — that is not consent in the §12 sense, only the referred person can give that,
+ * but it records who asserted it. Nothing is ever read back: the RPC is write-only.
+ */
+function ReferSomeone({ roles }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    referrerName: '',
+    referrerEmail: '',
+    refereeName: '',
+    refereeEmail: '',
+    refereePhone: '',
+    relationship: '',
+    note: '',
+    demandId: '',
+    confirmPermission: false,
+  });
+  const [state, setState] = useState({ busy: false, done: false, error: '' });
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  async function submit(e) {
+    e.preventDefault();
+    setState({ busy: true, done: false, error: '' });
+    try {
+      if (cloud) {
+        const ws =
+          new URLSearchParams(location.search).get('ws') || localStorage.getItem(WS_KEY) || '';
+        const supabase = await getSupabase();
+        const { error } = await supabase.rpc('api_public_refer', { ws, payload: form });
+        if (error) throw error;
+      } else {
+        // Demo mode writes to the same browser store the recruiter app reads.
+        const workspace = await loadData();
+        await saveRows(
+          'referrals',
+          [
+            {
+              ...form,
+              demandId: form.demandId || null,
+              id: crypto.randomUUID(),
+              status: 'New',
+              rewardStatus: 'Not eligible',
+              source: 'Careers page',
+              created: new Date().toISOString().slice(0, 10),
+            },
+          ],
+          workspace,
+        );
+      }
+      setState({ busy: false, done: true, error: '' });
+    } catch (err) {
+      setState({ busy: false, done: false, error: err.message || 'That could not be submitted.' });
+    }
+  }
+
+  if (state.done)
+    return (
+      <section className="careers-refer">
+        <h2>Thank you</h2>
+        <p>
+          Your referral has reached our recruiters. We will contact them directly — and we will not
+          tell them anything about you beyond your name.
+        </p>
+      </section>
+    );
+
+  return (
+    <section className="careers-refer">
+      <h2>Know someone who would fit?</h2>
+      {!open ? (
+        <button className="apply-btn" onClick={() => setOpen(true)}>
+          Refer someone
+        </button>
+      ) : (
+        <form onSubmit={submit}>
+          <div className="careers-form-grid">
+            <label>
+              Your name
+              <input value={form.referrerName} onChange={set('referrerName')} required />
+            </label>
+            <label>
+              Your email
+              <input type="email" value={form.referrerEmail} onChange={set('referrerEmail')} />
+            </label>
+            <label>
+              Their name
+              <input value={form.refereeName} onChange={set('refereeName')} required />
+            </label>
+            <label>
+              Their email
+              <input type="email" value={form.refereeEmail} onChange={set('refereeEmail')} />
+            </label>
+            <label>
+              Their phone
+              <input value={form.refereePhone} onChange={set('refereePhone')} />
+            </label>
+            <label>
+              How do you know them?
+              <input value={form.relationship} onChange={set('relationship')} />
+            </label>
+            <label className="careers-form-wide">
+              Role
+              <select value={form.demandId} onChange={set('demandId')}>
+                <option value="">No specific role</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="careers-form-wide">
+              Why would they be a good fit?
+              <textarea rows={2} value={form.note} onChange={set('note')} />
+            </label>
+          </div>
+          <label className="careers-consent">
+            <input
+              type="checkbox"
+              checked={form.confirmPermission}
+              onChange={(e) => setForm({ ...form, confirmPermission: e.target.checked })}
+            />
+            I have asked them, and they are happy for us to get in touch.
+          </label>
+          {state.error && <p className="form-error">{state.error}</p>}
+          <button className="apply-btn" disabled={state.busy || !form.confirmPermission}>
+            {state.busy ? 'Sending…' : 'Send referral'}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function StatusCheck() {
   const [email, setEmail] = useState('');
   const [statusCode, setStatusCode] = useState('');
@@ -484,6 +620,7 @@ export function CareersApp() {
           ))}
         </div>
       </main>
+      <ReferSomeone roles={roles} />
       <StatusCheck />
       <footer className="careers-footer">
         <span>AnthroPrime · ECOD Talent Intelligence</span>

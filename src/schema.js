@@ -31,6 +31,7 @@ export const TABLES = [
   'skills',
   'personSkills',
   'skillEvidence',
+  'referrals',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -74,6 +75,25 @@ export function normalizeData(data) {
     d.approvedAt = d.approvedAt || null;
     d.approvedTerms = d.approvedTerms || null;
     d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.referrals = out.referrals || [];
+  for (const r of out.referrals) {
+    r.referrerName = r.referrerName || '';
+    r.referrerEmail = r.referrerEmail || '';
+    r.referrerType = r.referrerType || 'Employee';
+    r.refereeName = r.refereeName || '';
+    r.refereeEmail = r.refereeEmail || '';
+    r.refereePhone = r.refereePhone || '';
+    r.refereeLinkedin = r.refereeLinkedin || '';
+    r.relationship = r.relationship || '';
+    r.note = r.note || '';
+    r.demandId = r.demandId || null;
+    r.candidateId = r.candidateId || null;
+    r.status = r.status || 'New';
+    r.outcome = r.outcome || '';
+    r.rewardStatus = r.rewardStatus || 'Not eligible';
+    r.rewardNote = r.rewardNote || '';
+    r.source = r.source || 'In-app';
   }
   out.skills = out.skills || [];
   for (const s of out.skills) {

@@ -41,7 +41,10 @@ export async function loadData() {
   if (!cloud) {
     currentRole = 'admin';
     const stored = localStorage.getItem(STORAGE);
-    if (!stored) return makeSeed();
+    // Normalize the seed too. makeSeed() only produces the tables it has sample data for, so a
+    // fresh demo workspace was missing the key for any newer table (reports, referrals) and the
+    // first save to one crashed on `current[table]`.
+    if (!stored) return normalizeData(makeSeed());
     let parsed;
     try {
       parsed = JSON.parse(stored);
