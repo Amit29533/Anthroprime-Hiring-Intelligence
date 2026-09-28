@@ -32,6 +32,7 @@ import {
 import { Members } from './Members.jsx';
 import { DepartmentsPanel, CareersSeoPanel } from './Requisitions.jsx';
 import { BrandingPanel } from './Presentation.jsx';
+import { AssignmentPanel } from './Assignment.jsx';
 import { SkillInventoryPanel } from './Skills.jsx';
 import {
   uid,
@@ -1811,7 +1812,7 @@ export function Analytics({ data, navigate }) {
     </>
   );
 }
-export function Settings({ data, session, onReload, notify, audit, onSave, onModal }) {
+export function Settings({ data, session, onReload, notify, audit, onSave, onDelete, onModal }) {
   const viewer = cloud && !canWriteForRole(getRole());
   const [since, setSince] = useState(''),
     [restoreBusy, setRestoreBusy] = useState(false);
@@ -1913,6 +1914,14 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onMod
         />
         <CareersSeoPanel data={data} notify={notify} />
         <BrandingPanel data={data} onSave={onSave} notify={notify} />
+        <AssignmentPanel
+          data={data}
+          onSave={onSave}
+          onDelete={onDelete}
+          onNew={() => onModal?.({ type: 'assignmentRule' })}
+          onEdit={(rule) => onModal?.({ type: 'assignmentRule', rule })}
+          notify={notify}
+        />
         <section className="panel">
           <PanelHeading title="Workspace capabilities" />
           <div className="settings-body">

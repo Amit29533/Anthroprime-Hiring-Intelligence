@@ -33,6 +33,7 @@ export const TABLES = [
   'skillEvidence',
   'referrals',
   'interviewSlots',
+  'assignmentRules',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved
@@ -76,6 +77,17 @@ export function normalizeData(data) {
     d.approvedAt = d.approvedAt || null;
     d.approvedTerms = d.approvedTerms || null;
     d.submittedForApprovalAt = d.submittedForApprovalAt || null;
+  }
+  out.assignmentRules = out.assignmentRules || [];
+  for (const r of out.assignmentRules) {
+    r.name = r.name || '';
+    r.entity = r.entity || 'candidates';
+    r.field = r.field || 'source';
+    r.op = r.op || 'eq';
+    r.value = r.value || '';
+    r.assignTo = r.assignTo || '';
+    r.priority = Number(r.priority) || 100;
+    r.enabled = r.enabled !== false;
   }
   out.interviewSlots = out.interviewSlots || [];
   for (const s of out.interviewSlots) {

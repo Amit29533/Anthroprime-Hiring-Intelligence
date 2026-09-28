@@ -144,7 +144,7 @@ export async function saveRows(table, rows, current) {
  * repository records are never deletable from the product, because history and audit depend on
  * them existing. A saved report is disposable metadata, so it is.
  */
-export const DELETABLE_TABLES = ['reports'];
+export const DELETABLE_TABLES = ['reports', 'assignmentRules'];
 
 export async function deleteRows(table, ids, current) {
   if (!DELETABLE_TABLES.includes(table))

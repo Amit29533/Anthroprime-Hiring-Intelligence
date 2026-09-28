@@ -56,6 +56,8 @@ import { DepartmentForm } from './Requisitions.jsx';
 import { Reports } from './Reports.jsx';
 import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
+import { AssignmentRuleForm } from './Assignment.jsx';
+import { applyAssignment } from './assignment.js';
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -263,6 +265,24 @@ export default function App() {
     saving.current = true;
     setBusy(true);
     const before = rows.map((r) => dataRef.current[table].find((x) => x.id === r.id) || null);
+    // Assignment rules (Phase D) fill an empty owner as a record is created. They only ever act
+    // on rows that are genuinely new and genuinely unowned, so an existing owner is never moved.
+    let assignedBy = '';
+    if (table === 'candidates' || table === 'demands') {
+      const fresh = rows.filter((r, i) => !before[i]);
+      const assigned = applyAssignment(dataRef.current, table, fresh);
+      if (assigned.length) {
+        assignedBy = assigned[0]._rule;
+        rows = rows.map((r) => {
+          const hit = assigned.find((a) => a.id === r.id);
+          if (!hit) return r;
+          // `_rule` is annotation for the toast, not a column — strip it before saving.
+          const row = { ...hit };
+          delete row._rule;
+          return row;
+        });
+      }
+    }
     let ok = false;
     try {
       const result = await saveRows(table, rows, dataRef.current);
@@ -276,7 +296,13 @@ export default function App() {
       };
       dataRef.current = next;
       setData(next);
-      setToast(rows.length > 1 ? `${rows.length} records saved.` : 'Saved to your repository.');
+      setToast(
+        assignedBy
+          ? `Saved and assigned by “${assignedBy}”.`
+          : rows.length > 1
+            ? `${rows.length} records saved.`
+            : 'Saved to your repository.',
+      );
       ok = true;
     } catch (e) {
       let message = e.message;
@@ -600,6 +626,7 @@ export default function App() {
         notify={setToast}
         audit={audit}
         onSave={save}
+        onDelete={remove}
         onModal={setModal}
       />
     );
@@ -828,6 +855,15 @@ export default function App() {
         <ContactForm
           contact={modal.contact}
           clientId={modal.clientId}
+          data={data}
+          onClose={() => setModal(null)}
+          onSave={save}
+          busy={busy}
+        />
+      )}
+      {modal?.type === 'assignmentRule' && (
+        <AssignmentRuleForm
+          rule={modal.rule}
           data={data}
           onClose={() => setModal(null)}
           onSave={save}

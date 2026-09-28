@@ -704,7 +704,10 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
       email: form.email.trim().toLowerCase(),
       skills: skillList(skills),
       created: form.created || today(),
-      owner: form.owner || 'Recruiter',
+      // Deliberately left empty rather than defaulted to a placeholder like "Recruiter". A
+      // fake owner makes "assigned to me" meaningless and stops assignment rules from ever
+      // firing, because a rule only fills an owner that is genuinely absent.
+      owner: form.owner || '',
     };
     for (const k of ['experience', 'relevantExperience', 'notice', 'current', 'expected'])
       c[k] = form[k] === '' || form[k] == null ? null : Number(form[k]);
