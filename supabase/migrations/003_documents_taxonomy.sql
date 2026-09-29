@@ -1,6 +1,6 @@
 -- ECOD blueprint R1 batch 2. Apply AFTER 001_ecod.sql and 002_blueprint_r1.sql.
--- Adds: CV/document metadata (originals live in a PRIVATE Supabase Storage bucket named
--- "documents" — create it in Storage → New bucket → Private), workspace skill-taxonomy
+-- Adds: CV/document metadata (the original-file provider is added in migration 030),
+-- workspace skill-taxonomy
 -- extensions (§6), the gap-map linkage columns on assessments/enrichment (§3 stage 4).
 begin;
 alter table public.assessments add column if not exists skill text;

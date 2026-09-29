@@ -21,7 +21,7 @@ Open the URL shown by Vite. Without database configuration, the app opens with *
 - Structured employment, compensation and availability histories: automatic snapshots when employer, CTC, notice, earliest start or registry status change, plus manual role entry on the candidate profile.
 - Candidate engagement preference (Permanent/Contract/C2H/Subcontract), registry status (Active/Passive), earliest start date, and demand engagement-type constraints with explicit mismatch flags.
 - Data-quality queues (missing email/phone, unvalidated skills, stale compensation/availability) and blueprint velocity metrics (average time to shortlist).
-- CV and document uploads (PDF/DOCX/TXT/MD/CSV up to 5 MB) with allowlist validation, randomized storage names, SHA-256 hashes and best-effort text extraction; DOCX inflation is capped at 1 MiB and malformed/oversized documents fall back to manual review. Cloud mode stores originals in a private Supabase Storage bucket, demo mode keeps small files in the browser.
+- CV and document uploads (PDF/DOCX/TXT/MD/CSV up to 5 MB) with allowlist validation, randomized workspace-scoped object names, SHA-256 hashes and best-effort text extraction; DOCX inflation is capped at 1 MiB and malformed/oversized documents fall back to manual review. Cloud mode stores new originals in private Cloudflare R2 through authenticated Netlify Functions and five-minute signed URLs; existing Supabase Storage records remain readable during migration. Demo mode keeps small files in the browser.
 - CV bulk import: drop multiple CVs, review each parsed draft (name, contact, title, years, skills with CV evidence), skip flagged duplicates, import profiles with their originals attached.
 - Demand-vs-candidate gap map with critical/trainable/contextual classification, derived status (Open / Enrichment planned / Closed via recent assessments) and one-click enrichment planning; skill gap heatmap across open demands in Analytics.
 - Merge-duplicate review in Workspace settings: probable pairs (email, phone, LinkedIn, name plus employer/location), field-by-field keep decisions, skills evidence combined to the stronger record, duplicate hidden (flagged, never auto-deleted), child records re-pointed.
@@ -105,7 +105,7 @@ Alternatively, build locally and upload the contents of `dist` using Netlify's m
 Static hosting does not itself store team records. Configure a separate Supabase project:
 
 1. Create a new Supabase project in your chosen region.
-2. Apply every migration in ascending numeric order, through `029_placements.sql`; do not skip a file.
+2. Apply every migration in ascending numeric order, through `030_document_storage_provider.sql`; do not skip a file.
    Every migration is safe to re-run: re-applying the whole chain in order is a no-op, so if you are unsure
    which files you have already run, run them all again rather than guessing.
    - `001_ecod.sql` — core tables, workspace membership, RLS, constraints and append-only history.
@@ -126,7 +126,6 @@ Static hosting does not itself store team records. Configure a separate Supabase
    - `016_portal_clearable_preferences.sql` — makes blank portal preferences clear to SQL `NULL` and validates notice/availability values server-side.
    - `017_complete_incremental_feed.sql` — makes the change feed cover every workspace table, tracks auxiliary updates, paginates across all tables, and permits consideration-stage automation rules.
    - `018_public_careers_isolation.sql` — revokes anonymous demand-table reads, adds explicit per-role publication, scopes public listings to a workspace and safe columns, and enforces consent/open-role checks on applications.
-   - `029_placements.sql` — first-class placement/deployment records, admin-only commercial outcomes, tenant integrity, audit history and incremental-sync feeds.
    - `019_private_application_status.sql` — replaces email-only status lookup with a private per-application code and returns that code only to the applicant on successful apply.
    - `020_clients_contacts.sql` — client account and contact records, demand/submission links and their incremental-sync coverage.
    - `021_user_administration.sql` — workspace invitations, admin-only membership RPCs with a last-administrator guard, and an `auth.users` sign-up trigger that redeems invitations. Run this file as the `postgres` role (the Supabase SQL editor does), because it creates a trigger on `auth.users`.
@@ -137,11 +136,13 @@ Static hosting does not itself store team records. Configure a separate Supabase
    - `026_referrals.sql` — referral records and the write-only anonymous referral RPC for the careers page.
    - `027_interview_slots.sql` — published interviewer availability and the atomic candidate self-booking RPC.
    - `028_assignment_rules.sql` — admin-only routing rules that fill the owner on new records.
-     Also create a **private** Storage bucket named `documents` (Storage → New bucket).
+   - `029_placements.sql` — first-class placement/deployment records, admin-only commercial outcomes, tenant integrity, audit history and incremental-sync feeds.
+   - `030_document_storage_provider.sql` — records whether each original is in legacy Supabase Storage or Cloudflare R2 and persists upload status/errors.
 3. Create the first user in Supabase Authentication. The app intentionally has no public sign-up flow.
 4. Edit the placeholder email in `supabase/PROVISION_WORKSPACE.sql`, then execute it to create the workspace and its first administrator. After that, add colleagues from **Workspace settings → Users & roles** rather than in SQL: invite an address, and access is granted the moment that person signs in or signs up. Each account belongs to one workspace in this release, and the database refuses any change that would leave the workspace without an administrator.
 5. Retrieve the workspace UUID in the SQL Editor with `select w.id from public.workspaces w join public.memberships m on m.workspace_id=w.id join auth.users u on u.id=m.user_id where u.email='YOUR_ADMIN_EMAIL' and m.role='admin';`, then share the careers page as `/careers.html?ws=<workspace-uuid>`. Roles are private by default—including pre-existing roles after migration 018—and become visible only when a recruiter checks **Publish this role on the public careers page** on the demand form. Applications submitted before migration 019 get database codes that were not shown to applicants; handle their status requests through a verified channel.
-6. Set these **build-time** variables in Netlify:
+6. Create and secure the Cloudflare R2 bucket by following [`docs/R2_SETUP.md`](docs/R2_SETUP.md).
+7. Set these browser build variables in Netlify:
 
    ```text
    VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
@@ -150,10 +151,11 @@ Static hosting does not itself store team records. Configure a separate Supabase
 
    Use the public key only. Never put a service-role or secret key in a `VITE_` variable; those values are embedded in browser assets. RLS protects records.
 
-7. Rebuild and deploy. The app now requires sign-in and opens an empty shared repository. Import your data deliberately after verifying your deployment's access controls. Changing environment variables requires a new build; it does not change an already-built demo zip.
-8. Sign in with two team accounts to verify shared writes; sign out and verify records are unavailable. Use the refresh control in Workspace settings to fetch changes from other users. This release does not provide realtime collaboration or conflict resolution; concurrent edits use last-write-wins.
+8. Set the server-only Supabase and R2 variables listed in `docs/R2_SETUP.md`. R2 credentials must never use a `VITE_` prefix.
+9. Rebuild and deploy. The app now requires sign-in and opens an empty shared repository. Import your data deliberately after verifying your deployment's access controls. Changing environment variables requires a new build; it does not change an already-built demo zip.
+10. Sign in with an admin/recruiter and verify upload/open. Then sign in as a viewer: opening an existing CV should work, while upload remains unavailable. Sign out and verify records and documents are unavailable.
 
-For local cloud testing, copy `.env.example` to `.env.local`, populate both variables and restart Vite. Local `.env` files are ignored by Git.
+For local cloud testing, copy `.env.example` to `.env.local`, populate the variables, and run `npx netlify-cli dev` so both Vite and the document functions are available. Plain `pnpm dev` still supports demo mode but cannot serve Netlify Functions. Local `.env` files are ignored by Git.
 
 ## Matching model
 
@@ -181,9 +183,9 @@ npx pnpm@11.25.0 format:check # Prettier verification across source and tests
 npx pnpm@11.25.0 build      # Vite production bundle
 ```
 
-The current suite has **191 passing tests**. It covers the matching and validation core, CSV/CV parsing, duplicate handling, history, consent, submissions, offers, workflow rules, analytics, document processing, backup/restore and templates; it also drives the real React shell through candidate/demand journeys, public careers and candidate portals, interviews and offers, CSV import, automation, assessments, enrichment plans, talent pools and workspace settings. Cloud-configured UI tests verify that viewers can inspect records while mutation, restore and export controls are hidden or disabled. Cloud-mode careers tests exercise the scoped listing, application and private-code status RPC payloads against the mocked Supabase HTTP boundary; another cloud journey confirms that a `23505` import conflict reloads the workspace and reclassifies the row. UI tests assert the records actually persisted, not only that a page rendered.
+The current suite has **554 passing tests**. It covers the matching and validation core, CSV/CV parsing, duplicate handling, history, consent, submissions, offers, workflow rules, analytics, document processing, R2 authorization/signing, backup/restore and templates; it also drives the real React shell through candidate/demand journeys, public careers and candidate portals, interviews and offers, CSV import, automation, assessments, enrichment plans, talent pools and workspace settings. Cloud-configured UI tests verify that viewers can inspect records while mutation, restore and export controls are hidden or disabled. Cloud-mode careers tests exercise the scoped listing, application and private-code status RPC payloads against the mocked Supabase HTTP boundary; another cloud journey confirms that a `23505` import conflict reloads the workspace and reclassifies the row. UI tests assert the records actually persisted, not only that a page rendered.
 
-Migration-specific PGlite integration tests apply the SQL chain through migration 025 and verify workspace isolation, role permissions, foreign-key boundaries, audit/history, candidate portal whitelisting and clearable preferences, offer approval identity/term integrity, complete approval-aware incremental sync, public careers tenant isolation, field projection, consent/role eligibility, private status-token enforcement, client-account integrity and cascade behaviour, membership administration (admin-only RPCs, the last-administrator guard, invitation redemption at sign-up and the membership audit trail), requisition approval (admin-only decisions, server-generated stamps, term-snapshot invalidation and the opt-in publish gate), the anonymous careers projection after it was widened for structured data, saved reports (tenant scoping, editor-only delete, unique names and the absence of any result cache), and the skills model (append-only evidence, trigger-derived proficiency and the legacy back-fill run against real pre-migration rows). This exercises PostgreSQL behavior locally; it does not substitute for testing Supabase Auth, Storage and PostgREST against your provisioned cloud project.
+Migration-specific PGlite integration tests apply the SQL chain through migration 030 and verify workspace isolation, role permissions, foreign-key boundaries, audit/history, candidate portal whitelisting and clearable preferences, offer approval identity/term integrity, complete approval-aware incremental sync, public careers tenant isolation, field projection, consent/role eligibility, private status-token enforcement, client-account integrity and cascade behaviour, membership administration (admin-only RPCs, the last-administrator guard, invitation redemption at sign-up and the membership audit trail), requisition approval (admin-only decisions, server-generated stamps, term-snapshot invalidation and the opt-in publish gate), the anonymous careers projection after it was widened for structured data, saved reports, the skills model, referrals, interview slots, assignment rules, placements and the R2 storage-provider backfill. This exercises PostgreSQL behavior locally; it does not substitute for testing Supabase Auth, Cloudflare R2 and PostgREST against provisioned cloud projects.
 
 The browser workflow was exercised with fictional profiles: create/search, import duplicates and invalid rows, edit/history, JD-to-demand matching, shortlist, pipeline transition and reload persistence. See `docs/QA.md` for the verification record.
 
