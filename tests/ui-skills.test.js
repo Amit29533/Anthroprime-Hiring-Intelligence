@@ -3,7 +3,16 @@
 // was there before.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, screen, cleanup, stopVite, settle, createHarness } from './ui-harness.js';
+import {
+  loadApp,
+  mount,
+  screen,
+  cleanup,
+  stopVite,
+  settle,
+  createHarness,
+  click,
+} from './ui-harness.js';
 import { press, type, choose, allText } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { normalizeData } from '../src/schema.js';
@@ -117,7 +126,7 @@ test('a weaker new claim does not downgrade a stronger existing one', async () =
   const links = [...document.querySelectorAll('.text-link')].filter(
     (b) => b.textContent === 'Add evidence',
   );
-  links[0].click();
+  await click(links[0]);
   await settle(2);
   await choose('Evidence type', 'Self-declared');
   await choose('Proficiency demonstrated', 'Expert');
@@ -202,7 +211,7 @@ test('the skill inventory summarises the bench and queues weak claims', async ()
 
   const link = document.querySelector('.client-list .text-link');
   if (link) {
-    link.click();
+    await click(link);
     await settle(2);
     assert.equal(opened.length, 1, 'a queued claim opens the candidate');
   }

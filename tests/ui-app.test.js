@@ -506,7 +506,7 @@ test('marking a consideration rejected requires a structured reason', async () =
   await navTo('Pipeline');
   const select = allLabelled('Stage for ')[0];
   await change(select, 'Rejected');
-  await settle();
+  await screen.findByText(/Mark as rejected/i, {}, { timeout: 10000 });
   assert.ok(
     screen.getByText(/Mark as rejected/i),
     'the disposition dialog opens rather than saving silently',

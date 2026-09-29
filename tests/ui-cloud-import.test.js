@@ -106,8 +106,9 @@ afterEach(() => cleanup());
 
 test('a cloud unique-index conflict reloads candidates and reclassifies the CSV row', async () => {
   await mount(M.App, {});
-  await settle(8);
-  assert.ok(screen.getByRole('heading', { name: 'Good to have you here.' }));
+  assert.ok(
+    await screen.findByRole('heading', { name: 'Good to have you here.' }, { timeout: 30000 }),
+  );
 
   await type('Work email', EMAIL);
   await type('Password', 'not-a-real-password');

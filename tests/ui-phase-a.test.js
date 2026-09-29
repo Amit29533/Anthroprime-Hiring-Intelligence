@@ -6,6 +6,7 @@ import { loadApp, mount, screen, cleanup, stopVite, settle, act, fireEvent } fro
 import { navTo, allText } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { normalizeData } from '../src/schema.js';
+import { today } from '../src/domain.js';
 
 let M;
 test.before(async () => {
@@ -17,8 +18,12 @@ test.after(async () => {
 });
 afterEach(() => cleanup());
 
-const NOW = new Date('2026-09-28T09:00:00Z').getTime();
-const day = (o) => new Date(NOW + o * 86400000).toISOString().slice(0, 10);
+const day = (offset) => {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + offset);
+  return today(date);
+};
 
 async function boot(seed) {
   localStorage.removeItem('ecod-demo-v1');
@@ -114,7 +119,7 @@ test('the bell reports work that is actually due, and navigates to it', async ()
   await act(async () => {
     fireEvent.click(document.querySelector('.bell-wrap button'));
   });
-  await settle(2);
+  await screen.findByText(/1 overdue task/, {}, { timeout: 30000 });
   assert.ok(allText(/1 overdue task/).length, 'the panel names what is wrong');
   assert.ok(allText(/1 task due today/).length);
 
@@ -124,7 +129,7 @@ test('the bell reports work that is actually due, and navigates to it', async ()
   await act(async () => {
     fireEvent.click(item);
   });
-  await settle(4);
+  await screen.findByText('Every conversation counts.', { selector: 'h1' }, { timeout: 30000 });
   assert.ok(screen.getByText('Every conversation counts.'), 'it took us to Activities');
   cleanup();
 });
