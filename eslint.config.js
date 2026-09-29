@@ -9,7 +9,12 @@ export default [
   { ignores: ['dist/**', 'node_modules/**', 'releases/**', 'artifacts/**'] },
   js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx}', 'tests/**/*.{js,jsx,mjs}', '*.config.js'],
+    files: [
+      'src/**/*.{js,jsx}',
+      'tests/**/*.{js,jsx,mjs}',
+      'netlify/functions/**/*.js',
+      '*.config.js',
+    ],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',

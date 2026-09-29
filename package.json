@@ -12,11 +12,13 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test --test-force-exit tests/*.test.js",
     "test:unit": "node --test --test-force-exit tests/*.test.js",
-    "lint": "eslint src tests",
-    "format": "prettier --write \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\"",
-    "format:check": "prettier --check \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\""
+    "lint": "eslint src tests netlify/functions",
+    "format": "prettier --write \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1141.0",
+    "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@supabase/supabase-js": "^2.57.0",
     "lucide-react": "^0.468.0",
     "papaparse": "^5.5.3",

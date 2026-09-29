@@ -233,18 +233,55 @@ export function buildDocumentRecord({
   };
 }
 
-// Cloud mode: binary goes to the private Supabase Storage bucket; demo keeps small files inline.
+async function storageFunction(name, body) {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error('Your session has expired. Sign in again.');
+  const response = await fetch(`/.netlify/functions/${name}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch {
+    // Keep the stable fallback below for proxy and platform errors that return HTML.
+  }
+  if (!response.ok)
+    throw new Error(payload.error || `Document storage failed (${response.status}).`);
+  return payload;
+}
+
+// Cloud mode: originals go to private Cloudflare R2 through an authenticated, five-minute
+// presigned URL. Demo mode keeps small files inline in this browser.
 export async function persistBinary(record, file) {
   if (!cloud) {
     if (file.size <= DEMO_INLINE_LIMIT) record.dataUrl = await fileToDataUrl(file);
+    record.storageProvider = 'inline';
     record.stored = true;
     return record;
   }
-  const supabase = await getSupabase();
-  const { error } = await supabase.storage.from('documents').upload(record.storagePath, file, {
-    contentType: file.mime || record.mime || 'application/octet-stream',
+  const { uploadUrl, storagePath } = await storageFunction('document-upload-url', {
+    candidateId: record.candidateId,
+    filename: record.name,
+    contentType: record.mime || 'application/octet-stream',
+    size: file.size,
   });
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+  if (!uploadUrl || !storagePath) throw new Error('Document storage did not return an upload URL.');
+  const upload = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': record.mime || 'application/octet-stream' },
+    body: file,
+  });
+  if (!upload.ok) throw new Error(`Document upload failed (${upload.status}).`);
+  record.storagePath = storagePath;
+  record.storageProvider = 'r2';
   record.stored = true;
   return record;
 }
@@ -292,6 +329,14 @@ export function emailBodyText(raw) {
 export async function signedUrlFor(record, ttlSeconds = 300) {
   if (!record) return null;
   if (cloud && record.storagePath) {
+    if (record.storageProvider === 'r2') {
+      const { downloadUrl } = await storageFunction('document-download-url', {
+        documentId: record.id,
+      });
+      return downloadUrl || null;
+    }
+    // Existing installations may already have files in Supabase Storage. Keep those records
+    // readable while every new upload is written to R2.
     const supabase = await getSupabase();
     const { data, error } = await supabase.storage
       .from('documents')
