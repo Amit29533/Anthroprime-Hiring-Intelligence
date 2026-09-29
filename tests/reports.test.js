@@ -522,6 +522,145 @@ test('a recruiter-facing CSV declares the filters that were skipped', () => {
   assert.match(csv, /# Filters skipped for your role: expectedCtc/);
 });
 
+test('a shared report cannot group a recruiter by an admin-only field', () => {
+  const data = people();
+  const shared = report({
+    entity: 'demands',
+    config: { groupBy: 'budget', measure: 'count' },
+  });
+  const result = runReport(data, shared, { isAdmin: false });
+  assert.match(result.error, /groups by a field your role cannot see/i);
+  assert.deepEqual(result.groups, []);
+  assert.equal(result.rows, undefined);
+  assert.equal(JSON.stringify(result).includes('budget'), false);
+  assert.ok(
+    validateReport(shared, { isAdmin: false }).some((problem) => /groups by/i.test(problem)),
+  );
+});
+
+test('placement reports join operational labels and keep commercial reports role- and unit-safe', () => {
+  const data = normalizeData({
+    ...emptyData(),
+    candidates: [
+      { id: 'c1', name: 'Aarav Sharma' },
+      { id: 'c2', name: 'Bhavna Rao' },
+    ],
+    demands: [
+      { id: 'd1', title: 'Platform Engineer', client: 'Acme' },
+      { id: 'd2', title: 'Data Analyst', client: 'Globex' },
+    ],
+    clients: [
+      { id: 'cl1', name: 'Acme' },
+      { id: 'cl2', name: 'Globex' },
+    ],
+    placements: [
+      {
+        id: 'p1',
+        candidateId: 'c1',
+        demandId: 'd1',
+        clientId: 'cl1',
+        status: 'Active',
+        startDate: '2026-01-01',
+        engagementType: 'Permanent',
+        workMode: 'Remote',
+        recruiter: 'Mira',
+        notes: 'must never enter the report projection',
+      },
+      {
+        id: 'p2',
+        candidateId: 'c2',
+        demandId: 'd2',
+        clientId: 'cl2',
+        status: 'Completed',
+        startDate: '2026-02-01',
+        engagementType: 'Contract',
+        workMode: 'Hybrid',
+        recruiter: 'Dev',
+      },
+    ],
+    placementCommercials: [
+      {
+        placementId: 'p1',
+        billRate: 200,
+        costRate: 150,
+        currency: 'INR',
+        basis: 'Annual',
+        billedAmount: 1000,
+        collectedAmount: 800,
+      },
+      {
+        placementId: 'p2',
+        billRate: 300,
+        costRate: 220,
+        currency: 'USD',
+        basis: 'Annual',
+        billedAmount: 500,
+        collectedAmount: 400,
+      },
+    ],
+  });
+
+  const byStatus = report({
+    entity: 'placements',
+    config: { groupBy: 'status', measure: 'count' },
+  });
+  const operational = runReport(data, byStatus, { isAdmin: false });
+  assert.equal(operational.error, undefined);
+  assert.deepEqual(operational.groups.map(({ key, value }) => [key, value]).sort(), [
+    ['Active', 1],
+    ['Completed', 1],
+  ]);
+  assert.equal(operational.rows[0].candidateName, 'Aarav Sharma');
+  assert.equal(operational.rows[0].clientName, 'Acme');
+  assert.equal(operational.rows[0].notes, undefined, 'free-text placement notes are not projected');
+  assert.equal(operational.rows[0].billRate, undefined, 'non-admin rows omit commercial fields');
+  assert.deepEqual(suggestValues(data, 'placements', 'clientName'), ['Acme', 'Globex']);
+  assert.ok(!fieldsFor('placements').some((f) => f.key === 'currency'));
+
+  const collections = report({
+    entity: 'placements',
+    config: { measure: 'sum', measureField: 'collectedAmount' },
+  });
+  assert.match(
+    runReport(data, collections, { isAdmin: true }).error,
+    /multiple or missing currencies.*filter Currency/i,
+    'a cross-currency total is refused rather than numerically misleading',
+  );
+  assert.match(
+    runReport(data, collections, { isAdmin: false }).error,
+    /role cannot see/i,
+    'a recruiter cannot read admin-only collections',
+  );
+
+  const inrCollections = report({
+    entity: 'placements',
+    config: {
+      filters: [{ field: 'currency', operator: 'is', value: 'INR' }],
+      measure: 'sum',
+      measureField: 'collectedAmount',
+    },
+  });
+  const filtered = runReport(data, inrCollections, { isAdmin: true });
+  assert.equal(filtered.total, 800);
+  assert.match(filtered.measureLabel, /Collected amount \(INR\)/);
+
+  const mixedBasis = {
+    ...data,
+    placementCommercials: data.placementCommercials.map((row, index) =>
+      index === 0 ? { ...row, currency: 'INR', basis: 'Hourly' } : row,
+    ),
+  };
+  const rateReport = report({
+    entity: 'placements',
+    config: { measure: 'average', measureField: 'billRate' },
+  });
+  assert.match(
+    runReport(mixedBasis, rateReport, { isAdmin: true }).error,
+    /multiple or missing currencies or billing bases/i,
+  );
+  assert.ok(fieldsFor('placements', { isAdmin: true }).some((f) => f.key === 'marginAmount'));
+});
+
 test('reports run against the real seeded workspace', () => {
   const data = normalizeData(makeSeed());
   const byClient = runReport(data, {

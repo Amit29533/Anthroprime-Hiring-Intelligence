@@ -60,7 +60,7 @@ Trigger a new production deployment after saving the variables.
 
 ## 5. Apply the metadata migration
 
-Run `supabase/migrations/030_document_storage_provider.sql` in the Supabase SQL Editor. Existing rows default to `supabase`, so files already uploaded to the old private bucket continue to open. New uploads are marked `r2`. The migration also adds the persisted upload-result fields required by the document UI.
+Apply migrations in order through `031_serialize_admin_changes.sql` in the Supabase SQL Editor. Migration 030 records each document's storage provider and upload result; migration 031 serializes administrator role/removal changes so concurrent requests cannot bypass the last-admin guard. Existing documents default to `supabase`, so files in the old private bucket continue to open; new uploads are marked `r2`.
 
 Do not remove the old Supabase `documents` bucket until its objects have been migrated and every related metadata row has been updated to `storageProvider = 'r2'` with the new R2 object path.
 

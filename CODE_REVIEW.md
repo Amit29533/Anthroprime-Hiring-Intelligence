@@ -1,6 +1,8 @@
 # Code Review — ECOD Talent Intelligence (AnthroPrime)
 
-Review date: 28 September 2026 · Branch: `arena/01a0e470-anthroprime-hiring-intelligenc` · Baseline commit: `c3072fe`
+Review date: 29 September 2026 · Branch: `arena/01a0ec4b-anthroprime-hiring-intelligenc` · Current commit: `b900137a820ff63b821628cdce2cbb7abe77f15e`
+
+This review includes the baseline findings recorded below and a fresh verification run against the current checkout. The baseline bug descriptions remain historical; remediation status and current results are recorded in §§6–8.
 
 ---
 
@@ -48,15 +50,17 @@ React 19 + Vite 6 SPA (no router — state-driven page switching in App.jsx)
 
 ## 3. Verification (current workspace)
 
-| Command                                      | Result                                                         |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `npx pnpm@11.25.0 install --frozen-lockfile` | ✅ succeeds with the committed lockfile                        |
-| `npx pnpm@11.25.0 test`                      | ✅ **191 / 191 tests pass** (unit, UI and embedded PostgreSQL) |
-| `npx pnpm@11.25.0 lint`                      | ✅ no errors or warnings                                       |
-| `npx pnpm@11.25.0 format:check`              | ✅ all configured source and test files are formatted          |
-| `npx pnpm@11.25.0 build`                     | ✅ production Vite build succeeds                              |
+| Command / check | Result |
+| --- | --- |
+| `npx pnpm@11.25.0 install --frozen-lockfile` | ✅ succeeds with the committed lockfile (Node 22.22.3) |
+| `npx pnpm@11.25.0 test` | ✅ **560 / 560 tests pass** (unit, React/jsdom UI, and embedded PostgreSQL) |
+| `npx pnpm@11.25.0 lint` | ✅ exits cleanly |
+| `npx pnpm@11.25.0 format:check` | ✅ passes after formatting `tests/migration030.test.js`; the initial check caught this one formatting-only issue |
+| `npx pnpm@11.25.0 build` | ✅ production Vite build and bundle budget check pass |
+| `npx pnpm@11.25.0 audit --audit-level=moderate` | ✅ no known dependency vulnerabilities reported |
+| Production preview smoke | ✅ `/`, `/careers.html`, `/portal.html` and all referenced entry assets returned HTTP 200 |
 
-The suite includes real React/jsdom user journeys and PGlite-backed SQL migration tests. Migrations 001–019 have been exercised in sequence by migration-specific suites. This verifies SQL behavior locally; it does not claim a live Supabase Auth, Storage or PostgREST deployment was provisioned or tested.
+The suite includes real React/jsdom user journeys and PGlite-backed PostgreSQL migration tests. The README describes the current breadth of migration tests through migration 031. This verifies database behavior locally; it does not claim a live Supabase Auth, Cloudflare R2, or PostgREST deployment was provisioned or tested.
 
 ## 4. Baseline code quality assessment (before remediation)
 
@@ -138,13 +142,13 @@ The baseline review's functional recommendations are implemented: B1–B9 are re
 
 ## 7. Current verdict
 
-The current workspace has **191 passing tests**, clean ESLint and Prettier checks, and a successful production build. The meaningful launch risks found in the baseline review and subsequent user-flow testing are fixed, and the offer approval and candidate self-service rules are checked at the PostgreSQL boundary as well as in the UI. Viewer controls fail closed while cloud role information is unresolved, and account changes clear the prior workspace from the shell before loading the next one. The repository remains a deliberately scoped first release: the hosted Supabase project itself was not provisioned in this sandbox, so its Auth, Storage network behavior and PostgREST integration still require deployment-level verification. Remaining debt is mostly maintainability and operational scope, listed in §10.
+The current checkout passes **560 / 560 tests**, ESLint, Prettier, and the production build/bundle-budget check. The suite covers the principal user and security perspectives: recruiter CRUD/import/matching/workflows and placement reporting; viewer read-only access; applicant public and self-service portals; and PostgreSQL authorization, tenant boundaries, constraints, audit history, and migrations. Production preview pages and their entry assets previously returned HTTP 200. The audit hardening fixes remain in place: R2 upload URLs bind the validated byte count in SigV4-signed `Content-Length`; membership role/removal RPCs serialize per workspace and recheck current admin authority/counts to protect the last-admin invariant under concurrent calls; and the CSP permits signed R2 `fetch()` uploads. This continuation also fixed a shared-report leak where a non-admin could group by an admin-only field, and adds placement reports with admin-only commercial measures and unit-safe aggregation. No unresolved local data-access or integrity finding remains. One public-deployment abuse risk remains: the anonymous apply/referral RPCs have no application-level CAPTCHA or rate limit, so the public forms can be spammed to create junk rows and database load. Before publishing them, put those writes behind a server-side anti-bot/rate-limited gateway or equivalent provider controls; client-side checks are bypassable. This is not a live cloud sign-off: no hosted Supabase or Cloudflare R2 project was provisioned, so Auth, Storage, PostgREST integration, real role accounts, concurrent-session behavior and production load still require deployment-level verification. Remaining debt is mostly maintainability and operational scope, listed in §10.
 
 ---
 
 ## 8. Remediation log
 
-All baseline functional findings B1–B9 and B10's broken prop wiring are resolved. The current verification is **191 / 191 tests**, ESLint and Prettier clean, and `pnpm build` successful. The remaining maintainability/operational debts are explicit in §10.
+All baseline functional findings B1–B9 and B10's broken prop wiring are resolved. Current checkout verification (29 September 2026): **560 / 560 tests**, ESLint and Prettier clean, production build and bundle budget successful, and dependency audit reports no known vulnerabilities. The production-entrypoint smoke check was completed during the prior verification. The remaining maintainability/operational debts are explicit in §10.
 
 | Ref | Fix                                                                                                                                                                                                                                                                                                                                                                                                          |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -192,6 +196,8 @@ Driving the real components and applying the real migrations in PGlite found def
 
 **U12 — Application status was disclosed to anyone who knew an email address.** The no-account lookup returned pending/accepted/dismissed status on an exact-email match, which is not proof of email ownership and can expose a confidential job search. Migration 019 adds a random per-application status code, returns it to the applicant only on apply, and requires the code together with email and workspace for status lookup. The careers page displays and requests that code; wrong email/code/workspace combinations return no records. Existing applications receive database codes during migration but applicants were not shown them, so README/API docs direct those requests through a verified channel.
 
+**U13 — Shared reports could group by a hidden admin-only field.** `runReport()` already refused hidden measures and dropped hidden filters, but did not check grouping permissions, so a recruiter opening an admin-authored report grouped by budget or compensation could see labels and counts derived from the protected value. `validateReport()` now refuses a non-admin grouping on any `adminOnly` field, and the regression test asserts that no groups or raw rows are returned. The same slice adds placement reporting with a curated placement projection, admin-only commercial fields and rejection of mixed-currency / mixed-billing-basis aggregates.
+
 ### User-flow test suites
 
 | File                             | Coverage                                                                                                                                                                                                                                                                                                                        |
@@ -225,4 +231,26 @@ These are known limitations, not failing tests or undocumented product claims:
 - Search/matching are in-memory and exact location matching does not infer aliases such as Bengaluru/Bangalore. This is documented and adequate for the fictional demo-sized repository.
 - The earlier favicon, duplicate-header and CSV source-row-label observations are resolved: pages use the SVG favicon, Netlify delegates headers/redirects to `public/`, and import previews preserve physical source row numbers.
 - Viewer UI controls are hidden/disabled, app writes and exports use a fail-closed role allowlist, and account changes clear previous workspace state. The database RLS remains the authority; validate these controls against your provisioned project before inviting viewers.
-- Uploads enforce a 5 MB compressed-file cap and a 1 MiB DOCX XML inflation cap; malformed or oversized DOCX extraction falls back to manual review. Server-side malware scanning is still required before production. PGlite executes the migrations locally, but no live Supabase project was provisioned here. Verify Auth, Storage signed URLs, RLS and PostgREST with separate real test accounts before production use; retention automation, SSO/MFA, fair-evaluation masking, backup RPO/RTO and communications integrations remain out of scope.
+- Uploads enforce a 5 MB compressed-file cap at the UI, upload endpoint, and signed R2 request (`Content-Length`); DOCX XML inflation is capped at 1 MiB, and malformed/oversized extraction falls back to manual review. Server-side malware scanning is still required before production. Public careers application/referral RPCs are anonymous and write-only but have no app-level CAPTCHA/rate limit; add an edge/WAF or rate-limited server gateway before publishing to reduce spam/database-abuse risk. PGlite executes migrations locally, but no live Supabase or R2 project was provisioned here. Verify Auth, Storage signed URLs, RLS and PostgREST with separate real test accounts before production use; retention automation, SSO/MFA, fair-evaluation masking, backup RPO/RTO and communications integrations remain out of scope.
+
+## 11. Finding fixed during the 29 September 2026 audit
+
+**R2 presigned uploads did not enforce the advertised size limit at the storage boundary (fixed).**
+
+The upload function validated the caller-supplied `size` before issuing a URL, but the `PutObjectCommand` did not include `ContentLength`. A signed five-minute PUT URL therefore was not bound to that validated byte count: a caller could request a URL claiming a small valid size and upload a larger object, bypassing the 5 MB endpoint/UI check and potentially consuming workspace storage. The function now signs the validated byte count as `ContentLength`, which AWS SigV4 includes in `X-Amz-SignedHeaders`; the object upload must therefore use that exact length. Regression coverage confirms over-limit requests receive no URL and verifies that `content-length` is signed. The browser sends the selected `File` as the request body, whose byte length matches the value supplied to the signing function.
+
+This closes the declared-size bypass, not the separate malware-scanning limitation. R2 upload/download behavior still needs verification against the actual provisioned Cloudflare account and bucket.
+
+## 12. Finding fixed during the continued audit
+
+**Concurrent admin removal/demotion could leave a workspace with no administrator (fixed).**
+
+The `api_set_member_role` and `api_remove_member` RPCs checked the current admin count and then changed membership rows without a per-workspace lock. Two administrators could call concurrently, each observe a count of two, then demote/remove the other and leave zero admins; a caller waiting while its own role was being changed also needed a fresh authorization check.
+
+Migration `031_serialize_admin_changes.sql` takes a row lock on the workspace before the mutation, rechecks the caller's admin role after acquiring the lock, and counts administrators inside the serialized section before demoting/removing an admin. The `migration021` PGlite role-management journeys now apply migration 031; `migration031.test.js` applies the full chain through 031 and checks lock → authority recheck → count ordering in both RPC definitions. The local PGlite test harness uses a single connection, so it validates the serialization protocol and ordinary RPC outcomes rather than simulating two truly concurrent hosted Postgres sessions. A concurrent two-admin integration check remains recommended against a provisioned Supabase project.
+
+## 13. Finding fixed during the continued functional audit
+
+**The production CSP blocked direct R2 uploads (fixed).**
+
+Cloud document uploads use browser `fetch()` to a five-minute presigned URL at `<account-id>.r2.cloudflarestorage.com`. The deployable `connect-src` allowlist originally permitted Supabase but not the R2 host, so a standards-compliant browser would block the upload before the request reached R2. The policy now allows `https://*.r2.cloudflarestorage.com`; the existing bucket CORS policy remains a separate required control. A regression test asserts that the deployable CSP permits both Supabase and R2 while keeping `unsafe-inline`/`unsafe-eval` out of `script-src`.

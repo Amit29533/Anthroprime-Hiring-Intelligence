@@ -157,15 +157,12 @@ test('Batch-24: submissions are validated, and permission must be asserted', asy
     /happy to be contacted/,
     'the referrer must assert they have permission',
   );
-  assert.match(
-    (
-      await refer(
-        { referrerName: 'P', refereeName: 'D', refereeEmail: 'd@e.com', confirmPermission: true },
-        w2,
-      )
-    ).error || '',
-    /unknown workspace|/,
+  const unknownWorkspace = await refer(
+    { referrerName: 'P', refereeName: 'D', refereeEmail: 'd@e.com', confirmPermission: true },
+    '00000000-0000-4000-8000-000000000013',
   );
+  assert.equal(unknownWorkspace.ok, false);
+  assert.match(unknownWorkspace.error, /unknown workspace/);
   // A phone number alone is enough.
   assert.equal(
     (

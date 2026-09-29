@@ -16,9 +16,11 @@ This sequence comes from the 123-item blueprint audit and the current code, not 
 
 ## Phase 2 — Repository depth and reusable operating structures
 
-Build assessment templates, static talent pools, richer configurable fields beyond candidates/demands, agreement/document links on clients and stronger server-side repository filters. Add placement reporting to the report builder. This phase stays within the existing browser + PostgreSQL architecture.
+**Delivered:** placement reporting in the saved report builder. Operational reports join candidate, demand and client names and cover status, dates, engagement, work mode, location and recruiter. Admin-only reports can measure bill/cost rates, derived margin, billed and collected amounts. Mixed-currency commercial aggregates (and mixed-currency or mixed-basis rate aggregates) are rejected; filter to one currency and, for rates, one billing basis before measuring. A shared report with an admin-only grouping field is refused for non-admin readers.
 
-**Exit criteria:** a recruiter can create and reuse an assessment template, curate a static pool without losing the current live-view pools, configure supported fields on the remaining core modules and report on placement status, margin and collections according to role permissions.
+**Remaining:** assessment templates, static talent pools, richer configurable fields beyond candidates/demands, agreement/document links on clients and stronger server-side repository filters. This phase stays within the existing browser + PostgreSQL architecture.
+
+**Exit criteria:** a recruiter can create and reuse an assessment template, curate a static pool without losing the current live-view pools, and configure supported fields on the remaining core modules.
 
 ## Phase 3 — Server execution foundation
 

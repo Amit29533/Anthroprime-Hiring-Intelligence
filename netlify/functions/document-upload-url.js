@@ -66,6 +66,9 @@ export function createUploadHandler({
           Bucket: bucket,
           Key: storagePath,
           ContentType: contentType,
+          // Bind the declared size into SigV4 so a client cannot use a small-size
+          // request to obtain a presigned URL for an arbitrarily large object.
+          ContentLength: size,
           Metadata: {
             workspace: membership.workspace_id,
             candidate: candidateId,

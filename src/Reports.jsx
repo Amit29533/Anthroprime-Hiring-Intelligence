@@ -287,7 +287,10 @@ export function Reports({ data, onSave, onDelete, notify, audit, busy, role = ge
                         onChange={(e) => setFilter(i, { value: e.target.value })}
                       />
                       <datalist id={`report-values-${i}`}>
-                        {(f.field ? suggestValues(data, draft.entity, f.field) : []).map((v) => (
+                        {(f.field
+                          ? suggestValues(data, draft.entity, f.field, 40, { isAdmin })
+                          : []
+                        ).map((v) => (
                           <option key={v} value={v} />
                         ))}
                       </datalist>

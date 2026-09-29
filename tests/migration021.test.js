@@ -25,6 +25,7 @@ const MIGRATIONS = [
   '019_private_application_status.sql',
   '020_clients_contacts.sql',
   '021_user_administration.sql',
+  '031_serialize_admin_changes.sql',
 ];
 
 const admin = '00000000-0000-4000-8000-000000000001';

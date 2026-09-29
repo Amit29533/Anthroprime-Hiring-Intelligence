@@ -1,6 +1,6 @@
 # ECOD public API contract (v1, hosted RPCs)
 
-The workspace exposes hosted PostgreSQL functions (Supabase RPC endpoints). Workspace-data RPCs are security-definer and workspace-scoped; public careers RPCs are deliberately narrow. PGlite migration suites exercise the SQL through migrations 001–019 (`tests/migration*.test.js`). Authenticate with the caller's Supabase JWT where required.
+The workspace exposes hosted PostgreSQL functions (Supabase RPC endpoints). Workspace-data RPCs are security-definer and workspace-scoped; public careers RPCs are deliberately narrow. PGlite migration suites exercise the SQL through migration 031 (`tests/migration*.test.js`). Authenticate with the caller's Supabase JWT where required.
 
 ## `POST /rest/v1/rpc/api_changes_since` — incremental sync (§14 `updated_since`)
 

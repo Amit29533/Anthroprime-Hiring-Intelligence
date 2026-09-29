@@ -95,6 +95,25 @@ export const FIELDS = {
     field('owner', 'Account owner', 'enum'),
     field('created', 'Added on', 'date'),
   ],
+  placements: [
+    field('candidateName', 'Candidate', 'enum'),
+    field('demandTitle', 'Demand', 'enum'),
+    field('clientName', 'Client', 'enum'),
+    field('status', 'Status', 'enum'),
+    field('engagementType', 'Engagement', 'enum'),
+    field('workMode', 'Work mode', 'enum'),
+    field('location', 'Location', 'enum'),
+    field('recruiter', 'Recruiter', 'enum'),
+    field('startDate', 'Start date', 'date'),
+    field('endDate', 'End date', 'date'),
+    field('billRate', 'Bill rate', 'number', { adminOnly: true, unit: 'rate' }),
+    field('costRate', 'Cost rate', 'number', { adminOnly: true, unit: 'rate' }),
+    field('marginAmount', 'Margin amount', 'number', { adminOnly: true, unit: 'rate' }),
+    field('billedAmount', 'Billed amount', 'number', { adminOnly: true, unit: 'money' }),
+    field('collectedAmount', 'Collected amount', 'number', { adminOnly: true, unit: 'money' }),
+    field('currency', 'Currency', 'enum', { adminOnly: true }),
+    field('basis', 'Billing basis', 'enum', { adminOnly: true }),
+  ],
 };
 
 export const ENTITIES = Object.keys(FIELDS);
@@ -106,6 +125,7 @@ export const ENTITY_LABELS = {
   offers: 'Offers',
   considerations: 'Pipeline entries',
   clients: 'Clients',
+  placements: 'Placements',
 };
 
 export const MEASURES = {
@@ -256,6 +276,62 @@ function aggregate(rows, measure, key, type) {
   return null;
 }
 
+/** Report-safe placement projection with names resolved from the existing linked records. */
+function reportRows(data, entity, isAdmin) {
+  if (entity !== 'placements') return data?.[entity] || [];
+
+  const candidates = new Map((data?.candidates || []).map((row) => [row.id, row]));
+  const demands = new Map((data?.demands || []).map((row) => [row.id, row]));
+  const clients = new Map((data?.clients || []).map((row) => [row.id, row]));
+  const commercials = isAdmin
+    ? new Map((data?.placementCommercials || []).map((row) => [row.placementId, row]))
+    : new Map();
+
+  return (data?.placements || []).map((placement) => {
+    const candidate = candidates.get(placement.candidateId);
+    const demand = demands.get(placement.demandId);
+    const client = clients.get(placement.clientId);
+    const row = {
+      id: placement.id,
+      candidateName: candidate?.name || '',
+      demandTitle: demand?.title || '',
+      clientName: client?.name || demand?.client || '',
+      status: placement.status,
+      engagementType: placement.engagementType,
+      workMode: placement.workMode,
+      location: placement.location,
+      recruiter: placement.recruiter,
+      startDate: placement.startDate,
+      endDate: placement.endDate,
+    };
+
+    // Commercials are stored separately with admin-only RLS. Keep the projection role-scoped too
+    // so a future caller cannot accidentally turn a broad in-memory snapshot into a report leak.
+    if (isAdmin) {
+      const commercial = commercials.get(placement.id);
+      const billRate = asNumber(commercial?.billRate);
+      const costRate = asNumber(commercial?.costRate);
+      row.billRate = billRate;
+      row.costRate = costRate;
+      row.marginAmount = billRate === null || costRate === null ? null : billRate - costRate;
+      row.billedAmount = asNumber(commercial?.billedAmount);
+      row.collectedAmount = asNumber(commercial?.collectedAmount);
+      row.currency = commercial?.currency || '';
+      row.basis = commercial?.basis || '';
+    }
+    return row;
+  });
+}
+
+function financialUnitKeys(rows, meta, measureKey) {
+  if (!meta?.unit) return new Set();
+  return new Set(
+    rows
+      .filter((row) => asNumber(row?.[measureKey]) !== null)
+      .map((row) => `${row.currency || ''}${meta.unit === 'rate' ? `/${row.basis || ''}` : ''}`),
+  );
+}
+
 /**
  * Run a report definition. Returns grouped rows when `groupBy` is set, otherwise a single total,
  * plus everything the UI needs to render honestly: which rows were considered, whether a measure
@@ -273,7 +349,7 @@ export function runReport(data, report, { isAdmin = false, now = Date.now } = {}
   const dropped = (config.filters || []).filter((f) => f.field && !allowed.has(f.field));
   const filters = (config.filters || []).filter((f) => f.field && allowed.has(f.field));
 
-  const source = data?.[entity] || [];
+  const source = reportRows(data, entity, isAdmin);
   const rows = source.filter((row) =>
     filters.every((f) => matchesFilter(row, f, findField(entity, f.field))),
   );
@@ -292,13 +368,33 @@ export function runReport(data, report, { isAdmin = false, now = Date.now } = {}
       droppedFilters: dropped.map((f) => f.field),
     };
 
+  const measuredRows = measureMeta?.unit
+    ? rows.filter((row) => asNumber(row?.[measureKey]) !== null)
+    : [];
+  const hasMissingUnit = measuredRows.some(
+    (row) => !row.currency || (measureMeta.unit === 'rate' && !row.basis),
+  );
+  const unitKeys = financialUnitKeys(rows, measureMeta, measureKey);
+  if (hasMissingUnit || unitKeys.size > 1)
+    return {
+      error:
+        measureMeta.unit === 'rate'
+          ? 'This measure spans multiple or missing currencies or billing bases. Filter Currency and Billing basis to a single value before aggregating.'
+          : 'This measure spans multiple or missing currencies. Filter Currency to a single value before aggregating.',
+      groups: [],
+      total: null,
+      considered: rows.length,
+      droppedFilters: dropped.map((f) => f.field),
+    };
+
+  const unitLabel = unitKeys.size === 1 ? ` (${[...unitKeys][0].replace('/', ' / ')})` : '';
   const base = {
     considered: rows.length,
     droppedFilters: dropped.map((f) => f.field),
     measureLabel:
       measure === 'count'
         ? 'Records'
-        : `${MEASURES[measure].label} ${measureMeta?.label || measureKey}`,
+        : `${MEASURES[measure].label} ${measureMeta?.label || measureKey}${unitLabel}`,
     groupLabel: findField(entity, config.groupBy)?.label || '',
     rows,
   };
@@ -377,8 +473,11 @@ export function validateReport(report, { isAdmin = false } = {}) {
   if (!MEASURES[measure]) problems.push('Choose a measure.');
   else if (MEASURES[measure].needsField && !config.measureField)
     problems.push(`Choose the field to ${measure}.`);
-  if (config.groupBy && !findField(report.entity, config.groupBy))
+  const groupMeta = config.groupBy ? findField(report.entity, config.groupBy) : null;
+  if (config.groupBy && !groupMeta)
     problems.push('That grouping field does not exist on this record type.');
+  else if (!isAdmin && groupMeta?.adminOnly)
+    problems.push('This report groups by a field your role cannot see.');
   for (const f of config.filters || []) {
     if (!f.field) continue;
     const meta = findField(report.entity, f.field);
@@ -417,9 +516,9 @@ export function validateReportName(report, reports = [], id = null) {
 }
 
 /** Distinct values for a field, so the builder can offer real choices instead of a blank box. */
-export function suggestValues(data, entity, key, limit = 40) {
+export function suggestValues(data, entity, key, limit = 40, { isAdmin = false } = {}) {
   const seen = new Map();
-  for (const row of data?.[entity] || []) {
+  for (const row of reportRows(data, entity, isAdmin)) {
     const raw = row?.[key];
     const values = Array.isArray(raw) ? raw : [raw];
     for (const v of values) {

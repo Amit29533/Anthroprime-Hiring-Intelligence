@@ -94,6 +94,58 @@ test('grouping produces a table and a chart that agree with each other', async (
   cleanup();
 });
 
+test('placement reports are available and recruiters never get commercial field options', async () => {
+  const data = {
+    ...makeSeed(),
+    reports: [],
+    candidates: [{ id: 'c1', name: 'Aarav Sharma' }],
+    clients: [{ id: 'cl1', name: 'Acme' }],
+    demands: [{ id: 'd1', title: 'Platform Engineer', clientId: 'cl1', client: 'Acme' }],
+    placements: [
+      {
+        id: 'p1',
+        candidateId: 'c1',
+        demandId: 'd1',
+        clientId: 'cl1',
+        status: 'Active',
+        startDate: '2026-01-01',
+        engagementType: 'Permanent',
+        workMode: 'Remote',
+        recruiter: 'Mira',
+      },
+    ],
+    placementCommercials: [
+      {
+        placementId: 'p1',
+        billRate: 200,
+        costRate: 150,
+        currency: 'INR',
+        basis: 'Annual',
+        billedAmount: 1000,
+        collectedAmount: 800,
+      },
+    ],
+  };
+  const harness = harnessWith(data);
+  await builder(harness, { role: 'recruiter' });
+  await choose('About', 'placements');
+  await settle(3);
+  assert.ok(screen.getByText('Placements'), 'placements are a first-class report entity');
+  await choose('Group by', 'status');
+  await settle(3);
+  assert.ok(allText(/Active/).length, 'operational placement status is reportable');
+
+  await choose('Measure', 'sum');
+  await settle(2);
+  const options = [...screen.getByLabelText('Measure field').querySelectorAll('option')].map(
+    (option) => option.value,
+  );
+  assert.ok(!options.includes('billRate'));
+  assert.ok(!options.includes('billedAmount'));
+  assert.ok(!options.includes('collectedAmount'));
+  cleanup();
+});
+
 test('a measure with nothing to measure says so instead of showing zero', async () => {
   const data = normalizeData({ ...makeSeed(), reports: [] });
   // Strip every score, so "average score" genuinely has no data.
