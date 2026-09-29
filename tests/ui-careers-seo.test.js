@@ -2,7 +2,16 @@
 // leak an internal field into <head> where a crawler would read it.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, screen, cleanup, stopVite, settle, createHarness } from './ui-harness.js';
+import {
+  loadApp,
+  mount,
+  screen,
+  cleanup,
+  stopVite,
+  settle,
+  createHarness,
+  click,
+} from './ui-harness.js';
 import { allText } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { normalizeData } from '../src/schema.js';
@@ -97,7 +106,7 @@ test('switching between roles replaces the markup rather than stacking it', asyn
     a.textContent.includes(role.title),
   );
   assert.ok(link, 'each role title is a permalink');
-  link.click();
+  await click(link);
   await settle(4);
   assert.equal(
     document.head.querySelectorAll('[data-careers-seo="jsonld"]').length,
@@ -131,7 +140,7 @@ test('the settings panel reports what is published and builds a sitemap', async 
     b.textContent.includes('Download sitemap.xml'),
   );
   assert.ok(button, 'the sitemap control is available');
-  button.click();
+  await click(button);
   await settle(2);
   assert.equal(files.length, 1);
   assert.equal(files[0].name, 'sitemap.xml');

@@ -11,6 +11,7 @@ import {
   stopVite,
   settle,
   createHarness,
+  click,
 } from './ui-harness.js';
 import { press, type, allText } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
@@ -134,7 +135,7 @@ test('a recruiter cannot enable the compensation disclosure at all', async () =>
 test('an admin can deliberately reveal contact details, and the document changes', async () => {
   await openModal({ role: 'admin' });
   assert.ok(!previewHtml().includes('aarav@personal.example'));
-  toggle('Include contact details').click();
+  await click(toggle('Include contact details'));
   await settle(3);
   assert.ok(previewHtml().includes('aarav@personal.example'), 'the preview updates immediately');
   assert.ok(
@@ -146,7 +147,7 @@ test('an admin can deliberately reveal contact details, and the document changes
 
 test('anonymising rewrites the document, not just the heading', async () => {
   await openModal();
-  toggle('Anonymise').click();
+  await click(toggle('Anonymise'));
   await settle(3);
   const html = previewHtml();
   assert.ok(html.includes('A. S.'), 'initials replace the name');
@@ -262,7 +263,7 @@ test('the profile screen offers the document and opens it', async () => {
     (b) => b.textContent.trim() === 'Client-ready profile',
   );
   assert.ok(button, 'the action is on the candidate profile, where a recruiter works');
-  button.click();
+  await click(button);
   await settle(4);
   assert.ok(document.querySelector('.presentation-preview'), 'the document opens');
   cleanup();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -36,28 +36,51 @@ import { actionsFor, buildActions, AUTOMATION_TABLES } from './automation.js';
 import { uid, today } from './domain.js';
 import { Button, Avatar, IconButton } from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
-import { Candidates, CandidateForm, CandidateProfile } from './Candidates.jsx';
-import { Demands, DemandForm, DemandDetail, Pipeline } from './Demands.jsx';
-import {
-  ImportModal,
-  AssessmentForm,
-  EnrichmentForm,
-  Assessments,
-  Activities,
-  Pools,
-  Analytics,
-  Settings as WorkspaceSettings,
-  Login,
-  DispositionModal,
-} from './Workflows.jsx';
-import { Interviews } from './Interviews.jsx';
-import { Clients, ClientForm, ClientDetail, ContactForm, PlacementForm } from './Clients.jsx';
-import { DepartmentForm } from './Requisitions.jsx';
-import { Reports } from './Reports.jsx';
-import { Referrals, ReferralForm, ConvertReferralModal } from './Referrals.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
-import { AssignmentRuleForm } from './Assignment.jsx';
 import { applyAssignment } from './assignment.js';
+
+// Keep the dashboard fast: each feature area is downloaded only when it is opened. Named-export
+// modules use one shared chunk per source file, so opening a form reuses the page's existing chunk.
+const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })));
+const candidatesModule = () => import('./Candidates.jsx');
+const demandsModule = () => import('./Demands.jsx');
+const workflowsModule = () => import('./Workflows.jsx');
+const clientsModule = () => import('./Clients.jsx');
+const referralsModule = () => import('./Referrals.jsx');
+const Candidates = lazyNamed(candidatesModule, 'Candidates');
+const CandidateForm = lazyNamed(candidatesModule, 'CandidateForm');
+const CandidateProfile = lazyNamed(candidatesModule, 'CandidateProfile');
+const Demands = lazyNamed(demandsModule, 'Demands');
+const DemandForm = lazyNamed(demandsModule, 'DemandForm');
+const DemandDetail = lazyNamed(demandsModule, 'DemandDetail');
+const Pipeline = lazyNamed(demandsModule, 'Pipeline');
+const ImportModal = lazyNamed(workflowsModule, 'ImportModal');
+const AssessmentForm = lazyNamed(workflowsModule, 'AssessmentForm');
+const EnrichmentForm = lazyNamed(workflowsModule, 'EnrichmentForm');
+const Assessments = lazyNamed(workflowsModule, 'Assessments');
+const Activities = lazyNamed(workflowsModule, 'Activities');
+const Pools = lazyNamed(workflowsModule, 'Pools');
+const Analytics = lazyNamed(workflowsModule, 'Analytics');
+const WorkspaceSettings = lazyNamed(workflowsModule, 'Settings');
+const Login = lazyNamed(workflowsModule, 'Login');
+const DispositionModal = lazyNamed(workflowsModule, 'DispositionModal');
+const Interviews = lazyNamed(() => import('./Interviews.jsx'), 'Interviews');
+const Clients = lazyNamed(clientsModule, 'Clients');
+const ClientForm = lazyNamed(clientsModule, 'ClientForm');
+const ClientDetail = lazyNamed(clientsModule, 'ClientDetail');
+const ContactForm = lazyNamed(clientsModule, 'ContactForm');
+const PlacementForm = lazyNamed(clientsModule, 'PlacementForm');
+const DepartmentForm = lazyNamed(() => import('./Requisitions.jsx'), 'DepartmentForm');
+const Reports = lazyNamed(() => import('./Reports.jsx'), 'Reports');
+const Referrals = lazyNamed(referralsModule, 'Referrals');
+const ReferralForm = lazyNamed(referralsModule, 'ReferralForm');
+const ConvertReferralModal = lazyNamed(referralsModule, 'ConvertReferralModal');
+const AssignmentRuleForm = lazyNamed(() => import('./Assignment.jsx'), 'AssignmentRuleForm');
+const featureFallback = (
+  <div className="loading" role="status">
+    <LoaderCircle className="spin" /> Loading feature…
+  </div>
+);
 const nav = [
   ['Overview', LayoutDashboard],
   ['Candidates', Users],
@@ -469,7 +492,12 @@ export default function App() {
         Opening your workspace…
       </div>
     );
-  if (cloud && !session) return <Login />;
+  if (cloud && !session)
+    return (
+      <Suspense fallback={featureFallback}>
+        <Login />
+      </Suspense>
+    );
   let content;
   if (page === 'Overview')
     content = (
@@ -790,7 +818,7 @@ export default function App() {
               )}
             </div>
           ) : (
-            content
+            <Suspense fallback={featureFallback}>{content}</Suspense>
           )}
           <footer className="workspace-footer">
             <span>AnthroPrime · ECOD Talent Intelligence</span>
@@ -810,145 +838,147 @@ export default function App() {
           </button>
         </div>
       )}
-      {person && !modal && (
-        <CandidateProfile
-          candidate={person}
-          data={data}
-          onClose={() => setPersonId(null)}
-          onEdit={(c) => setModal({ type: 'candidate', candidate: c })}
-          onSave={save}
-          onShortlist={shortlist}
-          onAssess={newAssessment}
-          busy={busy}
-          audit={audit}
-          notify={setToast}
-          initialTab={personTab}
-          onTabChange={setPersonTab}
-        />
-      )}
-      {modal?.type === 'candidate' && (
-        <CandidateForm
-          candidate={modal.candidate}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'demand' && (
-        <DemandForm
-          demand={modal.demand}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          onCreated={openDemand}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'client' && (
-        <ClientForm
-          client={modal.client}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          onCreated={openClient}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'contact' && (
-        <ContactForm
-          contact={modal.contact}
-          clientId={modal.clientId}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'placement' && (
-        <PlacementForm
-          placement={modal.placement}
-          clientId={modal.clientId}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'assignmentRule' && (
-        <AssignmentRuleForm
-          rule={modal.rule}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'referral' && (
-        <ReferralForm
-          referral={modal.referral}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'convertReferral' && (
-        <ConvertReferralModal
-          referral={modal.referral}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          audit={audit}
-          notify={setToast}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'department' && (
-        <DepartmentForm
-          department={modal.department}
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'import' && (
-        <ImportModal
-          data={data}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-          notify={setToast}
-        />
-      )}
-      {modal?.type === 'assessment' && (
-        <AssessmentForm
-          data={data}
-          candidateId={modal.candidateId}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'enrichment' && (
-        <EnrichmentForm
-          data={data}
-          preset={modal.preset}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
-      {modal?.type === 'disposition' && (
-        <DispositionModal
-          application={modal.application}
-          stage={modal.stage}
-          onClose={() => setModal(null)}
-          onSave={save}
-          busy={busy}
-        />
-      )}
+      <Suspense fallback={modal || person ? featureFallback : null}>
+        {person && !modal && (
+          <CandidateProfile
+            candidate={person}
+            data={data}
+            onClose={() => setPersonId(null)}
+            onEdit={(c) => setModal({ type: 'candidate', candidate: c })}
+            onSave={save}
+            onShortlist={shortlist}
+            onAssess={newAssessment}
+            busy={busy}
+            audit={audit}
+            notify={setToast}
+            initialTab={personTab}
+            onTabChange={setPersonTab}
+          />
+        )}
+        {modal?.type === 'candidate' && (
+          <CandidateForm
+            candidate={modal.candidate}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'demand' && (
+          <DemandForm
+            demand={modal.demand}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            onCreated={openDemand}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'client' && (
+          <ClientForm
+            client={modal.client}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            onCreated={openClient}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'contact' && (
+          <ContactForm
+            contact={modal.contact}
+            clientId={modal.clientId}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'placement' && (
+          <PlacementForm
+            placement={modal.placement}
+            clientId={modal.clientId}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'assignmentRule' && (
+          <AssignmentRuleForm
+            rule={modal.rule}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'referral' && (
+          <ReferralForm
+            referral={modal.referral}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'convertReferral' && (
+          <ConvertReferralModal
+            referral={modal.referral}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            audit={audit}
+            notify={setToast}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'department' && (
+          <DepartmentForm
+            department={modal.department}
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'import' && (
+          <ImportModal
+            data={data}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+            notify={setToast}
+          />
+        )}
+        {modal?.type === 'assessment' && (
+          <AssessmentForm
+            data={data}
+            candidateId={modal.candidateId}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'enrichment' && (
+          <EnrichmentForm
+            data={data}
+            preset={modal.preset}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+        {modal?.type === 'disposition' && (
+          <DispositionModal
+            application={modal.application}
+            stage={modal.stage}
+            onClose={() => setModal(null)}
+            onSave={save}
+            busy={busy}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

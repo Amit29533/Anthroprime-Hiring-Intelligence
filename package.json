@@ -6,7 +6,8 @@
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-bundle.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
     "release": "node scripts/release.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test --test-force-exit tests/*.test.js",

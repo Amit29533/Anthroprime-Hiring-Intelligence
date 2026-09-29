@@ -8,6 +8,19 @@ import { click, change, settle } from './ui-harness.js';
 
 const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const startsWith = (text) => new RegExp(`^${escapeRe(text)}`);
+const pageHeadings = {
+  Candidates: 'Talent repository',
+  Demands: 'Find the people behind every possibility.',
+  Clients: 'Client accounts',
+  Pipeline: 'Hiring pipeline',
+  'Talent pools': 'A network, organized around possibility.',
+  Assessments: 'Build confidence in every candidate.',
+  Interviews: 'Interviews & offers',
+  Activities: 'Every conversation counts.',
+  Referrals: 'The best hires usually come from someone you know.',
+  Analytics: 'Talent intelligence, in perspective.',
+  Reports: 'Ask your own questions.',
+};
 
 /** The container a user can currently interact with: the open dialog, or the page. */
 export function scope() {
@@ -17,6 +30,27 @@ export function scope() {
   return open || document.body;
 }
 const q = () => within(scope());
+const modalOpeners = new Set([
+  'Add candidate',
+  'Import candidates',
+  'Create demand',
+  'New client',
+  'Record referral',
+  'New offer',
+  'Record outcome',
+  'Schedule interview',
+  'Record assessment',
+  'Enrichment plan',
+]);
+
+// App feature areas are route-split in production. Vite resolves those dynamic imports quickly,
+// but jsdom needs a few event-loop turns before React leaves the Suspense fallback.
+async function settleFeature() {
+  // React can keep the previous screen visible while a lazy module resolves, so the fallback
+  // is not a reliable signal that work is pending. Drain a bounded number of turns after an
+  // action that can cross a feature boundary or open a route-split dialog.
+  for (let i = 0; i < 20; i++) await settle(1);
+}
 
 /** Click a sidebar navigation item and let the page render. */
 export async function navTo(page) {
@@ -27,7 +61,9 @@ export async function navTo(page) {
   );
   assert.ok(button, `navigation item "${page}" exists`);
   await click(button);
-  await settle(2);
+  const heading = pageHeadings[page];
+  if (heading) await q().findByText(heading, { selector: 'h1' }, { timeout: 30000 });
+  else await settleFeature();
   return button;
 }
 
@@ -46,7 +82,18 @@ export async function press(text, index = 0) {
     `a button labelled "${text}" is on screen (found ${matches.length})`,
   );
   await click(matches[index]);
-  await settle(2);
+  if (text === 'Workspace settings')
+    await within(document.body).findByText(
+      'A foundation for better recruiting.',
+      { selector: 'h1' },
+      { timeout: 30000 },
+    );
+  else if (modalOpeners.has(text))
+    await within(document.body).findByRole('dialog', {}, { timeout: 30000 });
+  else {
+    await settle(2);
+    await settleFeature();
+  }
   return matches[index];
 }
 
@@ -96,6 +143,7 @@ export async function submitVia(buttonText) {
   assert.ok(button.closest('form'), `"${buttonText}" lives inside a form`);
   await click(button);
   await settle(4);
+  await settleFeature();
   return button.closest('form');
 }
 

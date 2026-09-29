@@ -96,7 +96,11 @@ async function openSettings() {
   );
   assert.ok(btn, 'workspace settings is reachable from the sidebar');
   await click(btn);
-  await settle(3);
+  await screen.findByText(
+    'A foundation for better recruiting.',
+    { selector: 'h1' },
+    { timeout: 30000 },
+  );
 }
 
 test('a pasted CSV becomes real profiles, with numbers as numbers and skills as a list', async () => {

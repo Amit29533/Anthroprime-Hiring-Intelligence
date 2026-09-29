@@ -3,7 +3,16 @@
 // the prop-wiring and persistence checks that unit tests on clients.js cannot see.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, screen, cleanup, stopVite, settle, createHarness } from './ui-harness.js';
+import {
+  loadApp,
+  mount,
+  screen,
+  cleanup,
+  stopVite,
+  settle,
+  createHarness,
+  click,
+} from './ui-harness.js';
 import { navTo, press, type, choose, submitVia, allText, rowOf, pressIn } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { normalizeData } from '../src/schema.js';
@@ -95,7 +104,7 @@ test('contacts can be added, and promoting a new primary demotes the old one', a
   await type('Email', 'devi.raman@meridian.example');
   const primary = screen.getByLabelText(/Primary contact/i);
   await settle(1);
-  primary.click();
+  await click(primary);
   await settle(1);
   await submitVia('Add contact');
   await settle(2);
@@ -275,7 +284,7 @@ test('an unlinked client name can be adopted into an account in one click', asyn
     b.textContent.includes('Helios Labs'),
   );
   assert.ok(chip, 'the unlinked client name is offered');
-  chip.click();
+  await click(chip);
   await settle(6);
 
   const created = store().clients.find((c) => c.name === 'Helios Labs');

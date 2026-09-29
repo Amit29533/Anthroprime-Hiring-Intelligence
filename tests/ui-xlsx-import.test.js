@@ -126,7 +126,7 @@ test('an Excel workbook reaches the mapping, preview and save pipeline', async (
     /^Import \d+ candidates$/.test(b.textContent.trim()),
   );
   assert.ok(importButton, 'the import button reports how many rows will be written');
-  importButton.click();
+  await act(async () => importButton.click());
   await settle(6);
   const write = writes.find((w) => w.table === 'candidates');
   assert.ok(write, 'the workbook saved through the same path a CSV uses');
