@@ -951,7 +951,6 @@ export default function App() {
             <strong>{page}</strong>
           </div>
           <div className="topbar-actions">
-            <ThemeToggle theme={theme} onChange={setTheme} />
             <GlobalSearch
               data={data}
               isAdmin={getRole() === 'admin'}
@@ -969,6 +968,7 @@ export default function App() {
               isAdmin={getRole() === 'admin'}
               navigate={navigate}
             />
+            <ThemeToggle theme={theme} onChange={setTheme} />
             <Avatar name={userName} size="small" />
           </div>
         </header>

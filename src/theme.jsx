@@ -49,8 +49,7 @@ export function ThemeToggle({ theme, onChange }) {
       aria-label={`Theme: ${theme}. Switch to ${next}`}
       onClick={() => onChange(next)}
     >
-      <Icon size={17} />
-      <span>{theme === 'system' ? 'Auto' : theme === 'dark' ? 'Dark' : 'Light'}</span>
+      <Icon size={18} aria-hidden="true" />
     </button>
   );
 }
