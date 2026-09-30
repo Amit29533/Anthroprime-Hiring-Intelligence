@@ -47,6 +47,30 @@ afterEach(() => cleanup());
 const store = () => JSON.parse(localStorage.getItem('ecod-demo-v1'));
 const putStore = (data) => localStorage.setItem('ecod-demo-v1', JSON.stringify(data));
 
+test('workspace search supports shortcuts, accessible results and clear/dismiss actions', async () => {
+  await boot();
+  const search = screen.getByRole('combobox', { name: 'Search your workspace' });
+  await act(async () => fireEvent.keyDown(document, { key: 'k', ctrlKey: true }));
+  assert.equal(document.activeElement, search);
+  await change(search, 'Aarav');
+  assert.equal(search.getAttribute('aria-expanded'), 'true');
+  assert.ok(screen.getByRole('listbox', { name: 'Search results' }));
+  assert.ok(document.getElementById(search.getAttribute('aria-activedescendant')));
+  await act(async () => fireEvent.keyDown(search, { key: 'Escape' }));
+  assert.equal(search.getAttribute('aria-expanded'), 'false');
+  await act(async () => fireEvent.submit(search.closest('form')));
+  assert.equal(screen.queryByRole('dialog'), null, 'dismissed results cannot be opened by Enter');
+  await act(async () => fireEvent.keyDown(search, { key: 'ArrowDown' }));
+  assert.equal(search.getAttribute('aria-expanded'), 'true');
+  await click(screen.getByRole('button', { name: 'Clear workspace search' }));
+  assert.equal(search.value, '');
+  assert.equal(document.activeElement, search);
+  await press('Create demand');
+  const focused = document.activeElement;
+  await act(async () => fireEvent.keyDown(document, { key: 'k', ctrlKey: true }));
+  assert.equal(document.activeElement, focused, 'shortcut respects an open modal');
+});
+
 test('theme preference cycles, persists and survives reopening the workspace', async () => {
   localStorage.removeItem('ecod-theme-v1');
   await boot();
@@ -60,6 +84,16 @@ test('theme preference cycles, persists and survives reopening the workspace', a
   assert.equal(document.documentElement.dataset.theme, 'light');
   await click(screen.getByRole('button', { name: 'Theme: light. Switch to system' }));
   assert.equal(localStorage.getItem('ecod-theme-v1'), 'system');
+});
+
+test('notification panel can be dismissed with Escape and restores focus', async () => {
+  await boot();
+  const bell = screen.getByRole('button', { name: /items need attention|Nothing needs attention/ });
+  await click(bell);
+  assert.equal(bell.getAttribute('aria-expanded'), 'true');
+  await act(async () => fireEvent.keyDown(document, { key: 'Escape' }));
+  assert.equal(bell.getAttribute('aria-expanded'), 'false');
+  assert.equal(document.activeElement, bell);
 });
 
 test('dashboard work counts open the matching records and the filter can be cleared', async () => {

@@ -37,3 +37,11 @@ Browser inspection checked the mobile dark appearance and desktop layout bounds.
 The complete suite passed **561 tests, with zero failures** (`artifacts/final-full-tests.log`). The focused theme/navigation/work-queue run passed **47 tests** (`artifacts/final-navigation-tests.log`). The production entry remained below its 100 KiB budget. Lint passed. A broader formatting check found existing formatting issues in unrelated source files; those files were not reformatted as part of this functionality review.
 
 Live production Supabase, object-storage credentials, real email delivery and external calendar integrations were not exercised; verification uses the project's local fixtures, UI harness and database migration tests. No deployment was performed. The pre-existing edit to `supabase/PROVISION_WORKSPACE.sql` was preserved.
+
+## Interaction polish — 1 October 2026
+
+Added restrained page and metric entrances, hover feedback on cards, button press feedback, icon movement and dropdown/backdrop transitions. Animations and transitions respect `prefers-reduced-motion` and do not delay access to controls.
+
+Workspace search now supports Ctrl/Command+K (without stealing focus from open dialogs), a clear button, accessible combobox/listbox relationships, active-result scrolling and dismissal with Escape or Tab. Enter cannot open a previously dismissed result. Notification panels close with Escape and return focus to their bell.
+
+Validation: navigation and repository UI regression tests, search/notification behavior tests, lint, production build and bundle budget. Verified the populated search dropdown in the local browser.

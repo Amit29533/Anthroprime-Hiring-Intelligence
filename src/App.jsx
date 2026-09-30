@@ -1022,7 +1022,9 @@ export default function App() {
               )}
             </div>
           ) : (
-            <Suspense fallback={featureFallback}>{content}</Suspense>
+            <div className="page-content" key={page}>
+              <Suspense fallback={featureFallback}>{content}</Suspense>
+            </div>
           )}
           <footer className="workspace-footer">
             <span>AnthroPrime · ECOD Talent Intelligence</span>

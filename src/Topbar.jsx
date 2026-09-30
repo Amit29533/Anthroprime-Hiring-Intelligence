@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Bell, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
+import { Search, Bell, CheckCircle2, X } from 'lucide-react';
 import { IconButton, Badge } from './ui.jsx';
 import { searchWorkspace, groupResults } from './search.js';
 import {
@@ -18,12 +18,37 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const box = useRef(null);
+  const input = useRef(null);
+  const resultsId = useId();
+  const expanded = open && query.trim().length >= 2;
   const results = useMemo(() => searchWorkspace(data, query, { isAdmin }), [data, query, isAdmin]);
   const groups = useMemo(() => groupResults(results), [results]);
 
   useEffect(() => {
     setActive(0);
   }, [query]);
+
+  useEffect(() => {
+    const shortcut = (event) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === 'k' &&
+        !document.querySelector('dialog[open]')
+      ) {
+        event.preventDefault();
+        input.current?.focus();
+        input.current?.select();
+        setOpen(true);
+      }
+    };
+    document.addEventListener('keydown', shortcut);
+    return () => document.removeEventListener('keydown', shortcut);
+  }, []);
+
+  useEffect(() => {
+    if (expanded)
+      box.current?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+  }, [active, expanded]);
 
   // Clicking anywhere else dismisses the panel, as a dropdown should.
   useEffect(() => {
@@ -46,15 +71,19 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
       setOpen(false);
       return;
     }
+    if (e.key === 'Tab') {
+      setOpen(false);
+      return;
+    }
     if (!results.length) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      setOpen(true);
       setActive((i) => Math.min(i + 1, results.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      setOpen(true);
       setActive((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Escape') {
-      setOpen(false);
     }
   }
 
@@ -64,11 +93,18 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
         className="global-search"
         onSubmit={(e) => {
           e.preventDefault();
-          if (results[active]) choose(results[active]);
+          if (expanded && results[active]) choose(results[active]);
         }}
       >
         <Search size={16} />
         <input
+          ref={input}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={expanded}
+          aria-controls={expanded ? resultsId : undefined}
+          aria-activedescendant={expanded && results[active] ? `${resultsId}-${active}` : undefined}
+          aria-keyshortcuts="Control+k Meta+k"
           aria-label="Search your workspace"
           placeholder="Search candidates, demands, clients…"
           value={query}
@@ -79,10 +115,23 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
           }}
           onKeyDown={onKeyDown}
         />
-        <kbd>↵</kbd>
+        {query && (
+          <button
+            type="button"
+            className="search-clear"
+            aria-label="Clear workspace search"
+            onClick={() => {
+              setQuery('');
+              input.current?.focus();
+            }}
+          >
+            <X size={15} aria-hidden="true" />
+          </button>
+        )}
+        <kbd title="Focus search with Ctrl+K or Command+K">⌘ / Ctrl K</kbd>
       </form>
-      {open && query.trim().length >= 2 && (
-        <div className="search-results" role="listbox" aria-label="Search results">
+      {expanded && (
+        <div id={resultsId} className="search-results" role="listbox" aria-label="Search results">
           {results.length === 0 ? (
             <p className="search-empty">No matches for “{query.trim()}”.</p>
           ) : (
@@ -96,6 +145,8 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
                       key={`${item.type}-${item.id}`}
                       type="button"
                       role="option"
+                      id={`${resultsId}-${index}`}
+                      tabIndex={-1}
                       aria-selected={index === active}
                       className={`search-result ${index === active ? 'active' : ''}`}
                       onMouseEnter={() => setActive(index)}
@@ -133,6 +184,18 @@ export function NotificationBell({ data, user, isAdmin, navigate, now = Date.now
 
   useEffect(() => {
     if (!open) return undefined;
+    const escape = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        box.current?.querySelector('button')?.focus();
+      }
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
     const away = (e) => {
       if (box.current && !box.current.contains(e.target)) setOpen(false);
     };
@@ -145,6 +208,7 @@ export function NotificationBell({ data, user, isAdmin, navigate, now = Date.now
       <IconButton
         icon={Bell}
         label={count ? `${count} items need attention` : 'Nothing needs attention'}
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
       />
       {count > 0 && <span className="bell-badge">{count > 99 ? '99+' : count}</span>}
