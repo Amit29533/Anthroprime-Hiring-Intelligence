@@ -50,7 +50,7 @@ const dayStart = (now) => {
 const dayEnd = (now) => dayStart(now) + 86400000 - 1;
 const asTime = (value) => {
   if (!value) return null;
-  const t = new Date(value).getTime();
+  const t = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value).getTime();
   return Number.isNaN(t) ? null : t;
 };
 
@@ -67,7 +67,7 @@ export function myQueue(
   const today = dayEnd(now);
   const startOfToday = dayStart(now);
 
-  const openTasks = (data?.tasks || []).filter((t) => t.status !== 'Done' && mine(t));
+  const openTasks = (data?.tasks || []).filter((t) => !t.done && t.status !== 'Done' && mine(t));
   const overdueTasks = openTasks.filter((t) => {
     const due = asTime(t.due);
     return due !== null && due < startOfToday;

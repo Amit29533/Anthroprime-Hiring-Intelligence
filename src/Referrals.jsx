@@ -221,8 +221,9 @@ export function Referrals({
   onOpenCandidate,
   busy,
   role = getRole(),
+  initialQuery = '',
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [status, setStatus] = useState('All');
   const [reward, setReward] = useState('All');
   const canEdit = canWriteForRole(role);

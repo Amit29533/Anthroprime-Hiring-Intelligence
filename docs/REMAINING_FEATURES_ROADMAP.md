@@ -20,6 +20,10 @@ Build assessment templates, static talent pools, richer configurable fields beyo
 
 **Exit criteria:** a recruiter can create and reuse an assessment template, curate a static pool without losing the current live-view pools, configure supported fields on the remaining core modules and report on placement status, margin and collections according to role permissions.
 
+**Delivered first slice (30 September 2026):** admin-managed weighted assessment templates with versioned evidence and configurable expiry; recruiter-curated static pools with reversible membership and archiving; placement report fields with admin-only commercial measures and currency/billing-basis aggregation guards. Migration 032 enforces these structures and syncs them.
+
+**Still remaining in Phase 2:** configurable fields on additional modules, client agreement/document links and stronger server-side repository filters. Assessment template administration is restricted to admins; recruiters reuse published templates.
+
 ## Phase 3 — Server execution foundation
 
 Introduce an asynchronous job queue and idempotent workers for work that cannot depend on an open browser tab. Move assignment/workflow evaluation behind server entry points and add an outbound email provider for interview invitations, application acknowledgements and scheduled report delivery.

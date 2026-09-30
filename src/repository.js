@@ -160,7 +160,16 @@ export async function loadData() {
           .select('*')
           .order('id')
           .range(from, from + 999);
-        if (error) throw error;
+        if (error) {
+          if (
+            ['assessmentTemplates', 'talentPools', 'poolMembers'].includes(table) &&
+            ['42P01', 'PGRST205'].includes(error.code)
+          )
+            throw new Error(
+              'Apply Supabase migration 032_repository_structures.sql to enable assessment templates and curated pools.',
+            );
+          throw error;
+        }
         data[table].push(...rows);
         if (rows.length < 1000) break;
         from += 1000;

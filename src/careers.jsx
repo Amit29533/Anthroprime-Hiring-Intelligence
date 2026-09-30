@@ -9,7 +9,10 @@ import { cloud, getSupabase, loadData, saveRows } from './repository.js';
 import { makeSeed } from './seed.js';
 import { normalizeData } from './schema.js';
 import { jobPostingJsonLd, jobListJsonLd, pageMeta } from './jobPosting.js';
+import { ThemeToggle, useTheme } from './theme.jsx';
 import './workspace.css';
+import './dark.css';
+import './polish.css';
 
 const WS_KEY = 'ecod-careers-workspace';
 
@@ -510,6 +513,7 @@ export function applyCareersSeo(role, roles, options = {}) {
 }
 
 export function CareersApp() {
+  const [theme, setTheme] = useTheme();
   const { loading, roles, error } = useOpenRoles();
   const [applying, setApplying] = useState(null);
   // A deep link to one role gives that posting its own indexable URL, which is what Google Jobs
@@ -544,6 +548,9 @@ export function CareersApp() {
   }
   return (
     <div className="careers-page">
+      <div className="public-theme">
+        <ThemeToggle theme={theme} onChange={setTheme} />
+      </div>
       <header className="careers-hero">
         <span className="careers-brand">
           AnthroPrime<small>ECOD · TALENT INTELLIGENCE</small>

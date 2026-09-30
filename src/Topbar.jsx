@@ -42,6 +42,10 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
   }
 
   function onKeyDown(e) {
+    if (e.key === 'Escape') {
+      setOpen(false);
+      return;
+    }
     if (!results.length) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();

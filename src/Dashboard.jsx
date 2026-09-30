@@ -90,30 +90,70 @@ export default function Dashboard({
           title="Your work today"
           subtitle={
             unmatched
-              ? 'Nothing is owned by a name matching yours — this shows the whole desk instead.'
+              ? 'Nothing is owned by a name matching yours. Assign owners to build your personal queue.'
               : 'Assigned to you, due now.'
           }
         />
         <div className="my-work-grid">
-          <button className="my-work-cell" onClick={() => navigate('Activities')}>
+          <button
+            className="my-work-cell"
+            onClick={() =>
+              navigate('Activities', {
+                ids: queue.overdueTasks.map((row) => row.id),
+                label: 'your overdue tasks',
+              })
+            }
+          >
             <strong className={queue.overdueTasks.length ? 'text-red' : ''}>
               {queue.overdueTasks.length}
             </strong>
             <span>Overdue</span>
           </button>
-          <button className="my-work-cell" onClick={() => navigate('Activities')}>
+          <button
+            className="my-work-cell"
+            onClick={() =>
+              navigate('Activities', {
+                ids: queue.tasksToday.map((row) => row.id),
+                label: 'your tasks due today',
+              })
+            }
+          >
             <strong>{queue.tasksToday.length}</strong>
             <span>Due today</span>
           </button>
-          <button className="my-work-cell" onClick={() => navigate('Interviews')}>
+          <button
+            className="my-work-cell"
+            onClick={() =>
+              navigate('Interviews', {
+                ids: queue.interviewsToday.map((row) => row.id),
+                label: 'interviews today',
+              })
+            }
+          >
             <strong>{queue.interviewsToday.length}</strong>
             <span>Interviews today</span>
           </button>
-          <button className="my-work-cell" onClick={() => navigate('Demands')}>
+          <button
+            className="my-work-cell"
+            onClick={() =>
+              navigate('Demands', {
+                ids: queue.myDemands.map((row) => row.id),
+                label: 'your open demands',
+              })
+            }
+          >
             <strong>{queue.myDemands.length}</strong>
             <span>My open demands</span>
           </button>
-          <button className="my-work-cell" onClick={() => navigate('Candidates')}>
+          <button
+            className="my-work-cell"
+            onClick={() =>
+              navigate('Candidates', {
+                ids: queue.myCandidates.map((row) => row.id),
+                label: 'your candidates',
+              })
+            }
+          >
             <strong>{queue.myCandidates.length}</strong>
             <span>My candidates</span>
           </button>

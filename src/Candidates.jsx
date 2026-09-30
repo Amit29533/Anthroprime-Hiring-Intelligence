@@ -13,7 +13,6 @@ import {
   Pencil,
   ArrowRight,
 } from 'lucide-react';
-import Papa from 'papaparse';
 import {
   PageHeader,
   Button,
@@ -56,7 +55,7 @@ import {
 import { captureChanges } from './history.js';
 import { queueById } from './quality.js';
 import { deriveGaps } from './gaps.js';
-import { cloud, getRole, canWriteForRole, canExportForRole } from './repository.js';
+import { cloud, getRole, canWriteForRole } from './repository.js';
 import {
   classifyFile,
   extractText,
@@ -69,57 +68,8 @@ import {
 import { documentTemplatesFor, mergeContext, renderTemplate, dossierHtml } from './templates.js';
 import { parseTalentQuery, matchesSemantic, skillsUnder, allSkillDomains } from './semantic.js';
 import { placementsForCandidate } from './placements.js';
-export function downloadFile(content, name, type = 'text/csv;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return true;
-}
-export function canExportData(notify) {
-  if (!canExportForRole(getRole())) {
-    notify?.('Your viewer role cannot export workspace data.');
-    return false;
-  }
-  return true;
-}
-export function exportSensitiveFile(content, name, type = 'application/octet-stream', notify) {
-  if (!canExportData(notify)) return false;
-  return downloadFile(content, name, type);
-}
-export function exportCandidates(rows, notify) {
-  if (!canExportData(notify)) return false;
-  return exportSensitiveFile(
-    Papa.unparse(
-      rows.map((c) => ({
-        name: c.name,
-        email: c.email,
-        phone: c.phone,
-        title: c.title,
-        company: c.company,
-        location: c.location,
-        experience: c.experience,
-        relevantExperience: c.relevantExperience,
-        notice: c.notice,
-        expected: c.expected,
-        current: c.current,
-        skills: c.skills.join('; '),
-        status: c.status,
-        source: c.source,
-        mode: c.mode,
-        verified: c.verified,
-        exportedAt: new Date().toISOString(),
-        exportedBy: 'ECOD workspace export (audited)',
-      })),
-      { escapeFormulae: true },
-    ),
-    'ecod-candidates.csv',
-    'text/csv;charset=utf-8',
-    notify,
-  );
-}
+export { downloadFile, canExportData, exportSensitiveFile, exportCandidates } from './downloads.js';
+import { exportSensitiveFile, exportCandidates } from './downloads.js';
 export function Candidates({
   data,
   query,
@@ -150,7 +100,7 @@ export function Candidates({
     [location, setLocation] = useState(''),
     [notice, setNotice] = useState(''),
     [minExp, setMinExp] = useState(''),
-    [skill, setSkill] = useState(''),
+    [skill, setSkill] = useState(initialFilter?.skill || ''),
     [tag, setTag] = useState(''),
     [sort, setSort] = useState('name'),
     [selected, setSelected] = useState([]),
@@ -179,6 +129,7 @@ export function Candidates({
             return false;
         }
         return (
+          (!initialFilter?.ids || initialFilter.ids.includes(c.id)) &&
           (status === 'All candidates' ||
             c.status === status ||
             freshness(c.verified) === status) &&
@@ -212,6 +163,7 @@ export function Candidates({
     skill,
     tag,
     sort,
+    initialFilter,
   ]);
   const parsed = useMemo(() => (semantic ? parseTalentQuery(query) : null), [semantic, query]);
   const rows =

@@ -85,6 +85,22 @@ test('a search with no matches says so instead of showing an empty panel', async
   cleanup();
 });
 
+test('a note search opens Notes and Escape dismisses an empty result panel', async () => {
+  const seed = makeSeed();
+  seed.notes[0].text = 'Unique followup regression marker';
+  await boot(seed);
+  await typeSearch('Unique followup regression marker');
+  const hit = document.querySelector('.search-result');
+  assert.ok(hit);
+  await act(async () => fireEvent.click(hit));
+  await screen.findByRole('button', { name: 'Notes & follow-ups' }, { timeout: 30000 });
+  assert.ok(document.querySelector('.profile-tabs .active').textContent.includes('Notes'));
+  await typeSearch('No matching regression result');
+  assert.ok(document.querySelector('.search-results'));
+  await act(async () => fireEvent.keyDown(searchBox(), { key: 'Escape' }));
+  assert.equal(document.querySelector('.search-results'), null);
+});
+
 test('a single character does not trigger a search', async () => {
   await boot();
   await typeSearch('a');

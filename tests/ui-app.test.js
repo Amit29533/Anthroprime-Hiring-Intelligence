@@ -47,6 +47,43 @@ afterEach(() => cleanup());
 const store = () => JSON.parse(localStorage.getItem('ecod-demo-v1'));
 const putStore = (data) => localStorage.setItem('ecod-demo-v1', JSON.stringify(data));
 
+test('theme preference cycles, persists and survives reopening the workspace', async () => {
+  localStorage.removeItem('ecod-theme-v1');
+  await boot();
+  await click(screen.getByRole('button', { name: 'Theme: system. Switch to dark' }));
+  assert.equal(document.documentElement.dataset.theme, 'dark');
+  assert.equal(localStorage.getItem('ecod-theme-v1'), 'dark');
+  cleanup();
+  await boot();
+  assert.ok(screen.getByRole('button', { name: 'Theme: dark. Switch to light' }));
+  await click(screen.getByRole('button', { name: 'Theme: dark. Switch to light' }));
+  assert.equal(document.documentElement.dataset.theme, 'light');
+  await click(screen.getByRole('button', { name: 'Theme: light. Switch to system' }));
+  assert.equal(localStorage.getItem('ecod-theme-v1'), 'system');
+});
+
+test('dashboard work counts open the matching records and the filter can be cleared', async () => {
+  const seed = makeSeed();
+  seed.tasks = [
+    { id: 'mine', title: 'My overdue task', owner: 'Amit Singh', due: '2020-01-01', done: false },
+    {
+      id: 'theirs',
+      title: 'Another recruiter task',
+      owner: 'Another person',
+      due: '2020-01-01',
+      done: false,
+    },
+  ];
+  await boot(seed);
+  await click(screen.getByRole('button', { name: /1\s*Overdue/ }));
+  await screen.findByRole('heading', { name: 'Every conversation counts.' }, { timeout: 30000 });
+  assert.ok(screen.getByText('My overdue task'));
+  assert.equal(screen.queryByText('Another recruiter task'), null);
+  await click(screen.getByRole('button', { name: 'Show all' }));
+  await settle(4);
+  assert.ok(screen.getByText('Another recruiter task'));
+});
+
 /** Boot the shell against a clean demo workspace. */
 async function boot(seed) {
   localStorage.removeItem('ecod-demo-v1');

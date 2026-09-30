@@ -80,7 +80,11 @@ export function matchCandidate(c, d, assessments = []) {
   const missing = required.filter((s) => !matched.includes(s));
   const niceMatched = niceToHave.filter((s) => candidateSkills.includes(s));
   const recentAssessments = assessments.filter(
-    (a) => a.candidateId === c.id && (!a.demandId || a.demandId === d.id) && age(a.date) <= 180,
+    (a) =>
+      a.candidateId === c.id &&
+      (!a.demandId || a.demandId === d.id) &&
+      a.date <= today() &&
+      (a.validUntil ? a.validUntil >= today() : age(a.date) <= 180),
   );
   const latest = recentAssessments.sort((a, b) => b.date.localeCompare(a.date))[0];
   const relevant = c.relevantExperience == null ? null : Number(c.relevantExperience);
