@@ -950,14 +950,14 @@ export default function App() {
             <span className="crumb-divider">/</span>
             <strong>{page}</strong>
           </div>
+          <GlobalSearch
+            data={data}
+            isAdmin={getRole() === 'admin'}
+            query={query}
+            setQuery={setQuery}
+            onOpen={openSearchResult}
+          />
           <div className="topbar-actions">
-            <GlobalSearch
-              data={data}
-              isAdmin={getRole() === 'admin'}
-              query={query}
-              setQuery={setQuery}
-              onOpen={openSearchResult}
-            />
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? workspaceName : 'Demo workspace'}

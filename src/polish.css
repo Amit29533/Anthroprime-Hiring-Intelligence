@@ -658,3 +658,42 @@ dialog .modal-body {
     max-height: calc(90dvh - 180px);
   }
 }
+/* Center workspace search independently of the profile controls. */
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.topbar > .global-search-wrap {
+  justify-self: center;
+}
+.topbar > .topbar-actions {
+  justify-self: end;
+}
+@media (max-width: 1100px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto;
+    min-height: 76px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .topbar > .global-search-wrap {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    width: min(100%, 420px);
+    display: block;
+  }
+  .topbar > .topbar-actions {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+@media (max-width: 760px) {
+  .topbar .breadcrumb {
+    display: flex;
+  }
+  .topbar .breadcrumb > span,
+  .topbar .breadcrumb > strong {
+    display: none;
+  }
+}
