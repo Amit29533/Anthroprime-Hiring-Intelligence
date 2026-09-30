@@ -342,7 +342,6 @@ revoke all on function public.claim_workspace_invite() from public, anon, authen
 -- (the SQL editor does so); it is what turns an invitation into access without any service-role
 -- key ever reaching the browser.
 drop trigger if exists claim_workspace_invite on auth.users;
-drop trigger if exists claim_workspace_invite on public.claim_workspace_invite;
 create trigger claim_workspace_invite
   after insert on auth.users
   for each row execute function public.claim_workspace_invite();

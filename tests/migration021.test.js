@@ -27,6 +27,18 @@ const MIGRATIONS = [
   '021_user_administration.sql',
 ];
 
+test('migration 021 attaches the invite trigger only to auth.users', async () => {
+  const sql = await readFile(
+    new URL('../supabase/migrations/021_user_administration.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(sql, /drop trigger if exists claim_workspace_invite on auth\.users/i);
+  assert.doesNotMatch(
+    sql,
+    /drop trigger if exists claim_workspace_invite on public\.claim_workspace_invite/i,
+  );
+});
+
 const admin = '00000000-0000-4000-8000-000000000001';
 const admin2 = '00000000-0000-4000-8000-000000000002';
 const recruiter = '00000000-0000-4000-8000-000000000003';
