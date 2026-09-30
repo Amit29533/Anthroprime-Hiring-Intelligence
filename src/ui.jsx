@@ -105,7 +105,15 @@ export function Field({ label, children, hint, wide = false }) {
     </label>
   );
 }
-export function Modal({ title, subtitle, onClose, children, wide = false, drawer = false }) {
+export function Modal({
+  title,
+  subtitle,
+  onClose,
+  children,
+  wide = false,
+  drawer = false,
+  className = '',
+}) {
   const ref = useRef(null),
     titleId = useId();
   useEffect(() => {
@@ -122,8 +130,11 @@ export function Modal({ title, subtitle, onClose, children, wide = false, drawer
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      className={`${wide ? 'wide-modal' : ''} ${drawer ? 'drawer' : ''}`}
-      onCancel={onClose}
+      className={`${wide ? 'wide-modal' : ''} ${drawer ? 'drawer' : ''} ${className}`}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
       onClick={(e) => {
         if (e.target === ref.current) {
           const r = e.target.getBoundingClientRect();

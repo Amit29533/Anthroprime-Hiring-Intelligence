@@ -71,6 +71,23 @@ test('workspace search supports shortcuts, accessible results and clear/dismiss 
   assert.equal(document.activeElement, focused, 'shortcut respects an open modal');
 });
 
+test('both account controls show identity and demo sign-out preserves saved records', async () => {
+  await boot();
+  const before = localStorage.getItem('ecod-demo-v1');
+  await click(screen.getByRole('button', { name: 'Open your account', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  assert.ok(screen.getByText('Administrator'));
+  assert.ok(screen.getByText('Local demo profile'));
+  await press('Close');
+  await click(screen.getByRole('button', { name: 'Open your account from sidebar', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  await press('Sign out');
+  assert.ok(screen.getByRole('heading', { name: 'You’re signed out' }));
+  assert.equal(localStorage.getItem('ecod-demo-v1'), before);
+  await press('Open demo workspace');
+  assert.ok(screen.getByRole('button', { name: 'Open your account' }));
+});
+
 test('theme preference cycles, persists and survives reopening the workspace', async () => {
   localStorage.removeItem('ecod-theme-v1');
   await boot();

@@ -45,6 +45,7 @@ import Dashboard from './Dashboard.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
 import { applyAssignment } from './assignment.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
+import AccountProfile from './AccountProfile.jsx';
 
 // Keep the dashboard fast: each feature area is downloaded only when it is opened. Named-export
 // modules use one shared chunk per source file, so opening a form reuses the page's existing chunk.
@@ -144,6 +145,8 @@ function CreateWorkspaceModal({ onClose, onCreate, busy }) {
 
 export default function App() {
   const [theme, setTheme] = useTheme();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [demoSignedOut, setDemoSignedOut] = useState(false);
   const [pageFilter, setPageFilter] = useState(null);
   const [data, setData] = useState(emptyData()),
     [page, setPage] = useState('Overview'),
@@ -199,6 +202,7 @@ export default function App() {
         setActiveWorkspace(null);
         setWorkspaceMenu(false);
         setWorkspaceCreate(false);
+        setAccountOpen(false);
         setLoading(Boolean(nextUserId));
       }
       setSession(nextSession);
@@ -619,6 +623,40 @@ export default function App() {
       'Team member'
     : 'Amit Singh';
   const workspaceName = activeWorkspace?.name || (cloud ? 'Choose workspace' : 'AnthroPrime');
+  async function signOutAccount() {
+    if (cloud) {
+      const supabase = await getSupabase();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } else {
+      setDemoSignedOut(true);
+    }
+    setAccountOpen(false);
+    setModal(null);
+    setPersonId(null);
+    setDemandId(null);
+    setClientId(null);
+    setMobile(false);
+    setQuery('');
+  }
+  if (!cloud && demoSignedOut)
+    return (
+      <div className="account-exit">
+        <div className="panel">
+          <ShieldCheck size={32} aria-hidden="true" />
+          <h1>You’re signed out</h1>
+          <p>Your local demo data is saved in this browser.</p>
+          <Button
+            onClick={() => {
+              setPage('Overview');
+              setDemoSignedOut(false);
+            }}
+          >
+            Open demo workspace
+          </Button>
+        </div>
+      </div>
+    );
   const workspaceAccess = cloud
     ? activeWorkspace
       ? `${activeWorkspace.role === 'admin' ? 'Admin' : activeWorkspace.role === 'recruiter' ? 'Recruiter' : 'Viewer'} access`
@@ -926,14 +964,20 @@ export default function App() {
           >
             <Settings size={19} /> Workspace settings
           </button>
-          <div className="sidebar-user">
+          <button
+            type="button"
+            className="sidebar-user account-trigger"
+            aria-label="Open your account from sidebar"
+            aria-haspopup="dialog"
+            onClick={() => setAccountOpen(true)}
+          >
             <Avatar name={userName} size="small" />
             <span>
               <strong>{userName}</strong>
               <small>{cloud ? 'Team member' : 'Demo recruiter'}</small>
             </span>
             <ShieldCheck size={17} />
-          </div>
+          </button>
         </div>
       </aside>
       {mobile && <div className="mobile-scrim" onClick={() => setMobile(false)} />}
@@ -969,7 +1013,15 @@ export default function App() {
               navigate={navigate}
             />
             <ThemeToggle theme={theme} onChange={setTheme} />
-            <Avatar name={userName} size="small" />
+            <button
+              type="button"
+              className="profile-trigger"
+              aria-label="Open your account"
+              aria-haspopup="dialog"
+              onClick={() => setAccountOpen(true)}
+            >
+              <Avatar name={userName} size="small" />
+            </button>
           </div>
         </header>
         <main id="main-content">
@@ -1036,6 +1088,17 @@ export default function App() {
           </footer>
         </main>
       </div>
+      {accountOpen && (
+        <AccountProfile
+          name={userName}
+          email={session?.user?.email}
+          role={getRole()}
+          workspace={workspaceName}
+          demo={!cloud}
+          onClose={() => setAccountOpen(false)}
+          onSignOut={signOutAccount}
+        />
+      )}
       {workspaceCreate && (
         <CreateWorkspaceModal
           busy={busy}

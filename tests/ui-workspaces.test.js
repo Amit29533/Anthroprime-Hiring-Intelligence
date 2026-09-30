@@ -15,6 +15,7 @@ let M;
 let realFetch;
 let activeWorkspace;
 let workspaces;
+let logoutCalls = 0;
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -26,6 +27,10 @@ async function workspaceFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url);
   const method = init.method || input.method || 'GET';
   const body = init.body ? JSON.parse(init.body) : {};
+  if (url.pathname === '/auth/v1/logout') {
+    logoutCalls++;
+    return json({});
+  }
 
   if (url.pathname.endsWith('/auth/v1/token'))
     return json({
@@ -124,5 +129,14 @@ test('a signed-in user switches and creates isolated workspaces from the sidebar
   assert.equal(activeWorkspace, THIRD);
   assert.ok(screen.getByRole('button', { name: /Growth Practice.*Admin access/i }));
   assert.equal(screen.queryByText(/Viewer access is read-only/i), null);
+  await click(screen.getByRole('button', { name: 'Open your account', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  assert.ok(screen.getByRole('heading', { name: 'Workspace Owner' }));
+  assert.ok(screen.getByText('owner@example.com'));
+  await press('Sign out');
+  await settle(12);
+  assert.equal(logoutCalls, 1, 'sign-out reaches the authentication service');
+  assert.ok(screen.getByRole('heading', { name: 'Good to have you here.' }));
+  assert.equal(screen.queryByRole('button', { name: 'Open your account', exact: true }), null);
   cleanup();
 });
