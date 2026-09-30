@@ -497,12 +497,13 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
     </Modal>
   );
 }
-export function Demands({ data, onNew, onOpen }) {
+export function Demands({ data, onNew, onOpen, initialFilter }) {
   const viewer = !canWriteForRole(getRole());
   const [query, setQuery] = useState(''),
     [status, setStatus] = useState('Open');
   const rows = data.demands.filter(
     (d) =>
+      (!initialFilter?.ids || initialFilter.ids.includes(d.id)) &&
       (status === 'All' || d.status === status) &&
       [d.title, d.client, ...d.skills].join(' ').toLowerCase().includes(query.toLowerCase()),
   );

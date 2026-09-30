@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadApp, mount, screen, cleanup, stopVite, settle, click } from './ui-harness.js';
-import { type, press } from './ui-drivers.js';
+import { type, press, navTo } from './ui-drivers.js';
 
 process.env.VITE_SUPABASE_URL = 'https://workspace-switch-test.supabase.co';
 process.env.VITE_SUPABASE_ANON_KEY = 'workspace-switch-test-anon-key';
@@ -15,6 +15,8 @@ let M;
 let realFetch;
 let activeWorkspace;
 let workspaces;
+let logoutCalls = 0;
+const filterCalls = [];
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -26,6 +28,14 @@ async function workspaceFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url);
   const method = init.method || input.method || 'GET';
   const body = init.body ? JSON.parse(init.body) : {};
+  if (url.pathname === '/rest/v1/rpc/api_filter_candidates') {
+    filterCalls.push(body);
+    return json({ ids: ['00000000-0000-4000-8000-000000000101'] });
+  }
+  if (url.pathname === '/auth/v1/logout') {
+    logoutCalls++;
+    return json({});
+  }
 
   if (url.pathname.endsWith('/auth/v1/token'))
     return json({
@@ -68,6 +78,9 @@ async function workspaceFetch(input, init = {}) {
           id: '00000000-0000-4000-8000-000000000101',
           name: 'Client Candidate',
           email: 'client@example.com',
+          company: 'Example',
+          location: 'Remote',
+          verified: '2026-10-01',
           skills: ['Python'],
           status: 'Ready',
           mode: 'Remote',
@@ -114,6 +127,15 @@ test('a signed-in user switches and creates isolated workspaces from the sidebar
   await settle(12);
   assert.ok(screen.getByRole('button', { name: /Client Desk.*Viewer access/i }));
   assert.ok(screen.getByText(/Viewer access is read-only/i));
+  await navTo('Candidates');
+  await press('Filters');
+  assert.equal(screen.queryByLabelText('Maximum expected CTC (₹ LPA)'), null);
+  await type('Current employer', 'Example');
+  await screen.findByText('Client Candidate', {}, { timeout: 5000 });
+  assert.ok(
+    filterCalls.some((call) => call.p_employer === 'Example' && call.p_max_expected === null),
+  );
+  assert.ok(screen.getByText('Client Candidate'));
 
   await click(screen.getByRole('button', { name: /Client Desk.*Viewer access/i }));
   await press('Create workspace');
@@ -124,5 +146,14 @@ test('a signed-in user switches and creates isolated workspaces from the sidebar
   assert.equal(activeWorkspace, THIRD);
   assert.ok(screen.getByRole('button', { name: /Growth Practice.*Admin access/i }));
   assert.equal(screen.queryByText(/Viewer access is read-only/i), null);
+  await click(screen.getByRole('button', { name: 'Open your account', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  assert.ok(screen.getByRole('heading', { name: 'Workspace Owner' }));
+  assert.ok(screen.getByText('owner@example.com'));
+  await press('Sign out');
+  await settle(12);
+  assert.equal(logoutCalls, 1, 'sign-out reaches the authentication service');
+  assert.ok(screen.getByRole('heading', { name: 'Good to have you here.' }));
+  assert.equal(screen.queryByRole('button', { name: 'Open your account', exact: true }), null);
   cleanup();
 });

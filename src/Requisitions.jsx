@@ -12,7 +12,7 @@ import {
 import { PanelHeading, Button, Field, Modal, Badge, Empty } from './ui.jsx';
 import { uid, today } from './domain.js';
 import { canWriteForRole, getRole, getWorkspaceId } from './repository.js';
-import { downloadFile } from './Candidates.jsx';
+import { downloadFile } from './downloads.js';
 import { publishedRoles, roleUrl, sitemapXml } from './jobPosting.js';
 import {
   APPROVAL_TONE,

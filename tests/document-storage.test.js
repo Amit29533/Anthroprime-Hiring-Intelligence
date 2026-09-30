@@ -22,6 +22,50 @@ test('R2 object keys are tenant- and candidate-scoped with a sanitized filename'
   );
 });
 
+test('client upload signing requires admin access and a client visible in the workspace', async () => {
+  let role = 'admin',
+    visible = true,
+    lookup;
+  const handler = createUploadHandler({
+    authorize: async () => ({
+      membership: { workspace_id: 'workspace-1', role },
+      supabase: {
+        from: (table) => {
+          lookup = table;
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: visible ? { id: 'client-1' } : null,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        },
+      },
+    }),
+    storage: () => ({ client: {}, bucket: 'documents' }),
+    signer: async () => 'https://signed.example/upload',
+  });
+  const body = {
+    clientId: 'client-1',
+    filename: 'Agreement.pdf',
+    contentType: 'application/pdf',
+    size: 1024,
+  };
+  const response = await handler(post(body));
+  assert.equal(response.statusCode, 200);
+  assert.equal(lookup, 'clients');
+  assert.match(parsed(response).storagePath, /^workspace-1\/clients\/client-1\//);
+  role = 'recruiter';
+  assert.equal((await handler(post(body))).statusCode, 403);
+  role = 'admin';
+  visible = false;
+  assert.equal((await handler(post(body))).statusCode, 404);
+  assert.equal((await handler(post({ ...body, candidateId: 'candidate-1' }))).statusCode, 400);
+});
+
 test('upload signing requires an allowed type, bounded size and a candidate in the workspace', async () => {
   const calls = [];
   const authorize = async (_event, options) => {

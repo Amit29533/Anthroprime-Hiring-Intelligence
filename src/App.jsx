@@ -44,6 +44,8 @@ import { Button, Avatar, IconButton, Field, Modal } from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
 import { applyAssignment } from './assignment.js';
+import { ThemeToggle, useTheme } from './theme.jsx';
+import AccountProfile from './AccountProfile.jsx';
 
 // Keep the dashboard fast: each feature area is downloaded only when it is opened. Named-export
 // modules use one shared chunk per source file, so opening a form reuses the page's existing chunk.
@@ -142,6 +144,10 @@ function CreateWorkspaceModal({ onClose, onCreate, busy }) {
 }
 
 export default function App() {
+  const [theme, setTheme] = useTheme();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [demoSignedOut, setDemoSignedOut] = useState(false);
+  const [pageFilter, setPageFilter] = useState(null);
   const [data, setData] = useState(emptyData()),
     [page, setPage] = useState('Overview'),
     [loading, setLoading] = useState(true),
@@ -179,6 +185,7 @@ export default function App() {
         const cleared = emptyData();
         dataRef.current = cleared;
         setData(cleared);
+        setPageFilter(null);
         setPage('Overview');
         setQuery('');
         setPersonId(null);
@@ -195,6 +202,7 @@ export default function App() {
         setActiveWorkspace(null);
         setWorkspaceMenu(false);
         setWorkspaceCreate(false);
+        setAccountOpen(false);
         setLoading(Boolean(nextUserId));
       }
       setSession(nextSession);
@@ -253,9 +261,11 @@ export default function App() {
       active = false;
     };
   }, [authReady, userId]);
-  useEffect(() => {
-    setPersonTab('Overview');
-  }, [personId]);
+  function openPerson(id, tab = 'Overview') {
+    setPersonTab(tab);
+    setPersonId(id);
+    setMobile(false);
+  }
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(''), 4500);
@@ -278,6 +288,7 @@ export default function App() {
     }
   }
   function resetWorkspaceView() {
+    setPageFilter(null);
     const cleared = emptyData();
     dataRef.current = cleared;
     setData(cleared);
@@ -344,6 +355,7 @@ export default function App() {
       .catch(() => {});
   }, []);
   const navigate = (p, filter = null) => {
+    setPageFilter(filter);
     setPage(p);
     setMobile(false);
     setWorkspaceMenu(false);
@@ -388,13 +400,19 @@ export default function App() {
 
   /** Take a global-search result to wherever that record lives. */
   function openSearchResult(result) {
-    if (result.type === 'candidate') return setPersonId(result.id);
-    if (result.type === 'note') return setPersonId(result.parentId);
+    if (result.type === 'candidate') return openPerson(result.id);
+    if (result.type === 'note') return openPerson(result.parentId, 'Notes & follow-ups');
     if (result.type === 'demand') return openDemand(result.id);
     if (result.type === 'client') return openClient(result.id);
     if (result.type === 'contact') return openClient(result.parentId);
-    if (result.type === 'referral') return navigate('Referrals');
-    if (result.type === 'skill') return navigate('Settings');
+    if (result.type === 'referral') {
+      if (!canWriteForRole(getRole())) return navigate('Referrals', { query: result.title });
+      navigate('Referrals');
+      const referral = dataRef.current.referrals.find((row) => row.id === result.id);
+      if (referral) setModal({ type: 'referral', referral });
+      return;
+    }
+    if (result.type === 'skill') return navigate('Candidates', { skill: result.title });
     return undefined;
   }
 
@@ -605,6 +623,40 @@ export default function App() {
       'Team member'
     : 'Amit Singh';
   const workspaceName = activeWorkspace?.name || (cloud ? 'Choose workspace' : 'AnthroPrime');
+  async function signOutAccount() {
+    if (cloud) {
+      const supabase = await getSupabase();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } else {
+      setDemoSignedOut(true);
+    }
+    setAccountOpen(false);
+    setModal(null);
+    setPersonId(null);
+    setDemandId(null);
+    setClientId(null);
+    setMobile(false);
+    setQuery('');
+  }
+  if (!cloud && demoSignedOut)
+    return (
+      <div className="account-exit">
+        <div className="panel">
+          <ShieldCheck size={32} aria-hidden="true" />
+          <h1>You’re signed out</h1>
+          <p>Your local demo data is saved in this browser.</p>
+          <Button
+            onClick={() => {
+              setPage('Overview');
+              setDemoSignedOut(false);
+            }}
+          >
+            Open demo workspace
+          </Button>
+        </div>
+      </div>
+    );
   const workspaceAccess = cloud
     ? activeWorkspace
       ? `${activeWorkspace.role === 'admin' ? 'Admin' : activeWorkspace.role === 'recruiter' ? 'Recruiter' : 'Viewer'} access`
@@ -620,7 +672,7 @@ export default function App() {
   if (cloud && !session)
     return (
       <Suspense fallback={featureFallback}>
-        <Login />
+        <Login theme={theme} onThemeChange={setTheme} />
       </Suspense>
     );
   let content;
@@ -629,7 +681,7 @@ export default function App() {
       <Dashboard
         data={data}
         navigate={navigate}
-        openCandidate={setPersonId}
+        openCandidate={openPerson}
         openDemand={openDemand}
         onNewDemand={newDemand}
         onAdd={addCandidate}
@@ -646,7 +698,7 @@ export default function App() {
         query={query}
         setQuery={setQuery}
         initialFilter={candidateFilter}
-        onOpen={setPersonId}
+        onOpen={openPerson}
         onAdd={addCandidate}
         onImport={importCandidates}
         notify={setToast}
@@ -663,7 +715,7 @@ export default function App() {
         data={data}
         onBack={() => setDemandId(null)}
         onEdit={(d) => setModal({ type: 'demand', demand: d })}
-        onOpenCandidate={setPersonId}
+        onOpenCandidate={openPerson}
         onShortlist={shortlist}
         onPipeline={(id) => {
           setPipelineDemand(id);
@@ -677,7 +729,7 @@ export default function App() {
         notify={setToast}
       />
     ) : (
-      <Demands data={data} onNew={newDemand} onOpen={openDemand} />
+      <Demands data={data} initialFilter={pageFilter} onNew={newDemand} onOpen={openDemand} />
     );
   else if (page === 'Clients')
     content = client ? (
@@ -685,12 +737,15 @@ export default function App() {
         key={client.id}
         client={client}
         data={data}
+        onSave={save}
+        busy={busy}
+        uploadedBy={userName}
         onBack={() => setClientId(null)}
         onEdit={(c) => setModal({ type: 'client', client: c })}
         onAddContact={(id) => setModal({ type: 'contact', clientId: id })}
         onEditContact={(c) => setModal({ type: 'contact', contact: c, clientId: c.clientId })}
         onOpenDemand={openDemand}
-        onOpenCandidate={setPersonId}
+        onOpenCandidate={openPerson}
         onAddPlacement={(id) => setModal({ type: 'placement', clientId: id })}
         onEditPlacement={(placement) =>
           setModal({ type: 'placement', placement, clientId: placement.clientId })
@@ -711,20 +766,21 @@ export default function App() {
         data={data}
         selectedDemand={pipelineDemand}
         setSelectedDemand={setPipelineDemand}
-        onOpen={setPersonId}
+        onOpen={openPerson}
         onNew={newDemand}
         onMove={move}
         busy={busy}
       />
     );
-  else if (page === 'Talent pools') content = <Pools data={data} onOpen={setPersonId} />;
+  else if (page === 'Talent pools')
+    content = <Pools data={data} onOpen={openPerson} onSave={save} busy={busy} />;
   else if (page === 'Assessments')
     content = (
       <Assessments
         data={data}
         onNew={newAssessment}
         onEnrich={() => setModal({ type: 'enrichment' })}
-        onOpen={setPersonId}
+        onOpen={openPerson}
         onSave={save}
         busy={busy}
       />
@@ -733,8 +789,9 @@ export default function App() {
     content = (
       <Interviews
         data={data}
+        initialFilter={pageFilter}
         onSave={save}
-        onOpen={setPersonId}
+        onOpen={openPerson}
         busy={busy}
         notify={setToast}
         audit={audit}
@@ -743,8 +800,16 @@ export default function App() {
   else if (page === 'Activities')
     content = (
       <Activities
-        data={data}
-        onOpen={setPersonId}
+        data={
+          pageFilter?.ids
+            ? {
+                ...data,
+                tasks: data.tasks.filter((row) => pageFilter.ids.includes(row.id)),
+                notes: [],
+              }
+            : data
+        }
+        onOpen={openPerson}
         onSave={save}
         busy={busy}
         notify={setToast}
@@ -755,11 +820,13 @@ export default function App() {
   else if (page === 'Referrals')
     content = (
       <Referrals
+        key={pageFilter?.query || 'all-referrals'}
+        initialQuery={pageFilter?.query || ''}
         data={data}
         onNew={() => setModal({ type: 'referral' })}
         onEdit={(referral) => setModal({ type: 'referral', referral })}
         onConvert={(referral) => setModal({ type: 'convertReferral', referral })}
-        onOpenCandidate={setPersonId}
+        onOpenCandidate={openPerson}
         busy={busy}
       />
     );
@@ -900,14 +967,20 @@ export default function App() {
           >
             <Settings size={19} /> Workspace settings
           </button>
-          <div className="sidebar-user">
+          <button
+            type="button"
+            className="sidebar-user account-trigger"
+            aria-label="Open your account from sidebar"
+            aria-haspopup="dialog"
+            onClick={() => setAccountOpen(true)}
+          >
             <Avatar name={userName} size="small" />
             <span>
               <strong>{userName}</strong>
               <small>{cloud ? 'Team member' : 'Demo recruiter'}</small>
             </span>
             <ShieldCheck size={17} />
-          </div>
+          </button>
         </div>
       </aside>
       {mobile && <div className="mobile-scrim" onClick={() => setMobile(false)} />}
@@ -924,14 +997,14 @@ export default function App() {
             <span className="crumb-divider">/</span>
             <strong>{page}</strong>
           </div>
+          <GlobalSearch
+            data={data}
+            isAdmin={getRole() === 'admin'}
+            query={query}
+            setQuery={setQuery}
+            onOpen={openSearchResult}
+          />
           <div className="topbar-actions">
-            <GlobalSearch
-              data={data}
-              isAdmin={getRole() === 'admin'}
-              query={query}
-              setQuery={setQuery}
-              onOpen={openSearchResult}
-            />
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? workspaceName : 'Demo workspace'}
@@ -942,10 +1015,29 @@ export default function App() {
               isAdmin={getRole() === 'admin'}
               navigate={navigate}
             />
-            <Avatar name={userName} size="small" />
+            <ThemeToggle theme={theme} onChange={setTheme} />
+            <button
+              type="button"
+              className="profile-trigger"
+              aria-label="Open your account"
+              aria-haspopup="dialog"
+              onClick={() => setAccountOpen(true)}
+            >
+              <Avatar name={userName} size="small" />
+            </button>
           </div>
         </header>
         <main id="main-content">
+          {(pageFilter?.ids || pageFilter?.skill) && (
+            <div className="queue-filter" role="status">
+              Showing{' '}
+              {pageFilter.label ||
+                (pageFilter.skill ? `candidates with ${pageFilter.skill}` : 'selected work')}
+              <button className="text-link" onClick={() => navigate(page)}>
+                Show all
+              </button>
+            </div>
+          )}
           {cloud && !canWriteForRole(getRole()) && !loading && !error && (
             <div className="readonly-banner" role="status">
               Viewer access is read-only. Editing, restore and data-export actions are unavailable.
@@ -985,7 +1077,9 @@ export default function App() {
               )}
             </div>
           ) : (
-            <Suspense fallback={featureFallback}>{content}</Suspense>
+            <div className="page-content" key={page}>
+              <Suspense fallback={featureFallback}>{content}</Suspense>
+            </div>
           )}
           <footer className="workspace-footer">
             <span>AnthroPrime · ECOD Talent Intelligence</span>
@@ -997,6 +1091,17 @@ export default function App() {
           </footer>
         </main>
       </div>
+      {accountOpen && (
+        <AccountProfile
+          name={userName}
+          email={session?.user?.email}
+          role={getRole()}
+          workspace={workspaceName}
+          demo={!cloud}
+          onClose={() => setAccountOpen(false)}
+          onSignOut={signOutAccount}
+        />
+      )}
       {workspaceCreate && (
         <CreateWorkspaceModal
           busy={busy}

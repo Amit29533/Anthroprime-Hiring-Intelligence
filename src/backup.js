@@ -24,7 +24,11 @@ export function parseBackup(text) {
   if (!bundle || bundle.format !== 'ecod-workspace-backup' || !bundle.version)
     throw new Error('That file is not an ECOD workspace backup.');
   const manifest = Array.isArray(bundle.tableList) ? bundle.tableList : null; // older backups carry no manifest
-  const required = manifest ? TABLES : TABLES.filter((t) => t !== 'workflowRules'); // pre-rules backups restore with an empty rules table
+  const required = manifest
+    ? TABLES
+    : TABLES.filter(
+        (t) => !['workflowRules', 'assessmentTemplates', 'talentPools', 'poolMembers'].includes(t),
+      ); // Older backups predate these metadata tables.
   const data = {};
   for (const t of required) {
     if (bundle[t] === undefined) {

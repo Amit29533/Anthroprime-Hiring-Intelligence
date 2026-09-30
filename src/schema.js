@@ -5,6 +5,7 @@ export const TABLES = [
   'candidates',
   'demands',
   'considerations',
+  'assessmentTemplates',
   'assessments',
   'notes',
   'enrichment',
@@ -13,7 +14,6 @@ export const TABLES = [
   'compensationHistory',
   'availabilityHistory',
   'auditEvents',
-  'documents',
   'taxonomy',
   'demandCommercials',
   'settings',
@@ -25,6 +25,7 @@ export const TABLES = [
   'publicApplications',
   'workflowRules',
   'clients',
+  'documents',
   'clientContacts',
   'departments',
   'reports',
@@ -36,6 +37,8 @@ export const TABLES = [
   'assignmentRules',
   'placements',
   'placementCommercials',
+  'talentPools',
+  'poolMembers',
 ];
 export const emptyData = () => Object.fromEntries(TABLES.map((t) => [t, []]));
 // Fill in fields/tables added after a stored (or cloud) snapshot was written, apply the saved

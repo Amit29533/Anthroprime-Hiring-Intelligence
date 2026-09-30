@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Download, Copy, Printer, ShieldCheck, EyeOff } from 'lucide-react';
 import { Modal, Button, Field, Badge, PanelHeading } from './ui.jsx';
 import { getRole } from './repository.js';
-import { downloadFile } from './Candidates.jsx';
+import { downloadFile } from './downloads.js';
 import {
   DEFAULT_OPTIONS,
   DEFAULT_BRANDING,

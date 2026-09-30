@@ -47,6 +47,94 @@ afterEach(() => cleanup());
 const store = () => JSON.parse(localStorage.getItem('ecod-demo-v1'));
 const putStore = (data) => localStorage.setItem('ecod-demo-v1', JSON.stringify(data));
 
+test('workspace search supports shortcuts, accessible results and clear/dismiss actions', async () => {
+  await boot();
+  const search = screen.getByRole('combobox', { name: 'Search your workspace' });
+  await act(async () => fireEvent.keyDown(document, { key: 'k', ctrlKey: true }));
+  assert.equal(document.activeElement, search);
+  await change(search, 'Aarav');
+  assert.equal(search.getAttribute('aria-expanded'), 'true');
+  assert.ok(screen.getByRole('listbox', { name: 'Search results' }));
+  assert.ok(document.getElementById(search.getAttribute('aria-activedescendant')));
+  await act(async () => fireEvent.keyDown(search, { key: 'Escape' }));
+  assert.equal(search.getAttribute('aria-expanded'), 'false');
+  await act(async () => fireEvent.submit(search.closest('form')));
+  assert.equal(screen.queryByRole('dialog'), null, 'dismissed results cannot be opened by Enter');
+  await act(async () => fireEvent.keyDown(search, { key: 'ArrowDown' }));
+  assert.equal(search.getAttribute('aria-expanded'), 'true');
+  await click(screen.getByRole('button', { name: 'Clear workspace search' }));
+  assert.equal(search.value, '');
+  assert.equal(document.activeElement, search);
+  await press('Create demand');
+  const focused = document.activeElement;
+  await act(async () => fireEvent.keyDown(document, { key: 'k', ctrlKey: true }));
+  assert.equal(document.activeElement, focused, 'shortcut respects an open modal');
+});
+
+test('both account controls show identity and demo sign-out preserves saved records', async () => {
+  await boot();
+  const before = localStorage.getItem('ecod-demo-v1');
+  await click(screen.getByRole('button', { name: 'Open your account', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  assert.ok(screen.getByText('Administrator'));
+  assert.ok(screen.getByText('Local demo profile'));
+  await press('Close');
+  await click(screen.getByRole('button', { name: 'Open your account from sidebar', exact: true }));
+  assert.ok(screen.getByRole('dialog', { name: 'Your account' }));
+  await press('Sign out');
+  assert.ok(screen.getByRole('heading', { name: 'You’re signed out' }));
+  assert.equal(localStorage.getItem('ecod-demo-v1'), before);
+  await press('Open demo workspace');
+  assert.ok(screen.getByRole('button', { name: 'Open your account' }));
+});
+
+test('theme preference cycles, persists and survives reopening the workspace', async () => {
+  localStorage.removeItem('ecod-theme-v1');
+  await boot();
+  await click(screen.getByRole('button', { name: 'Theme: system. Switch to dark' }));
+  assert.equal(document.documentElement.dataset.theme, 'dark');
+  assert.equal(localStorage.getItem('ecod-theme-v1'), 'dark');
+  cleanup();
+  await boot();
+  assert.ok(screen.getByRole('button', { name: 'Theme: dark. Switch to light' }));
+  await click(screen.getByRole('button', { name: 'Theme: dark. Switch to light' }));
+  assert.equal(document.documentElement.dataset.theme, 'light');
+  await click(screen.getByRole('button', { name: 'Theme: light. Switch to system' }));
+  assert.equal(localStorage.getItem('ecod-theme-v1'), 'system');
+});
+
+test('notification panel can be dismissed with Escape and restores focus', async () => {
+  await boot();
+  const bell = screen.getByRole('button', { name: /items need attention|Nothing needs attention/ });
+  await click(bell);
+  assert.equal(bell.getAttribute('aria-expanded'), 'true');
+  await act(async () => fireEvent.keyDown(document, { key: 'Escape' }));
+  assert.equal(bell.getAttribute('aria-expanded'), 'false');
+  assert.equal(document.activeElement, bell);
+});
+
+test('dashboard work counts open the matching records and the filter can be cleared', async () => {
+  const seed = makeSeed();
+  seed.tasks = [
+    { id: 'mine', title: 'My overdue task', owner: 'Amit Singh', due: '2020-01-01', done: false },
+    {
+      id: 'theirs',
+      title: 'Another recruiter task',
+      owner: 'Another person',
+      due: '2020-01-01',
+      done: false,
+    },
+  ];
+  await boot(seed);
+  await click(screen.getByRole('button', { name: /1\s*Overdue/ }));
+  await screen.findByRole('heading', { name: 'Every conversation counts.' }, { timeout: 30000 });
+  assert.ok(screen.getByText('My overdue task'));
+  assert.equal(screen.queryByText('Another recruiter task'), null);
+  await click(screen.getByRole('button', { name: 'Show all' }));
+  await settle(4);
+  assert.ok(screen.getByText('Another recruiter task'));
+});
+
 /** Boot the shell against a clean demo workspace. */
 async function boot(seed) {
   localStorage.removeItem('ecod-demo-v1');

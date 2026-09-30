@@ -15,6 +15,19 @@ const day = (offset) => new Date(NOW + offset * 86400000).toISOString().slice(0,
 
 const me = identityFor({ name: 'Amit Singh', email: 'amit.singh@anthroprime.example' });
 
+test('tasks completed by the Activities UI leave the personal queue', () => {
+  const data = world({
+    tasks: [
+      { id: 'completed', owner: 'Amit Singh', due: day(-2), done: true },
+      { id: 'open', owner: 'Amit Singh', due: day(-2), done: false },
+    ],
+  });
+  assert.deepEqual(
+    myQueue(data, me, { now: NOW }).overdueTasks.map((task) => task.id),
+    ['open'],
+  );
+});
+
 const world = (over = {}) =>
   normalizeData({
     ...emptyData(),

@@ -11,7 +11,10 @@ import {
   validatePortalPayload,
   bookSlotRows,
 } from './portal.js';
+import { ThemeToggle, useTheme } from './theme.jsx';
 import './workspace.css';
+import './dark.css';
+import './polish.css';
 
 const label = {
   pending: 'Received — in review',
@@ -284,6 +287,7 @@ export function normalizePortalPayload(form = {}) {
 }
 
 export function PortalApp() {
+  const [theme, setTheme] = useTheme();
   const [cloudView, setCloudView] = useState(null);
   // Demo mode: the workspace is loaded asynchronously (loadData is a promise — wrapping it in
   // normalizeData used to hand the portal an empty repository, so no email could ever match).
@@ -427,6 +431,9 @@ export function PortalApp() {
 
   return (
     <div className="careers-page">
+      <div className="public-theme">
+        <ThemeToggle theme={theme} onChange={setTheme} />
+      </div>
       <header className="careers-hero" style={{ padding: '40px 8vw 32px' }}>
         <span className="careers-brand">
           AnthroPrime<small>ECOD · CANDIDATE PORTAL</small>

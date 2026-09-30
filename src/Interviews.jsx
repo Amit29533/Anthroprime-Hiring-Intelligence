@@ -44,7 +44,7 @@ import {
   offerTermsSnapshot,
   clearOfferApproval,
 } from './offers.js';
-import { exportSensitiveFile } from './Candidates.jsx';
+import { exportSensitiveFile } from './downloads.js';
 import { icsFor, icsForInterview, parseICS, interviewDraftFromEvent } from './calendar.js';
 import { offerLetterText } from './offerLetter.js';
 import { documentTemplatesFor, mergeContext, renderTemplate } from './templates.js';
@@ -372,21 +372,21 @@ function InviteLink({ iv, candidate, demand, settings, notify }) {
   );
 }
 
-export function Interviews({ data, onSave, onOpen, busy, notify, audit }) {
+export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialFilter }) {
   const viewer = !canWriteForRole(getRole());
   const [modal, setModal] = useState(null); // {type:'schedule'|'feedback'|'offer'|'slots', ...}
   const [view, setView] = useState('list');
-  const ivs = [...data.interviews].sort(
-    (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt),
-  );
+  const ivs = data.interviews
+    .filter((row) => !initialFilter?.ids || initialFilter.ids.includes(row.id))
+    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
   const upcoming = ivs.filter(
     (iv) =>
       iv.status === 'Scheduled' && new Date(iv.scheduledAt) >= new Date(Date.now() - 12 * 3600000),
   );
   const past = [...ivs]
-    .filter((iv) => iv.status !== 'Scheduled')
+    .filter((iv) => !upcoming.some((next) => next.id === iv.id))
     .sort((a, b) => new Date(b.scheduledAt) - new Date(a.scheduledAt));
-  const stats = interviewAnalytics(data.interviews, thresholdFor(data.settings));
+  const stats = interviewAnalytics(ivs, thresholdFor(data.settings));
   const offers = offersSummary(data.offers);
   const person = (id) => data.candidates.find((c) => c.id === id);
   const demandOf = (id) => data.demands.find((d) => d.id === id);

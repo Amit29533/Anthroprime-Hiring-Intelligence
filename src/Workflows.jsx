@@ -59,6 +59,10 @@ import {
   contentSignatureOk,
 } from './documents.js';
 import { setCustomTaxonomy, allSkills } from './taxonomy.js';
+import { ThemeToggle } from './theme.jsx';
+import { AssessmentTemplatePanel } from './AssessmentTemplates.jsx';
+import { StaticPools } from './StaticPools.jsx';
+import { assessmentTemplateFields, rubricScore } from './assessmentTemplates.js';
 import {
   timeToReady,
   sourceConversion,
@@ -71,7 +75,7 @@ import {
 } from './analytics.js';
 import { thresholdFor, DEFAULT_CRITERIA, templatesFor } from './feedback.js';
 import { changesSince } from './sync.js';
-import { downloadFile, exportCandidates, exportSensitiveFile } from './Candidates.jsx';
+import { downloadFile, exportCandidates, exportSensitiveFile } from './downloads.js';
 import { cloud, getSupabase, getRole, canWriteForRole, TABLES, resetDemo } from './repository.js';
 import { backupBundle, parseBackup } from './backup.js';
 import { TRIGGERS, TRIGGER_VALUES, describeRule, describeActions } from './automation.js';
@@ -613,6 +617,12 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
   );
 }
 export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
+  const [templateId, setTemplateId] = useState(''),
+    [rubricScores, setRubricScores] = useState({}),
+    [error, setError] = useState('');
+  const templates = (data.assessmentTemplates || []).filter((row) => !row.archived);
+  const template = templates.find((row) => row.id === templateId);
+  const computedScore = template ? rubricScore(template.rubric, rubricScores) : null;
   const [form, setForm] = useState({
     candidateId: candidateId || data.candidates[0]?.id || '',
     demandId: '',
@@ -626,9 +636,25 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
   });
   async function submit(e) {
     e.preventDefault();
+    setError('');
+    let templateFields = {};
+    try {
+      if (templateId && !template)
+        throw new Error('This template is no longer available. Choose another template.');
+      if (template) templateFields = assessmentTemplateFields(template, rubricScores, form.date);
+    } catch (problem) {
+      setError(problem.message);
+      return;
+    }
     if (
       await onSave('assessments', [
-        { ...form, id: uid(), demandId: form.demandId || null, skill: form.skill || null },
+        {
+          ...form,
+          ...templateFields,
+          id: uid(),
+          demandId: form.demandId || null,
+          skill: form.skill || null,
+        },
       ])
     )
       onClose();
@@ -641,6 +667,58 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
     >
       <form onSubmit={submit}>
         <div className="modal-body form-grid">
+          <Field
+            label="Assessment template"
+            hint="Choose a reusable rubric or record a standalone assessment."
+            wide
+          >
+            <select
+              value={templateId}
+              onChange={(e) => {
+                const next = templates.find((row) => row.id === e.target.value);
+                setTemplateId(e.target.value);
+                setRubricScores({});
+                setError('');
+                if (next) setForm({ ...form, title: next.name });
+              }}
+            >
+              <option value="">Standalone assessment</option>
+              {templates.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name} · v{row.version}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {template && (
+            <div className="rubric-evaluation wide">
+              <p>{template.description}</p>
+              {template.rubric.map((criterion) => (
+                <Field
+                  key={criterion.id}
+                  label={`${criterion.label} (0–${criterion.maxScore})`}
+                  hint={`${criterion.weight}% of the total score`}
+                >
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={criterion.maxScore}
+                    value={rubricScores[criterion.id] ?? ''}
+                    onChange={(e) =>
+                      setRubricScores({ ...rubricScores, [criterion.id]: e.target.value })
+                    }
+                  />
+                </Field>
+              ))}
+              <strong>
+                Weighted score:{' '}
+                {computedScore === null ? 'Score all criteria' : `${computedScore}/100`}
+              </strong>
+              <small>Valid for {template.validityDays} days from the assessment date.</small>
+            </div>
+          )}
           <Field label="Candidate *" wide>
             <select
               required
@@ -675,16 +753,18 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </Field>
-          <Field label="Score (0–100) *">
-            <input
-              required
-              type="number"
-              min="0"
-              max="100"
-              value={form.score}
-              onChange={(e) => setForm({ ...form, score: Number(e.target.value) })}
-            />
-          </Field>
+          {!template && (
+            <Field label="Score (0–100) *">
+              <input
+                required
+                type="number"
+                min="0"
+                max="100"
+                value={form.score}
+                onChange={(e) => setForm({ ...form, score: Number(e.target.value) })}
+              />
+            </Field>
+          )}
           <Field label="Assessment date *">
             <input
               required
@@ -732,6 +812,11 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
             Assessment scores update matching. Recruiters confirm profile readiness separately;
             earlier assessments remain in history.
           </p>
+          {error && (
+            <p className="form-error wide" role="alert">
+              {error}
+            </p>
+          )}
         </div>
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -888,15 +973,23 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
         )}
       </PageHeader>
       <div className="repository-tabs">
-        {['Assessments', 'Enrichment plans'].map((t) => (
+        {['Assessments', 'Enrichment plans', 'Templates'].map((t) => (
           <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
             {t}
-            <span>{t === 'Assessments' ? data.assessments.length : data.enrichment.length}</span>
+            <span>
+              {t === 'Assessments'
+                ? data.assessments.length
+                : t === 'Templates'
+                  ? (data.assessmentTemplates || []).filter((row) => !row.archived).length
+                  : data.enrichment.length}
+            </span>
           </button>
         ))}
       </div>
       <section className="panel">
-        {tab === 'Assessments' ? (
+        {tab === 'Templates' ? (
+          <AssessmentTemplatePanel data={data} onSave={onSave} busy={busy} />
+        ) : tab === 'Assessments' ? (
           <div className="table-scroll">
             <table>
               <thead>
@@ -920,6 +1013,12 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                         </td>
                         <td>
                           {a.title}
+                          {a.templateSnapshot && (
+                            <small className="block">
+                              {a.templateSnapshot.name} · v{a.templateSnapshot.version} ·{' '}
+                              {a.validUntil < today() ? 'Expired' : 'Valid until'} {a.validUntil}
+                            </small>
+                          )}
                           {a.gap && <small className="block text-amber">Gap identified</small>}
                         </td>
                         <td>
@@ -1332,7 +1431,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
     </>
   );
 }
-export function Pools({ data, onOpen }) {
+export function Pools({ data, onOpen, onSave, busy }) {
   const [selected, setSelected] = useState(null);
   const pools = [
     {
@@ -1381,6 +1480,7 @@ export function Pools({ data, onOpen }) {
         title="A network, organized around possibility."
         description="Dynamic talent pools update automatically as your repository grows."
       />
+      <StaticPools data={data} onOpen={onOpen} onSave={onSave} busy={busy} />
       <div className="pools-grid">
         {pools.map((p) => (
           <button
@@ -2156,13 +2256,18 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
     </>
   );
 }
-export function Login() {
+export function Login({ theme = 'system', onThemeChange }) {
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   return (
     <div className="login-page">
+      {onThemeChange && (
+        <div className="public-theme">
+          <ThemeToggle theme={theme} onChange={onThemeChange} />
+        </div>
+      )}
       <div className="login-story">
         <div className="brand">
           <img

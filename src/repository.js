@@ -160,7 +160,16 @@ export async function loadData() {
           .select('*')
           .order('id')
           .range(from, from + 999);
-        if (error) throw error;
+        if (error) {
+          if (
+            ['assessmentTemplates', 'talentPools', 'poolMembers'].includes(table) &&
+            ['42P01', 'PGRST205'].includes(error.code)
+          )
+            throw new Error(
+              'Apply Supabase migration 032_repository_structures.sql to enable assessment templates and curated pools.',
+            );
+          throw error;
+        }
         data[table].push(...rows);
         if (rows.length < 1000) break;
         from += 1000;
@@ -168,6 +177,34 @@ export async function loadData() {
     }),
   );
   return normalizeData(data);
+}
+
+// Structured repository filtering is evaluated by PostgreSQL in cloud mode. Return IDs only;
+// existing profile projection and local CV/semantic ranking remain authoritative for display.
+export async function queryRepositoryIds(filters) {
+  const supabase = await getSupabase();
+  const ids = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase.rpc('api_filter_candidates', {
+      p_employer: filters.employer.trim(),
+      p_engagement: filters.engagement,
+      p_max_expected: filters.maxExpected === '' ? null : Number(filters.maxExpected),
+      p_limit: 1000,
+      p_offset: offset,
+    });
+    if (error)
+      throw new Error(
+        ['42883', 'PGRST202'].includes(error.code)
+          ? 'Apply migration 033_client_documents_filters.sql to enable server-side repository filters.'
+          : error.message,
+      );
+    if (data?.error) throw new Error(data.error);
+    const page = data?.ids || [];
+    ids.push(...page);
+    if (page.length < 1000) return ids;
+    offset += page.length;
+  }
 }
 
 export function mergeHistory(currentRows = [], recentRows = []) {

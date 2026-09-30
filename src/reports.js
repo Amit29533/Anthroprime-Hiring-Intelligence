@@ -9,6 +9,7 @@
 //      see admin-only commercials. `FIELDS` marks those fields `adminOnly`.
 //   2. A measure with no denominator returns `null`, never 0 or 100%. An empty average is "no
 //      data", and the UI must say so rather than draw a zero.
+import { placementMargin } from './placements.js';
 
 export const OPERATORS = {
   is: { label: 'is', types: ['text', 'enum', 'number', 'date', 'boolean'] },
@@ -95,6 +96,26 @@ export const FIELDS = {
     field('owner', 'Account owner', 'enum'),
     field('created', 'Added on', 'date'),
   ],
+  placements: [
+    field('candidate', 'Candidate', 'text'),
+    field('client', 'Client', 'enum'),
+    field('demand', 'Demand', 'text'),
+    field('status', 'Placement status', 'enum'),
+    field('startDate', 'Start date', 'date'),
+    field('endDate', 'End date', 'date'),
+    field('engagementType', 'Engagement', 'enum'),
+    field('recruiter', 'Recruiter', 'enum'),
+    field('currency', 'Currency', 'enum', { adminOnly: true }),
+    field('basis', 'Rate basis', 'enum', { adminOnly: true }),
+    ...[
+      ['billRate', 'Bill rate'],
+      ['costRate', 'Cost rate'],
+      ['marginPercent', 'Margin (%)'],
+      ['billedAmount', 'Billed amount'],
+      ['collectedAmount', 'Collected amount'],
+      ['outstandingAmount', 'Outstanding amount'],
+    ].map(([key, label]) => field(key, label, 'number', { adminOnly: true })),
+  ],
 };
 
 export const ENTITIES = Object.keys(FIELDS);
@@ -106,6 +127,7 @@ export const ENTITY_LABELS = {
   offers: 'Offers',
   considerations: 'Pipeline entries',
   clients: 'Clients',
+  placements: 'Placements',
 };
 
 export const MEASURES = {
@@ -138,6 +160,32 @@ export const blankReport = (entity = 'candidates') => ({
     limit: 25,
   },
 });
+
+export function reportRows(data, entity, { isAdmin = false } = {}) {
+  if (entity !== 'placements') return data?.[entity] || [];
+  return (data.placements || []).map((placement) => {
+    const row = Object.fromEntries(
+      fieldsFor('placements').map(({ key }) => [key, placement[key] ?? null]),
+    );
+    row.candidate =
+      data.candidates?.find((c) => c.id === placement.candidateId)?.name || '(unlinked)';
+    row.client = data.clients?.find((c) => c.id === placement.clientId)?.name || '(unlinked)';
+    row.demand = data.demands?.find((d) => d.id === placement.demandId)?.title || '(unlinked)';
+    if (isAdmin) {
+      const commercial = data.placementCommercials?.find((c) => c.placementId === placement.id);
+      for (const { key, adminOnly } of FIELDS.placements)
+        if (adminOnly) row[key] = commercial?.[key] ?? null;
+      row.marginPercent = placementMargin(commercial).percent;
+      const billed = commercial?.billedAmount,
+        collected = commercial?.collectedAmount;
+      row.outstandingAmount =
+        billed != null && collected != null
+          ? Math.max(0, Number(billed) - Number(collected))
+          : null;
+    }
+    return row;
+  });
+}
 
 // ------------------------------------------------------------------ evaluation
 
@@ -273,7 +321,7 @@ export function runReport(data, report, { isAdmin = false, now = Date.now } = {}
   const dropped = (config.filters || []).filter((f) => f.field && !allowed.has(f.field));
   const filters = (config.filters || []).filter((f) => f.field && allowed.has(f.field));
 
-  const source = data?.[entity] || [];
+  const source = reportRows(data, entity, { isAdmin });
   const rows = source.filter((row) =>
     filters.every((f) => matchesFilter(row, f, findField(entity, f.field))),
   );
@@ -281,6 +329,31 @@ export function runReport(data, report, { isAdmin = false, now = Date.now } = {}
   const measure = config.measure || 'count';
   const measureKey = MEASURES[measure]?.needsField ? config.measureField : '';
   const measureMeta = measureKey ? findField(entity, measureKey) : null;
+  if (
+    entity === 'placements' &&
+    ['billRate', 'costRate', 'billedAmount', 'collectedAmount', 'outstandingAmount'].includes(
+      measureKey,
+    )
+  ) {
+    const valued = rows.filter((row) => row[measureKey] != null);
+    if (new Set(valued.map((row) => row.currency)).size > 1)
+      return {
+        error: 'Filter to one currency before combining commercial amounts.',
+        groups: [],
+        total: null,
+        considered: rows.length,
+      };
+    if (
+      ['billRate', 'costRate'].includes(measureKey) &&
+      new Set(valued.map((row) => row.basis)).size > 1
+    )
+      return {
+        error: 'Filter to one rate basis before combining rates.',
+        groups: [],
+        total: null,
+        considered: rows.length,
+      };
+  }
   const measureHidden = !!(measureKey && !allowed.has(measureKey));
 
   if (measureHidden)
@@ -417,9 +490,9 @@ export function validateReportName(report, reports = [], id = null) {
 }
 
 /** Distinct values for a field, so the builder can offer real choices instead of a blank box. */
-export function suggestValues(data, entity, key, limit = 40) {
+export function suggestValues(data, entity, key, limit = 40, { isAdmin = false } = {}) {
   const seen = new Map();
-  for (const row of data?.[entity] || []) {
+  for (const row of reportRows(data, entity, { isAdmin })) {
     const raw = row?.[key];
     const values = Array.isArray(raw) ? raw : [raw];
     for (const v of values) {

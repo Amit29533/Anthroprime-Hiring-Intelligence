@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ClientDocuments from './ClientDocuments.jsx';
 import {
   Plus,
   Building2,
@@ -617,6 +618,9 @@ export function ClientDetail({
   onOpenCandidate,
   onAddPlacement,
   onEditPlacement,
+  onSave,
+  busy,
+  uploadedBy,
 }) {
   const roll = clientRollup(data, client);
   const canWrite = canWriteForRole(getRole());
@@ -679,6 +683,13 @@ export function ClientDetail({
         />
       </div>
 
+      <ClientDocuments
+        client={client}
+        data={data}
+        onSave={onSave}
+        busy={busy}
+        uploadedBy={uploadedBy}
+      />
       <div className="client-columns">
         <section className="panel">
           <PanelHeading

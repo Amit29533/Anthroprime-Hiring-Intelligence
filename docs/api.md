@@ -1,6 +1,6 @@
 # ECOD public API contract (v1, hosted RPCs)
 
-The workspace exposes hosted PostgreSQL functions (Supabase RPC endpoints). Workspace-data RPCs are security-definer and workspace-scoped; public careers RPCs are deliberately narrow. PGlite migration suites exercise the SQL through migrations 001–019 (`tests/migration*.test.js`). Authenticate with the caller's Supabase JWT where required.
+The workspace exposes hosted PostgreSQL functions (Supabase RPC endpoints). Workspace-data RPCs are security-definer and workspace-scoped; public careers RPCs are deliberately narrow. PGlite migration suites exercise the SQL through migrations 001–033 (`tests/migration*.test.js`). Authenticate with the caller's Supabase JWT where required.
 
 ## `POST /rest/v1/rpc/api_changes_since` — incremental sync (§14 `updated_since`)
 
@@ -11,7 +11,7 @@ workspace only. Cross-tenant safe; `anon` is denied.
 | ----- | ------ | -------------------------------------------------------------------------------------------------------------------- |
 | `day` | `date` | Defaults to `current_date - 30`. Rows are matched by `created`/`updated`/`date`/`submittedOn` etc., day granularity. |
 
-Response `jsonb` includes `since` and one array for each repository table, including `candidates`, `demands`, `considerations`, `assessments`, `notes`, `enrichment`, histories, `auditEvents`, `documents` metadata, `taxonomy`, `demandCommercials`, `settings`, `consents`, `interviews`, `offers`, `tasks`, `submissions`, `publicApplications`, `workflowRules`, `placements` and `placementCommercials`. Each array is ordered by its table id and each row omits `workspace_id`. Internal demand and placement commercials are returned only to workspace admins; other members receive empty commercial arrays.
+Response `jsonb` includes `since` and one array for each repository table, including `candidates`, `demands`, `considerations`, `assessments`, `notes`, `enrichment`, histories, `auditEvents`, `documents` metadata, `taxonomy`, `demandCommercials`, `settings`, `consents`, `interviews`, `offers`, `tasks`, `submissions`, `publicApplications`, `workflowRules`, `placements`, `placementCommercials`, `assessmentTemplates`, `talentPools` and `poolMembers`. Each array is ordered by its table id and each row omits `workspace_id`. Internal demand and placement commercials are returned only to workspace admins; other members receive empty commercial arrays.
 
 Errors: `{ "error": "no workspace membership" }` when the caller has no membership; HTTP
 403-class permission error for `anon`.
@@ -253,3 +253,24 @@ Three tables join both sync RPCs: `skills`, `personSkills`, `skillEvidence`.
 Self-declared 10); `src/skills.js` mirrors it and a test fails if the two drift. Writing to
 `personSkills` directly is permitted but pointless: the next evidence row recomputes it. Treat the
 evidence as the source of truth and the person-skill as a cache the database maintains.
+## Repository structures (migration 032)
+
+`assessmentTemplates` stores a name, description, rubric, validityDays (1–730), version and archived flag. Each rubric has unique criterion IDs, positive weights totaling 100 and positive maximum scores. Workspace members can read templates; only admins can create or update them. The database assigns versions when rubric, name, description or validity changes.
+
+An assessment may reference `templateId` and provide `rubricScores`, keyed by criterion ID. On insert, PostgreSQL validates every score and derives the weighted score, `templateSnapshot` and `validUntil`. Callers cannot replace the stored evidence or rubric version later. Archived templates cannot be used for new assessments. Existing evidence remains readable after template edits or archiving. Matching excludes expired assessments.
+
+`talentPools` holds named curated pools. `poolMembers` links a pool and candidate within the same workspace, with one row per pair and an `active` flag. Editors create/update pools and activate/deactivate memberships; viewers can read them. Archiving retains all records and prevents new active membership. Both tables and templates participate in audit and incremental sync. Removing a membership does not delete a candidate.
+
+The report builder supports `placements`. Operational fields are available to readers. Currency, billing basis, rates, margin, billed, collected and outstanding amounts require admin access and are projected from `placementCommercials`; internal notes are excluded. Amount aggregations require a single currency; rate aggregations also require a single billing basis.
+
+Backup exports include all three new tables, and old backups remain readable. Cloud restore uses normal validated writes: inserting templated evidence recalculates its snapshot from the restored current template, and archived templates reject new evidence. Historical assessment snapshot fidelity therefore still requires a dedicated trusted restore procedure; the browser merge restore is not a historical recovery mechanism.
+
+## Client documents and repository filters (migration 033)
+
+`documents.clientId` references a client in the same workspace. A document cannot have both a client and candidate owner. All client documents are admin-only for reads, inserts and updates; candidate document permissions remain as before. Existing document history snapshots containing a client link are also admin-only. Ownership and storage location cannot be reassigned after upload. R2 client paths must begin with `<workspace>/clients/<client>/`. Upload signing accepts exactly one `clientId` or `candidateId`; client uploads require an admin and an RLS-visible client. Download signing continues to resolve an RLS-visible, unarchived record. Both sync feeds include `clientId` and omit client documents for non-admins.
+
+`POST /rest/v1/rpc/api_filter_candidates` accepts `p_employer` (literal case-insensitive substring, up to 120 characters), `p_engagement` (empty, Permanent, Contract, C2H or Subcontract), `p_max_expected` (optional nonnegative compensation ceiling; admin-only), `p_limit` (1–1000) and `p_offset` (nonnegative). It returns `{ids, limit, offset}` ordered by candidate ID. It excludes merged profiles, unknown compensation when a ceiling is supplied and every other workspace. It is unavailable to anonymous callers; a member without a workspace receives `{error: "no workspace membership"}`. No candidate or commercial fields are returned.
+
+The UI fetches all matching ID pages before applying existing local text/semantic/queue filters. This does not replace the current full-workspace initial load or provide server-side text/semantic search. Cancellation suppresses stale responses when filters change; failures are shown instead of falling back silently. Saved views retain structured filters; non-admin readers clear saved compensation criteria.
+
+Cloud setup requires migration 033 and the existing Netlify/R2 configuration. Demo attachments are capped at 1 MB so the original can be stored inline; cloud uploads retain the 5 MB allowlist limit. Attachments are scanned by content signature, not antivirus. No live service provisioning or deployment is performed by this implementation.
