@@ -41,8 +41,9 @@ export function createUploadHandler({
     try {
       const body = requestBody(event);
       if (!body) throw httpError(400, 'Request body must be valid JSON.');
-      const { candidateId, filename, contentType, size } = body;
-      if (!candidateId || !filename) throw httpError(400, 'Candidate and filename are required.');
+      const { candidateId, clientId, filename, contentType, size } = body;
+      if ((!candidateId && !clientId) || (candidateId && clientId) || !filename)
+        throw httpError(400, 'Choose one candidate or client and provide a filename.');
       const extension = String(filename).split('.').pop().toLowerCase();
       if (ALLOWED_FILES.get(extension) !== contentType)
         throw httpError(400, 'That document type is not allowed.');
@@ -50,16 +51,24 @@ export function createUploadHandler({
         throw httpError(400, 'Document size must be between 1 byte and 5 MB.');
 
       const { supabase, membership } = await authorize(event, { write: true });
+      if (clientId && membership.role !== 'admin')
+        throw httpError(403, 'Client agreements require administrator access.');
       const { data: candidate, error: candidateError } = await supabase
-        .from('candidates')
+        .from(clientId ? 'clients' : 'candidates')
         .select('id')
-        .eq('id', candidateId)
+        .eq('id', clientId || candidateId)
         .maybeSingle();
       if (candidateError) throw candidateError;
-      if (!candidate) throw httpError(404, 'Candidate was not found in your workspace.');
+      if (!candidate)
+        throw httpError(
+          404,
+          `${clientId ? 'Client' : 'Candidate'} was not found in your workspace.`,
+        );
 
       const { client, bucket } = storage();
-      const storagePath = documentObjectKey(membership.workspace_id, candidateId, filename);
+      const storagePath = clientId
+        ? `${membership.workspace_id}/clients/${clientId}/${randomUUID()}/${safeFilename(filename)}`
+        : documentObjectKey(membership.workspace_id, candidateId, filename);
       const uploadUrl = await signer(
         client,
         new PutObjectCommand({
@@ -68,7 +77,7 @@ export function createUploadHandler({
           ContentType: contentType,
           Metadata: {
             workspace: membership.workspace_id,
-            candidate: candidateId,
+            ...(clientId ? { client: clientId } : { candidate: candidateId }),
           },
         }),
         { expiresIn: 300, signableHeaders: new Set(['content-type']) },

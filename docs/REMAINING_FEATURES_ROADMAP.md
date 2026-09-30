@@ -22,7 +22,9 @@ Build assessment templates, static talent pools, richer configurable fields beyo
 
 **Delivered first slice (30 September 2026):** admin-managed weighted assessment templates with versioned evidence and configurable expiry; recruiter-curated static pools with reversible membership and archiving; placement report fields with admin-only commercial measures and currency/billing-basis aggregation guards. Migration 032 enforces these structures and syncs them.
 
-**Still remaining in Phase 2:** configurable fields on additional modules, client agreement/document links and stronger server-side repository filters. Assessment template administration is restricted to admins; recruiters reuse published templates.
+**Delivered second slice (1 October 2026):** client agreement/document uploads, private signed reads and reversible archiving, restricted to admins including historical snapshots; employer, engagement and admin-only compensation filters evaluated by PostgreSQL in cloud mode and stored in saved views. Migration 033 includes same-workspace document links, merge markers and permission-checked filter RPCs.
+
+**Still remaining in Phase 2:** configurable fields on additional modules and wider server-side filter/pagination adoption. The new structured filters run on the server; the existing text, semantic, location, skill and queue filters still run in the browser. Assessment template administration is restricted to admins; recruiters reuse published templates.
 
 ## Phase 3 — Server execution foundation
 

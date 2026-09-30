@@ -964,3 +964,38 @@ dialog .modal-body {
   color: var(--soft-ink);
   margin: 12px 0 24px;
 }
+.client-documents {
+  margin-bottom: 24px;
+}
+.client-document-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 0 24px 20px;
+}
+.client-document-toolbar .field {
+  margin: 0;
+}
+.client-document-toolbar .check-label {
+  align-self: center;
+}
+.client-documents > .form-error {
+  margin: 0 24px 20px;
+}
+.repository-filter-status {
+  padding: 12px 24px;
+  color: var(--soft-ink);
+  font-size: 13px;
+}
+.filter-bar {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .client-documents .document-row {
+    flex-wrap: wrap;
+  }
+  .client-document-toolbar {
+    padding: 0 16px 16px;
+  }
+}

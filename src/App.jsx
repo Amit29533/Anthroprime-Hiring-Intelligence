@@ -737,6 +737,9 @@ export default function App() {
         key={client.id}
         client={client}
         data={data}
+        onSave={save}
+        busy={busy}
+        uploadedBy={userName}
         onBack={() => setClientId(null)}
         onEdit={(c) => setModal({ type: 'client', client: c })}
         onAddContact={(id) => setModal({ type: 'contact', clientId: id })}

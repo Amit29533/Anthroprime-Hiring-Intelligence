@@ -209,12 +209,14 @@ export function buildDocumentRecord({
   hash,
   extracted,
   candidateId = null,
+  clientId = null,
   kind,
   uploadedBy = 'Recruiter',
 }) {
   return {
     id: uid(),
     candidateId,
+    ...(clientId ? { clientId } : {}),
     kind: kind || (ext === 'pdf' || ext === 'docx' ? 'CV' : 'Other'),
     name: file.name || 'document',
     mime: ALLOWED_EXTENSIONS[ext] || '',
@@ -269,6 +271,7 @@ export async function persistBinary(record, file) {
   }
   const { uploadUrl, storagePath } = await storageFunction('document-upload-url', {
     candidateId: record.candidateId,
+    ...(record.clientId ? { clientId: record.clientId } : {}),
     filename: record.name,
     contentType: record.mime || 'application/octet-stream',
     size: file.size,

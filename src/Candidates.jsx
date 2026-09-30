@@ -55,7 +55,13 @@ import {
 import { captureChanges } from './history.js';
 import { queueById } from './quality.js';
 import { deriveGaps } from './gaps.js';
-import { cloud, getRole, canWriteForRole } from './repository.js';
+import { cloud, getRole, canWriteForRole, queryRepositoryIds } from './repository.js';
+import {
+  blankRepositoryFilters,
+  hasRepositoryFilters,
+  validateRepositoryFilters,
+  matchesRepositoryFilters,
+} from './repositoryFilters.js';
 import {
   classifyFile,
   extractText,
@@ -107,11 +113,45 @@ export function Candidates({
     [bulkUndo, setBulkUndo] = useState(null),
     [page, setPage] = useState(1);
   const queueDef = queueById(queue);
+  const [repositoryFilters, setRepositoryFilters] = useState(blankRepositoryFilters);
+  const [serverFilter, setServerFilter] = useState({ ids: null, pending: false, error: '' });
+  const serverIds = useMemo(() => new Set(serverFilter.ids || []), [serverFilter.ids]);
+  const advancedActive = hasRepositoryFilters(repositoryFilters);
+  const filterError = validateRepositoryFilters(repositoryFilters, getRole() === 'admin');
+  useEffect(() => {
+    let current = true;
+    if (!cloud || !advancedActive || filterError) {
+      setServerFilter({ ids: null, pending: false, error: '' });
+      return undefined;
+    }
+    setServerFilter({ ids: null, pending: true, error: '' });
+    const timer = setTimeout(() => {
+      queryRepositoryIds(repositoryFilters)
+        .then((ids) => {
+          if (current) setServerFilter({ ids, pending: false, error: '' });
+        })
+        .catch((error) => {
+          if (current) setServerFilter({ ids: [], pending: false, error: error.message });
+        });
+    }, 250);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [repositoryFilters, advancedActive, filterError, data.candidates]);
   const filteredRows = useMemo(() => {
     const parsed = semantic ? parseTalentQuery(query) : null;
     const skillDomainSkills = skill && skill !== ' ' ? skillsUnder(skill) : null;
     return data.candidates
       .filter((c) => {
+        if (
+          filterError ||
+          (cloud &&
+            advancedActive &&
+            (serverFilter.pending || !serverFilter.ids || !serverIds.has(c.id)))
+        )
+          return false;
+        if (!cloud && !matchesRepositoryFilters(c, repositoryFilters)) return false;
         const text = candidateSearchText(c, data.documents);
         if (parsed && parsed.used) {
           if (!matchesSemantic(c, parsed, text)) return false;
@@ -164,6 +204,11 @@ export function Candidates({
     tag,
     sort,
     initialFilter,
+    repositoryFilters,
+    serverFilter,
+    serverIds,
+    advancedActive,
+    filterError,
   ]);
   const parsed = useMemo(() => (semantic ? parseTalentQuery(query) : null), [semantic, query]);
   const rows =
@@ -254,7 +299,11 @@ export function Candidates({
           <Button
             icon={Download}
             variant="secondary"
-            disabled={cloud && !canWriteForRole(getRole())}
+            disabled={
+              (cloud && !canWriteForRole(getRole())) ||
+              serverFilter.pending ||
+              Boolean(filterError || serverFilter.error)
+            }
             title={
               cloud && !canWriteForRole(getRole()) ? 'Viewer role cannot export candidate data' : ''
             }
@@ -279,6 +328,46 @@ export function Candidates({
         </div>
         {filters && (
           <div className="filter-bar">
+            <Field label="Current employer">
+              <input
+                value={repositoryFilters.employer}
+                maxLength={120}
+                placeholder="Any employer"
+                onChange={(e) => {
+                  setRepositoryFilters({ ...repositoryFilters, employer: e.target.value });
+                  setPage(1);
+                }}
+              />
+            </Field>
+            <Field label="Engagement preference">
+              <select
+                value={repositoryFilters.engagement}
+                onChange={(e) => {
+                  setRepositoryFilters({ ...repositoryFilters, engagement: e.target.value });
+                  setPage(1);
+                }}
+              >
+                <option value="">Any engagement</option>
+                {['Permanent', 'Contract', 'C2H', 'Subcontract'].map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
+              </select>
+            </Field>
+            {getRole() === 'admin' && (
+              <Field label="Maximum expected CTC (₹ LPA)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={repositoryFilters.maxExpected}
+                  placeholder="Any compensation"
+                  onChange={(e) => {
+                    setRepositoryFilters({ ...repositoryFilters, maxExpected: e.target.value });
+                    setPage(1);
+                  }}
+                />
+              </Field>
+            )}
             <Field label="Location">
               <select value={location} onChange={(e) => setLocation(e.target.value)}>
                 <option value="">All locations</option>
@@ -329,11 +418,22 @@ export function Candidates({
                 setNotice('');
                 setMinExp('');
                 setTag('');
+                setRepositoryFilters(blankRepositoryFilters());
               }}
             >
               Clear filters
             </Button>
           </div>
+        )}
+        {(filterError || serverFilter.error) && (
+          <p className="form-error" role="alert">
+            {filterError || serverFilter.error}
+          </p>
+        )}
+        {serverFilter.pending && (
+          <p className="repository-filter-status" role="status">
+            Filtering your workspace…
+          </p>
         )}
         <div className="views-bar">
           <span className="views-label">Views:</span>
@@ -352,6 +452,12 @@ export function Candidates({
               setSkill(v.filters.skill || '');
               setTag(v.filters.tag || '');
               setSort(v.filters.sort || 'name');
+              setRepositoryFilters({
+                ...blankRepositoryFilters(),
+                ...(v.filters.repositoryFilters || {}),
+                ...(getRole() !== 'admin' ? { maxExpected: '' } : {}),
+              });
+              setPage(1);
             }}
           >
             <option value="">Apply a saved view…</option>
@@ -370,7 +476,18 @@ export function Candidates({
               const view = {
                 id: uid(),
                 name,
-                filters: { query, status, queue, location, notice, minExp, skill, tag, sort },
+                filters: {
+                  query,
+                  status,
+                  queue,
+                  location,
+                  notice,
+                  minExp,
+                  skill,
+                  tag,
+                  sort,
+                  repositoryFilters,
+                },
               };
               if (
                 await onSave('settings', [
@@ -575,7 +692,7 @@ export function Candidates({
             </tbody>
           </table>
         </div>
-        {!rows.length && (
+        {!rows.length && !serverFilter.pending && !filterError && !serverFilter.error && (
           <Empty
             title="No candidates match these filters"
             text="Adjust your search, or add a new candidate to the repository."
