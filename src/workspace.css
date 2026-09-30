@@ -17,6 +17,20 @@
 @media(min-width:761px) and (max-width:1220px){.sidebar .brand-image{width:53px;height:42px}.sidebar .brand span.brand-wordmark{font-size:17px}.sidebar .brand .brand-wordmark small{font-size:7.5px;letter-spacing:.25px}}
 @media(max-width:760px){.login-story .brand-image{width:70px;height:54px}.login-story .brand span.brand-wordmark{font-size:23px}}
 
+/* Keep the fixed navigation vertically scrollable without allowing its content
+   to create a horizontal scrollbar or shift the brand out of view. */
+.sidebar{overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable}
+.sidebar .brand{width:100%;min-width:0}
+.sidebar .brand-image{width:52px;height:42px}
+.sidebar .brand-wordmark{flex:1;min-width:0;white-space:nowrap}
+.sidebar .brand .brand-wordmark small{letter-spacing:.35px}
+.sidebar .workspace-select,.sidebar nav,.sidebar nav button,.sidebar .settings-nav,.sidebar .sidebar-user{min-width:0;max-width:100%}
+.sidebar .workspace-select{gap:8px;padding-inline:8px}
+.sidebar .workspace-logo.workspace-brand-image{width:30px;height:26px}
+.sidebar .workspace-select>span:nth-child(2),.sidebar nav button span,.sidebar .sidebar-user>span:nth-child(2){min-width:0}
+.sidebar .workspace-select strong,.sidebar .workspace-select small,.sidebar nav button span,.sidebar .sidebar-user strong,.sidebar .sidebar-user small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1220px){.sidebar .brand-image{width:48px;height:40px}}
+
 /* Blueprint R1 additions: skill evidence editor, data-quality queues, audit lists */
 .skill-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .skill-row{display:grid;grid-template-columns:1.2fr .9fr 1fr .5fr .8fr auto;gap:8px;align-items:center;border:1px solid #e3eaee;border-radius:10px;padding:8px 10px;background:#fff}
