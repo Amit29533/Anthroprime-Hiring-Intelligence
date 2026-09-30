@@ -31,6 +31,24 @@
 .sidebar .workspace-select strong,.sidebar .workspace-select small,.sidebar nav button span,.sidebar .sidebar-user strong,.sidebar .sidebar-user small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:1220px){.sidebar .brand-image{width:42px;height:36px}.app-shell .sidebar .brand>.brand-wordmark{font-size:16px}}
 
+/* Workspace switcher */
+.workspace-switcher{position:relative;margin-bottom:28px}
+.sidebar .workspace-select{width:100%;margin:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.sidebar .workspace-select:disabled{cursor:wait;opacity:.75}
+.workspace-chevron{flex-shrink:0;transition:transform .16s ease}
+.workspace-chevron.open{transform:rotate(180deg)}
+.workspace-menu{position:absolute;z-index:50;top:calc(100% + 7px);left:0;right:0;padding:7px;background:#173943;border:1px solid #38555e;border-radius:8px;box-shadow:0 12px 30px #07191f66}
+.workspace-menu-label{padding:7px 8px 6px;color:#789aa3;font-size:9px;font-weight:650;letter-spacing:1.2px}
+.workspace-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:9px 8px;border:0;border-radius:6px;background:transparent;color:#bad0d4;text-align:left}
+.workspace-menu button:hover,.workspace-menu button[aria-checked=true]{background:#214b47;color:#effafa}
+.workspace-menu button>span{flex:1;min-width:0}
+.workspace-menu button strong,.workspace-menu button small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace-menu button strong{font-size:12px;font-weight:600;color:inherit}
+.workspace-menu button small{margin-top:3px;color:#8dabb1;font-size:10px;text-transform:capitalize}
+.workspace-menu .workspace-create{margin-top:6px;border-top:1px solid #31505a;border-radius:0 0 6px 6px;padding-top:11px;color:#8ee2c9}
+.workspace-create-actions{margin:26px -28px -25px}
+@media(max-width:760px){.workspace-create-actions{margin-inline:-20px;margin-bottom:-20px}}
+
 /* Blueprint R1 additions: skill evidence editor, data-quality queues, audit lists */
 .skill-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .skill-row{display:grid;grid-template-columns:1.2fr .9fr 1fr .5fr .8fr auto;gap:8px;align-items:center;border:1px solid #e3eaee;border-radius:10px;padding:8px 10px;background:#fff}

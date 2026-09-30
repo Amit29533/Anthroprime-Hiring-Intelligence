@@ -27,10 +27,15 @@ export async function authorizeRequest(event, { write = false } = {}) {
   if (authError || !authData?.user)
     throw httpError(401, 'Your session has expired. Sign in again.');
 
+  const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace');
+  if (workspaceError) throw workspaceError;
+  if (!workspaceId) throw httpError(403, 'Your account is not assigned to a workspace.');
+
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
     .select('workspace_id,role')
     .eq('user_id', authData.user.id)
+    .eq('workspace_id', workspaceId)
     .maybeSingle();
   if (membershipError) throw membershipError;
   if (!membership) throw httpError(403, 'Your account is not assigned to a workspace.');

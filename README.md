@@ -105,7 +105,7 @@ Alternatively, build locally and upload the contents of `dist` using Netlify's m
 Static hosting does not itself store team records. Configure a separate Supabase project:
 
 1. Create a new Supabase project in your chosen region.
-2. Apply every migration in ascending numeric order, through `030_document_storage_provider.sql`; do not skip a file.
+2. Apply every migration in ascending numeric order, through `031_multi_workspace.sql`; do not skip a file.
    Every migration is safe to re-run: re-applying the whole chain in order is a no-op, so if you are unsure
    which files you have already run, run them all again rather than guessing.
    - `001_ecod.sql` — core tables, workspace membership, RLS, constraints and append-only history.
@@ -138,8 +138,9 @@ Static hosting does not itself store team records. Configure a separate Supabase
    - `028_assignment_rules.sql` — admin-only routing rules that fill the owner on new records.
    - `029_placements.sql` — first-class placement/deployment records, admin-only commercial outcomes, tenant integrity, audit history and incremental-sync feeds.
    - `030_document_storage_provider.sql` — records whether each original is in legacy Supabase Storage or Cloudflare R2 and persists upload status/errors.
+   - `031_multi_workspace.sql` — allows one account to belong to several isolated workspaces, stores the active workspace, and adds secure create/list/switch RPCs.
 3. Create the first user in Supabase Authentication. The app intentionally has no public sign-up flow.
-4. Edit the placeholder email in `supabase/PROVISION_WORKSPACE.sql`, then execute it to create the workspace and its first administrator. After that, add colleagues from **Workspace settings → Users & roles** rather than in SQL: invite an address, and access is granted the moment that person signs in or signs up. Each account belongs to one workspace in this release, and the database refuses any change that would leave the workspace without an administrator.
+4. Edit the placeholder email in `supabase/PROVISION_WORKSPACE.sql`, then execute it to create the workspace and its first administrator. After that, add colleagues from **Workspace settings → Users & roles** rather than in SQL: invite an address, and access is granted the moment that person signs in or signs up. An account can belong to several workspaces and selects the active one from the sidebar; every workspace keeps independent data and roles. The database refuses any change that would leave a workspace without an administrator.
 5. Retrieve the workspace UUID in the SQL Editor with `select w.id from public.workspaces w join public.memberships m on m.workspace_id=w.id join auth.users u on u.id=m.user_id where u.email='YOUR_ADMIN_EMAIL' and m.role='admin';`, then share the careers page as `/careers.html?ws=<workspace-uuid>`. Roles are private by default—including pre-existing roles after migration 018—and become visible only when a recruiter checks **Publish this role on the public careers page** on the demand form. Applications submitted before migration 019 get database codes that were not shown to applicants; handle their status requests through a verified channel.
 6. Create and secure the Cloudflare R2 bucket by following [`docs/R2_SETUP.md`](docs/R2_SETUP.md).
 7. Set these browser build variables in Netlify:

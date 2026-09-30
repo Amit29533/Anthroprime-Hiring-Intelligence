@@ -24,7 +24,11 @@ export const getRole = () => currentRole;
 // The workspace the signed-in account belongs to. The public careers URL needs it as ?ws=, so
 // the settings screen can show a link that actually works instead of a placeholder.
 let currentWorkspaceId = '';
+let currentWorkspaces = [];
 export const getWorkspaceId = () => currentWorkspaceId;
+export const getWorkspaces = () => currentWorkspaces.map((workspace) => ({ ...workspace }));
+export const getWorkspace = () =>
+  currentWorkspaces.find((workspace) => workspace.id === currentWorkspaceId) || null;
 export const canWriteForRole = (role) => role === 'admin' || role === 'recruiter';
 export const canExportForRole = canWriteForRole;
 
@@ -32,14 +36,102 @@ export const canExportForRole = canWriteForRole;
 export function resetRoleForSessionChange() {
   currentRole = cloud ? 'viewer' : 'admin';
   currentWorkspaceId = '';
+  currentWorkspaces = [];
 }
 export { TABLES, emptyData, normalizeData } from './schema.js';
 import { TABLES, emptyData, normalizeData } from './schema.js';
 const STORAGE = 'ecod-demo-v1';
 
+function applyWorkspaceContext(workspaces, activeWorkspace) {
+  currentWorkspaces = (workspaces || [])
+    .filter((workspace) => workspace?.id)
+    .map((workspace) => ({
+      id: workspace.id,
+      name: String(workspace.name || 'Untitled workspace'),
+      role: ['admin', 'recruiter', 'viewer'].includes(workspace.role) ? workspace.role : 'viewer',
+    }));
+  const active =
+    currentWorkspaces.find((workspace) => workspace.id === activeWorkspace) ||
+    currentWorkspaces[0] ||
+    null;
+  currentWorkspaceId = active?.id || '';
+  currentRole = active?.role || (cloud ? 'viewer' : 'admin');
+  return active;
+}
+
+async function loadWorkspaceContext(supabase) {
+  const { data: payload, error: rpcError } = await supabase.rpc('api_my_workspaces');
+  if (!rpcError && payload && Array.isArray(payload.workspaces)) {
+    if (payload.error) throw new Error(payload.error);
+    const active = applyWorkspaceContext(payload.workspaces, payload.activeWorkspace);
+    if (!active)
+      throw new Error(
+        'Your account has not been assigned to a workspace. Ask your administrator to add your workspace membership.',
+      );
+    return active;
+  }
+
+  // Backward-compatible path while migration 031 is being deployed. It keeps existing single-
+  // workspace installations usable and gives the administrator time to apply the new migration.
+  const { data: membership, error: memberError } = await supabase
+    .from('memberships')
+    .select('workspace_id,role')
+    .maybeSingle();
+  if (memberError) throw rpcError || memberError;
+  if (!membership)
+    throw new Error(
+      'Your account has not been assigned to a workspace. Ask your administrator to add your workspace membership.',
+    );
+  const { data: workspace } = await supabase
+    .from('workspaces')
+    .select('id,name')
+    .eq('id', membership.workspace_id)
+    .maybeSingle();
+  return applyWorkspaceContext(
+    [
+      {
+        id: membership.workspace_id,
+        name: workspace?.name || 'AnthroPrime',
+        role: membership.role,
+      },
+    ],
+    membership.workspace_id,
+  );
+}
+
+async function workspaceRpc(name, parameters) {
+  if (!cloud) throw new Error('Workspace management is available in the shared team workspace.');
+  const supabase = await getSupabase();
+  const { data, error } = await supabase.rpc(name, parameters);
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883')
+      throw new Error('Apply Supabase migration 031 to enable multiple workspaces.');
+    throw error;
+  }
+  if (data?.error) throw new Error(data.error);
+  if (!data?.ok) throw new Error('The workspace operation did not complete.');
+  return data;
+}
+
+export async function switchWorkspace(workspaceId) {
+  if (!workspaceId || workspaceId === currentWorkspaceId) return getWorkspace();
+  await workspaceRpc('api_switch_workspace', { p_workspace: workspaceId });
+  const supabase = await getSupabase();
+  return loadWorkspaceContext(supabase);
+}
+
+export async function createWorkspace(name) {
+  const clean = String(name || '').trim();
+  if (clean.length < 2 || clean.length > 80)
+    throw new Error('Workspace name must be between 2 and 80 characters.');
+  await workspaceRpc('api_create_workspace', { p_name: clean });
+  const supabase = await getSupabase();
+  return loadWorkspaceContext(supabase);
+}
+
 export async function loadData() {
   if (!cloud) {
-    currentRole = 'admin';
+    applyWorkspaceContext([{ id: 'demo', name: 'AnthroPrime', role: 'admin' }], 'demo');
     const stored = localStorage.getItem(STORAGE);
     // Normalize the seed too. makeSeed() only produces the tables it has sample data for, so a
     // fresh demo workspace was missing the key for any newer table (reports, referrals) and the
@@ -56,22 +148,9 @@ export async function loadData() {
     return normalizeData(parsed);
   }
 
-  currentRole = 'viewer';
   const supabase = await getSupabase();
   const data = emptyData();
-  const { data: membership, error: memberError } = await supabase
-    .from('memberships')
-    .select('workspace_id,role')
-    .maybeSingle();
-  if (memberError) throw memberError;
-  if (!membership)
-    throw new Error(
-      'Your account has not been assigned to a workspace. Ask your administrator to add your workspace membership.',
-    );
-  currentRole = ['admin', 'recruiter', 'viewer'].includes(membership.role)
-    ? membership.role
-    : 'viewer';
-  currentWorkspaceId = membership.workspace_id || '';
+  await loadWorkspaceContext(supabase);
   await Promise.all(
     TABLES.map(async (table) => {
       let from = 0;

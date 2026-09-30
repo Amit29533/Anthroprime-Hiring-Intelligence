@@ -11,6 +11,8 @@ import {
   FileBarChart,
   Settings,
   ChevronDown,
+  Check,
+  Plus,
   Menu,
   X,
   Activity,
@@ -28,13 +30,17 @@ import {
   getRole,
   canWriteForRole,
   resetRoleForSessionChange,
+  getWorkspace,
+  getWorkspaces,
+  switchWorkspace,
+  createWorkspace,
   emptyData,
   logAuditEvent,
   resetDemo,
 } from './repository.js';
 import { actionsFor, buildActions, AUTOMATION_TABLES } from './automation.js';
 import { uid, today } from './domain.js';
-import { Button, Avatar, IconButton } from './ui.jsx';
+import { Button, Avatar, IconButton, Field, Modal } from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
 import { applyAssignment } from './assignment.js';
@@ -95,6 +101,46 @@ const nav = [
   ['Analytics', ChartNoAxesCombined],
   ['Reports', FileBarChart],
 ];
+
+function CreateWorkspaceModal({ onClose, onCreate, busy }) {
+  const [name, setName] = useState('');
+  return (
+    <Modal
+      title="Create workspace"
+      subtitle="Start a separate repository with its own candidates, demands, users and documents."
+      onClose={onClose}
+    >
+      <form
+        className="modal-body"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onCreate(name);
+        }}
+      >
+        <Field label="Workspace name" hint="Use your company, team or business-unit name.">
+          <input
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            minLength="2"
+            maxLength="80"
+            required
+            placeholder="Example: AnthroPrime Consulting"
+          />
+        </Field>
+        <div className="modal-actions workspace-create-actions">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" icon={Plus} disabled={busy || name.trim().length < 2}>
+            {busy ? 'Creating…' : 'Create workspace'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(emptyData()),
     [page, setPage] = useState('Overview'),
@@ -112,7 +158,11 @@ export default function App() {
     [candidateFilter, setCandidateFilter] = useState(null),
     [busy, setBusy] = useState(false),
     [session, setSession] = useState(null),
-    [authReady, setAuthReady] = useState(!cloud);
+    [authReady, setAuthReady] = useState(!cloud),
+    [workspaces, setWorkspaces] = useState([]),
+    [activeWorkspace, setActiveWorkspace] = useState(null),
+    [workspaceMenu, setWorkspaceMenu] = useState(false),
+    [workspaceCreate, setWorkspaceCreate] = useState(false);
   const dataRef = useRef(data),
     saving = useRef(false),
     activeSessionUserId = useRef(null);
@@ -141,6 +191,10 @@ export default function App() {
         setMobile(false);
         setToast('');
         setError('');
+        setWorkspaces([]);
+        setActiveWorkspace(null);
+        setWorkspaceMenu(false);
+        setWorkspaceCreate(false);
         setLoading(Boolean(nextUserId));
       }
       setSession(nextSession);
@@ -183,7 +237,11 @@ export default function App() {
     setError('');
     loadData()
       .then((d) => {
-        if (active) setData(d);
+        if (active) {
+          setData(d);
+          setWorkspaces(getWorkspaces());
+          setActiveWorkspace(getWorkspace());
+        }
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -211,10 +269,70 @@ export default function App() {
       const next = await loadData();
       dataRef.current = next;
       setData(next);
+      setWorkspaces(getWorkspaces());
+      setActiveWorkspace(getWorkspace());
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+  function resetWorkspaceView() {
+    const cleared = emptyData();
+    dataRef.current = cleared;
+    setData(cleared);
+    setPage('Overview');
+    setQuery('');
+    setPersonId(null);
+    setPersonTab('Overview');
+    setDemandId(null);
+    setClientId(null);
+    setPipelineDemand(null);
+    setCandidateFilter(null);
+    setModal(null);
+    setMobile(false);
+  }
+  async function selectWorkspace(workspace) {
+    setWorkspaceMenu(false);
+    if (!workspace || workspace.id === activeWorkspace?.id) return;
+    setBusy(true);
+    setLoading(true);
+    setError('');
+    resetWorkspaceView();
+    try {
+      await switchWorkspace(workspace.id);
+      const next = await loadData();
+      dataRef.current = next;
+      setData(next);
+      setWorkspaces(getWorkspaces());
+      setActiveWorkspace(getWorkspace());
+      setToast(`Switched to ${getWorkspace()?.name || workspace.name}.`);
+    } catch (workspaceError) {
+      setError(workspaceError.message || 'Could not switch workspace.');
+    } finally {
+      setLoading(false);
+      setBusy(false);
+    }
+  }
+  async function addWorkspace(name) {
+    setBusy(true);
+    setLoading(true);
+    setError('');
+    try {
+      await createWorkspace(name);
+      resetWorkspaceView();
+      const next = await loadData();
+      dataRef.current = next;
+      setData(next);
+      setWorkspaces(getWorkspaces());
+      setActiveWorkspace(getWorkspace());
+      setWorkspaceCreate(false);
+      setToast(`${getWorkspace()?.name || name.trim()} is ready.`);
+    } catch (workspaceError) {
+      setToast(workspaceError.message || 'Could not create workspace.');
+    } finally {
+      setLoading(false);
+      setBusy(false);
     }
   }
   const audit = useCallback((event) => {
@@ -228,6 +346,7 @@ export default function App() {
   const navigate = (p, filter = null) => {
     setPage(p);
     setMobile(false);
+    setWorkspaceMenu(false);
     setPersonId(null);
     setDemandId(null);
     setClientId(null);
@@ -485,6 +604,12 @@ export default function App() {
       session?.user?.email?.split('@')[0] ||
       'Team member'
     : 'Amit Singh';
+  const workspaceName = activeWorkspace?.name || (cloud ? 'Choose workspace' : 'AnthroPrime');
+  const workspaceAccess = cloud
+    ? activeWorkspace
+      ? `${activeWorkspace.role === 'admin' ? 'Admin' : activeWorkspace.role === 'recruiter' ? 'Recruiter' : 'Viewer'} access`
+      : 'Create or join'
+    : 'Local sample data';
   if (!authReady)
     return (
       <div className="loading">
@@ -687,19 +812,61 @@ export default function App() {
             AnthroPrime<small>ECOD · TALENT INTELLIGENCE</small>
           </span>
         </a>
-        <div className="workspace-select">
-          <img
-            className="workspace-logo workspace-brand-image"
-            src="/anthroprime-logo.jpg"
-            alt=""
-            width="34"
-            height="28"
-          />
-          <span>
-            <strong>AnthroPrime</strong>
-            <small>Talent workspace</small>
-          </span>
-          <ChevronDown size={15} />
+        <div className="workspace-switcher">
+          <button
+            type="button"
+            className="workspace-select"
+            aria-haspopup={cloud ? 'menu' : undefined}
+            aria-expanded={cloud ? workspaceMenu : undefined}
+            onClick={() => cloud && setWorkspaceMenu((open) => !open)}
+            disabled={loading || busy}
+          >
+            <img
+              className="workspace-logo workspace-brand-image"
+              src="/anthroprime-logo.jpg"
+              alt=""
+              width="34"
+              height="28"
+            />
+            <span>
+              <strong>{workspaceName}</strong>
+              <small>{workspaceAccess}</small>
+            </span>
+            {cloud && (
+              <ChevronDown className={workspaceMenu ? 'workspace-chevron open' : ''} size={15} />
+            )}
+          </button>
+          {cloud && workspaceMenu && (
+            <div className="workspace-menu" role="menu" aria-label="Choose workspace">
+              <div className="workspace-menu-label">YOUR WORKSPACES</div>
+              {workspaces.map((workspace) => (
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={workspace.id === activeWorkspace?.id}
+                  key={workspace.id}
+                  onClick={() => selectWorkspace(workspace)}
+                >
+                  <span>
+                    <strong>{workspace.name}</strong>
+                    <small>{workspace.role}</small>
+                  </span>
+                  {workspace.id === activeWorkspace?.id && <Check size={15} />}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="workspace-create"
+                onClick={() => {
+                  setWorkspaceMenu(false);
+                  setWorkspaceCreate(true);
+                }}
+              >
+                <Plus size={15} />
+                <span>Create workspace</span>
+              </button>
+            </div>
+          )}
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav>
@@ -767,7 +934,7 @@ export default function App() {
             />
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
-              {cloud ? 'Team workspace' : 'Demo workspace'}
+              {cloud ? workspaceName : 'Demo workspace'}
             </button>
             <NotificationBell
               data={data}
@@ -830,6 +997,13 @@ export default function App() {
           </footer>
         </main>
       </div>
+      {workspaceCreate && (
+        <CreateWorkspaceModal
+          busy={busy}
+          onClose={() => !busy && setWorkspaceCreate(false)}
+          onCreate={addWorkspace}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           {toast}

@@ -186,6 +186,22 @@ on `auth.users` (`claim_workspace_invite`) redeems a pending invitation at sign-
 service-role key is needed in the browser. Every mutation writes an `auditEvents` row with
 `entityType = 'membership'`.
 
+## Multiple workspaces (migration 031)
+
+Workspace selection is server-side state used by `current_workspace()`, so every existing RLS policy,
+sync RPC and private-document request follows the same active workspace. Membership and role checks are
+repeated inside each security-definer operation.
+
+| RPC                                | Who may call       | Returns                                                                 |
+| ---------------------------------- | ------------------ | ----------------------------------------------------------------------- |
+| `api_my_workspaces()`              | authenticated user | active workspace plus every workspace membership and its role           |
+| `api_switch_workspace(p_workspace)`| workspace member   | selects an existing membership; refuses workspaces the caller cannot use |
+| `api_create_workspace(p_name)`     | authenticated user | creates an isolated workspace, makes the caller admin and selects it     |
+
+`memberships` uses `(user_id, workspace_id)` as its primary key. The selected workspace is held in
+`userWorkspacePreferences`, which has no direct client grants. Existing single-workspace accounts are
+back-filled automatically when the migration runs.
+
 ## Departments and requisition approval (migration 022)
 
 `departments` joins both sync RPCs as an ordinary workspace table. The `demands` projection is
