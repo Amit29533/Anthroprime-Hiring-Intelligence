@@ -697,3 +697,16 @@ dialog .modal-body {
     display: none;
   }
 }
+/* A wider pill-shaped search field in the center of the header. */
+.topbar > .global-search-wrap {
+  width: clamp(300px, 31vw, 460px);
+}
+.topbar .global-search {
+  border-radius: 999px;
+  padding: 11px 16px;
+}
+@media (max-width: 1100px) {
+  .topbar > .global-search-wrap {
+    width: min(100%, 520px);
+  }
+}
