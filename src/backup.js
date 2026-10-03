@@ -23,7 +23,17 @@ export function parseBackup(text) {
   const bundle = JSON.parse(text);
   if (!bundle || bundle.format !== 'ecod-workspace-backup' || !bundle.version)
     throw new Error('That file is not an ECOD workspace backup.');
+  if (bundle.version !== 1) throw new Error('Unsupported backup version. Use a version 1 backup.');
+  if (Object.hasOwn(bundle, 'tableList') && !Array.isArray(bundle.tableList))
+    throw new Error('Backup table manifest must be an array.');
   const manifest = Array.isArray(bundle.tableList) ? bundle.tableList : null; // older backups carry no manifest
+  if (
+    manifest &&
+    (new Set(manifest).size !== manifest.length ||
+      manifest.some((table) => !TABLES.includes(table)) ||
+      ['candidates', 'demands', 'considerations'].some((table) => !manifest.includes(table)))
+  )
+    throw new Error('Backup table manifest is invalid or contains unsupported tables.');
   const required = manifest
     ? TABLES
     : TABLES.filter(
@@ -32,14 +42,39 @@ export function parseBackup(text) {
   const data = {};
   for (const t of required) {
     if (bundle[t] === undefined) {
-      if (manifest) {
+      if (manifest && !manifest.includes(t)) {
         data[t] = [];
         continue;
       }
       throw new Error(`Backup is missing the ${t} table.`);
     }
     if (!Array.isArray(bundle[t])) throw new Error(`Backup is missing the ${t} table.`);
+    if (bundle[t].some((row) => !row || typeof row !== 'object' || Array.isArray(row)))
+      throw new Error(`Backup contains an invalid row in the ${t} table.`);
+    if (bundle.counts && Object.hasOwn(bundle.counts, t) && bundle.counts[t] !== bundle[t].length)
+      throw new Error(`Backup row count does not match the ${t} table.`);
     data[t] = bundle[t];
   }
-  return { rows: normalizeData(data), counts: bundle.counts || {}, exportedAt: bundle.exportedAt };
+  return {
+    rows: normalizeData(data, { activatePreferences: false }),
+    counts: bundle.counts || {},
+    exportedAt: bundle.exportedAt,
+  };
+}
+
+// A save callback may report failure without throwing (App.save returns false).
+// Stop at the failed table so a partial merge never reports a successful restore.
+export async function restoreBackupRows(rows, onSave) {
+  let touched = 0,
+    total = 0;
+  for (const table of TABLES) {
+    if (!rows[table]?.length) continue;
+    if ((await onSave(table, rows[table])) === false)
+      throw new Error(
+        `Restore stopped at the ${table} table. Earlier tables may already have been restored.`,
+      );
+    touched++;
+    total += rows[table].length;
+  }
+  return { touched, total };
 }

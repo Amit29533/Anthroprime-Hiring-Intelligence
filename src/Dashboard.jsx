@@ -1,4 +1,5 @@
 import React from 'react';
+import { TalentScene } from './Visuals.jsx';
 import {
   Users,
   BriefcaseBusiness,
@@ -45,17 +46,23 @@ export default function Dashboard({
   const stages = ['Identified', 'Contacted', 'Assessed', 'Submitted', 'Interview', 'Offer'];
   return (
     <>
-      <PageHeader
-        eyebrow="YOUR TALENT, CONNECTED"
-        title="Your next great hire is already here."
-        description="Turn the people you know into the team your clients need."
-      >
-        {!viewer && (
-          <Button icon={Plus} onClick={onNewDemand}>
-            Create demand
+      <section className="overview-hero">
+        <PageHeader
+          eyebrow="YOUR TALENT, CONNECTED"
+          title="Your next great hire is already here."
+          description="Turn the people you know into the team your clients need."
+        >
+          {!viewer && (
+            <Button icon={Plus} onClick={onNewDemand}>
+              Create demand
+            </Button>
+          )}
+          <Button variant="secondary" icon={ArrowUpRight} onClick={() => navigate('Candidates')}>
+            Explore repository
           </Button>
-        )}
-      </PageHeader>
+        </PageHeader>
+        <TalentScene compact />
+      </section>
       <div className="stats-grid">
         <Stat
           label="Talent repository"

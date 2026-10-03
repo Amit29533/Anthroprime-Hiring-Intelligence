@@ -7,7 +7,10 @@ process.env.VITE_SUPABASE_ANON_KEY = 'execution-public-test-key';
 const ws = '00000000-0000-4000-8000-000000000011';
 let M,
   realFetch,
-  mode = true;
+  mode = true,
+  failTasks = false,
+  delayAudit = false,
+  releaseAudit;
 const writes = [],
   candidates = [];
 const json = (data, status = 200) =>
@@ -45,6 +48,14 @@ async function fakeFetch(input, init = {}) {
     if (method === 'POST') {
       const rows = JSON.parse(init.body);
       writes.push({ table, rows });
+      if (table === 'auditEvents' && delayAudit) {
+        delayAudit = false;
+        await new Promise((resolve) => {
+          releaseAudit = resolve;
+        });
+      }
+      if (table === 'tasks' && failTasks)
+        return json({ code: 'XX000', message: 'Task storage unavailable' }, 500);
       const saved = (Array.isArray(rows) ? rows : [rows]).map((row) => ({
         ...row,
         workspace_id: ws,
@@ -127,6 +138,32 @@ test('cloud saves skip duplicate browser effects in server mode, retain legacy b
   await importRow('Legacy Candidate', 'legacy@example.com');
   assert.equal(writes.filter((w) => w.table === 'tasks').length, 1);
   assert.equal(candidates[1].owner, 'Recruiter');
+  failTasks = true;
+  const beforeFailure = writes.length;
+  await importRow('Partial Candidate', 'partial@example.com');
+  failTasks = false;
+  assert.equal(candidates[2].name, 'Partial Candidate');
+  assert.ok(screen.getByText(/The original record was saved; automation stopped/));
+  assert.equal(
+    writes
+      .slice(beforeFailure)
+      .some(
+        (write) =>
+          write.table === 'auditEvents' &&
+          JSON.stringify(write.rows).includes('Automation rules applied'),
+      ),
+    false,
+  );
+  delayAudit = true;
+  await importRow('Delayed Candidate', 'delayed@example.com');
+  assert.equal(typeof releaseAudit, 'function');
+  await importRow('Newer Candidate', 'newer@example.com');
+  releaseAudit();
+  await settle(12);
+  assert.ok(
+    screen.getByRole('button', { name: /Newer Candidate/ }),
+    'a late audit must not revert newer candidate state',
+  );
   mode = 'unavailable';
   const count = writes.length;
   await importRow('Blocked Candidate', 'blocked@example.com');

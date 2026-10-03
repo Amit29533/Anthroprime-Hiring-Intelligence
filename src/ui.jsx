@@ -1,6 +1,22 @@
 import React, { useEffect, useRef, useId } from 'react';
 import { X, Search, ArrowUpRight } from 'lucide-react';
 import { initials } from './domain.js';
+const dialogLocks = new WeakMap();
+
+function lockDialogScroll(doc) {
+  const existing = dialogLocks.get(doc);
+  const lock = existing || { count: 0, previous: doc.body.style.overflow };
+  lock.count++;
+  dialogLocks.set(doc, lock);
+  doc.body.style.overflow = 'hidden';
+  return () => {
+    lock.count--;
+    if (lock.count === 0) {
+      doc.body.style.overflow = lock.previous;
+      dialogLocks.delete(doc);
+    }
+  };
+}
 export function IconButton({ icon: Icon, label, ...props }) {
   return (
     <button className="icon-button" aria-label={label} title={label} {...props}>
@@ -34,7 +50,11 @@ export function Empty({
 }) {
   return (
     <div className="empty">
-      <Search size={30} />
+      <div className="empty-art" aria-hidden="true">
+        <span />
+        <Search size={30} />
+        <span />
+      </div>
       <h3>{title}</h3>
       <p>{text}</p>
       {action}
@@ -119,11 +139,10 @@ export function Modal({
   useEffect(() => {
     const el = ref.current;
     el.showModal();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockDialogScroll(el.ownerDocument);
     return () => {
-      document.body.style.overflow = previous;
       el.close();
+      unlock();
     };
   }, []);
   return (
@@ -172,7 +191,7 @@ export function PersonName({ person, onClick, index = 0 }) {
 }
 export function Stat({ label, value, detail, icon: Icon, tone = 'teal' }) {
   return (
-    <div className="stat">
+    <div className={`stat stat-${tone}`}>
       <div className="stat-top">
         <span>{label}</span>
         <span className={`stat-icon ${tone}`}>

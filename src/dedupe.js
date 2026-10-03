@@ -114,3 +114,35 @@ export const MERGE_FOLLOW_TABLES = [
   'compensationHistory',
   'availabilityHistory',
 ];
+
+// Transfer related rows before hiding the duplicate. Saves are sequential so a failure
+// cannot hide a profile whose records have not moved successfully.
+export async function mergeCandidateRecords(data, winner, loser, onSave) {
+  if (!winner?.id || !loser?.id || winner.id === loser.id)
+    throw new Error('Two different profiles are required to merge.');
+  const persist = async (table, rows) => {
+    if (!rows.length) return;
+    if ((await onSave(table, rows)) === false)
+      throw new Error(
+        `Merge stopped while saving ${table}. Earlier transfers may have completed; review before retrying.`,
+      );
+  };
+  for (const table of MERGE_FOLLOW_TABLES) {
+    const records = data[table] || [];
+    const moved = records
+      .filter((row) => row.candidateId === loser.id && !row.removed)
+      .filter(
+        (row) =>
+          table !== 'considerations' ||
+          !records.some(
+            (existing) => existing.candidateId === winner.id && existing.demandId === row.demandId,
+          ),
+      )
+      .map((row) => ({ ...row, candidateId: winner.id }));
+    await persist(table, moved);
+  }
+  await persist('candidates', [winner]);
+  await persist('candidates', [
+    { ...loser, mergedInto: winner.id, skills: [], email: '', phone: '' },
+  ]);
+}

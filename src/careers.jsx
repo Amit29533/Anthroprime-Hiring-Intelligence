@@ -10,9 +10,11 @@ import { makeSeed } from './seed.js';
 import { normalizeData } from './schema.js';
 import { jobPostingJsonLd, jobListJsonLd, pageMeta } from './jobPosting.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
+import { TalentScene, MotionToggle, PublicBrand } from './Visuals.jsx';
 import './workspace.css';
 import './dark.css';
 import './polish.css';
+import './modern.css';
 
 const WS_KEY = 'ecod-careers-workspace';
 
@@ -549,12 +551,12 @@ export function CareersApp() {
   return (
     <div className="careers-page">
       <div className="public-theme">
+        <MotionToggle />
         <ThemeToggle theme={theme} onChange={setTheme} />
       </div>
       <header className="careers-hero">
-        <span className="careers-brand">
-          AnthroPrime<small>ECOD · TALENT INTELLIGENCE</small>
-        </span>
+        <TalentScene compact />
+        <PublicBrand subtitle="ECOD · TALENT INTELLIGENCE" />
         <h1>{focused ? focused.title : 'Open roles'}</h1>
         <p>
           {focused

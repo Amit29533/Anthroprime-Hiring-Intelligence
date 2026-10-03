@@ -1,3 +1,4 @@
+import { MotionToggle } from './Visuals.jsx';
 import React, { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard,
@@ -38,7 +39,8 @@ import {
   logAuditEvent,
   resetDemo,
 } from './repository.js';
-import { actionsFor, buildActions, AUTOMATION_TABLES } from './automation.js';
+import { AUTOMATION_TABLES } from './automation.js';
+import { planAutomation } from './automationPlan.js';
 import { uid, today } from './domain.js';
 import { Button, Avatar, IconButton, Field, Modal } from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
@@ -63,7 +65,7 @@ const Demands = lazyNamed(demandsModule, 'Demands');
 const DemandForm = lazyNamed(demandsModule, 'DemandForm');
 const DemandDetail = lazyNamed(demandsModule, 'DemandDetail');
 const Pipeline = lazyNamed(demandsModule, 'Pipeline');
-const ImportModal = lazyNamed(workflowsModule, 'ImportModal');
+const ImportModal = lazyNamed(() => import('./ImportCandidates.jsx'), 'ImportModal');
 const AssessmentForm = lazyNamed(workflowsModule, 'AssessmentForm');
 const EnrichmentForm = lazyNamed(workflowsModule, 'EnrichmentForm');
 const Assessments = lazyNamed(workflowsModule, 'Assessments');
@@ -71,7 +73,7 @@ const Activities = lazyNamed(workflowsModule, 'Activities');
 const Pools = lazyNamed(workflowsModule, 'Pools');
 const Analytics = lazyNamed(workflowsModule, 'Analytics');
 const WorkspaceSettings = lazyNamed(workflowsModule, 'Settings');
-const Login = lazyNamed(workflowsModule, 'Login');
+const Login = lazyNamed(() => import('./Login.jsx'), 'Login');
 const DispositionModal = lazyNamed(workflowsModule, 'DispositionModal');
 const Interviews = lazyNamed(() => import('./Interviews.jsx'), 'Interviews');
 const Clients = lazyNamed(clientsModule, 'Clients');
@@ -348,8 +350,21 @@ export default function App() {
     }
   }
   const audit = useCallback((event) => {
+    const user = activeSessionUserId.current;
+    const workspace = getWorkspace()?.id;
     logAuditEvent(event, dataRef.current)
-      .then(({ data: next }) => {
+      .then(({ row }) => {
+        if (user !== activeSessionUserId.current || workspace !== getWorkspace()?.id) return;
+        // An audit request can finish after a record save. Merge its row into the
+        // latest snapshot instead of replacing the workspace with its old snapshot.
+        const current = dataRef.current;
+        const next = {
+          ...current,
+          auditEvents: [row, ...current.auditEvents.filter((item) => item.id !== row.id)].slice(
+            0,
+            500,
+          ),
+        };
         dataRef.current = next;
         setData(next);
       })
@@ -499,72 +514,25 @@ export default function App() {
     return ok;
   }
   async function applyAutomation(table, rows, before) {
-    const rules = (dataRef.current.workflowRules || []).filter((r) => r && r.enabled);
-    if (!rules.length) return;
-    const fired = [];
-    const updatesById = {};
-    let taskRows = [],
-      noteRows = [];
-    rows.forEach((row, i) => {
-      const matched = actionsFor(rules, table, before[i], row);
-      if (!matched.length) return;
-      fired.push(...matched.map((m) => m.name));
-      const candidate =
-        table === 'candidates'
-          ? row
-          : dataRef.current.candidates.find((c) => c.id === row.candidateId) || null;
-      const demand =
-        table === 'demands'
-          ? row
-          : dataRef.current.demands.find((d) => d.id === row.demandId) || null;
-      const built = buildActions(matched, {
-        candidate,
-        demand,
-        actor: 'Automation',
-        base: today(),
-      });
-      taskRows = taskRows.concat(built.tasks);
-      noteRows = noteRows.concat(built.notes);
-      for (const t of built.tagUpdates) {
-        const u =
-          updatesById[t.candidateId] ||
-          (updatesById[t.candidateId] = {
-            base: dataRef.current.candidates.find((c) => c.id === t.candidateId),
-            tags: null,
-            nextAction: null,
-          });
-        if (u.base && !(u.base.tags || []).includes(t.tag))
-          u.tags = [...(u.tags || u.base.tags || []), t.tag];
-      }
-      for (const na of built.nextActions) {
-        const u =
-          updatesById[na.candidateId] ||
-          (updatesById[na.candidateId] = {
-            base: dataRef.current.candidates.find((c) => c.id === na.candidateId),
-            tags: null,
-            nextAction: null,
-          });
-        if (u.base) u.nextAction = na.text;
-      }
-    });
-    if (!fired.length) return;
+    const plan = planAutomation(dataRef.current, table, rows, before, { base: today() });
+    if (!plan.names.length) return;
     automating.current = true;
     try {
-      if (taskRows.length) await save('tasks', taskRows);
-      if (noteRows.length) await save('notes', noteRows);
-      const updates = Object.entries(updatesById).map(([id, u]) => ({
-        ...u.base,
-        tags: u.tags || u.base.tags || [],
-        nextAction: u.nextAction || u.base.nextAction || '',
-        updated: today(),
-      }));
-      if (updates.length) await save('candidates', updates);
-      setToast(`Automation: ${[...new Set(fired)].join(', ')} applied.`);
+      for (const [target, actions] of plan.batches) {
+        if (actions.length && !(await save(target, actions))) {
+          setToast(
+            (message) =>
+              `${message} The original record was saved; automation stopped. Earlier actions may have completed.`,
+          );
+          return;
+        }
+      }
+      setToast(`Automation: ${plan.names.join(', ')} applied.`);
       audit({
         entityType: table,
         entityId: rows[0]?.id || null,
         action: 'updated',
-        detail: `Automation rules applied: ${[...new Set(fired)].join(', ')}`,
+        detail: `Automation rules applied: ${plan.names.join(', ')}`,
       });
     } finally {
       automating.current = false;
@@ -952,6 +920,7 @@ export default function App() {
           {nav.map(([name, Icon]) => (
             <button
               className={page === name ? 'active' : ''}
+              aria-current={page === name ? 'page' : undefined}
               key={name}
               onClick={() => navigate(name)}
             >
@@ -1027,6 +996,7 @@ export default function App() {
               isAdmin={getRole() === 'admin'}
               navigate={navigate}
             />
+            <MotionToggle />
             <ThemeToggle theme={theme} onChange={setTheme} />
             <button
               type="button"
