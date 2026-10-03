@@ -1,0 +1,33 @@
+import { getSupabase } from './repository.js';
+
+export { localVector } from './localVector.js';
+
+export async function intelligenceRpc(name, args = {}) {
+  const client = await getSupabase();
+  if (!client) throw new Error('This feature requires a shared cloud workspace.');
+  const { data, error } = await client.rpc(name, args);
+  if (error)
+    throw new Error(
+      ['PGRST202', '42883'].includes(error.code)
+        ? 'Apply migrations 036, 037 and 039 to enable integrations, intelligence and index maintenance.'
+        : error.message,
+    );
+  return data;
+}
+
+export async function intelligenceRequest(action, candidateId, query = '') {
+  const client = await getSupabase();
+  const { data } = await client.auth.getSession();
+  if (!data.session) throw new Error('Sign in again to use intelligence.');
+  const response = await fetch('/.netlify/functions/intelligence', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ action, candidateId, query }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || 'Intelligence request failed.');
+  return body;
+}

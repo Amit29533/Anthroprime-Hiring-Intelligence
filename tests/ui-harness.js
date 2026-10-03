@@ -16,6 +16,8 @@ export async function startVite() {
   server = await createServer({
     server: { middlewareMode: true, ws: false },
     appType: 'custom',
+    // SSR tests load modules directly; background HTML scanning only races teardown.
+    optimizeDeps: { noDiscovery: true, include: [] },
     logLevel: 'error',
   });
   return server;

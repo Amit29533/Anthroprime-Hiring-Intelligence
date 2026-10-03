@@ -44,6 +44,7 @@ import { Button, Avatar, IconButton, Field, Modal } from './ui.jsx';
 import Dashboard from './Dashboard.jsx';
 import { GlobalSearch, NotificationBell } from './Topbar.jsx';
 import { applyAssignment } from './assignment.js';
+import { serverExecutionEnabled } from './execution.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
 import AccountProfile from './AccountProfile.jsx';
 
@@ -424,11 +425,22 @@ export default function App() {
     if (saving.current) return false;
     saving.current = true;
     setBusy(true);
+    let serverMode = false;
+    if (cloud && AUTOMATION_TABLES.includes(table)) {
+      try {
+        serverMode = await serverExecutionEnabled();
+      } catch (error) {
+        saving.current = false;
+        setBusy(false);
+        setToast(error.message);
+        return false;
+      }
+    }
     const before = rows.map((r) => dataRef.current[table].find((x) => x.id === r.id) || null);
     // Assignment rules (Phase D) fill an empty owner as a record is created. They only ever act
     // on rows that are genuinely new and genuinely unowned, so an existing owner is never moved.
     let assignedBy = '';
-    if (table === 'candidates' || table === 'demands') {
+    if (!serverMode && (table === 'candidates' || table === 'demands')) {
       const fresh = rows.filter((r, i) => !before[i]);
       const assigned = applyAssignment(dataRef.current, table, fresh);
       if (assigned.length) {
@@ -482,7 +494,7 @@ export default function App() {
       saving.current = false;
       setBusy(false);
     }
-    if (ok && !automating.current && AUTOMATION_TABLES.includes(table))
+    if (ok && !serverMode && !automating.current && AUTOMATION_TABLES.includes(table))
       await applyAutomation(table, rows, before);
     return ok;
   }

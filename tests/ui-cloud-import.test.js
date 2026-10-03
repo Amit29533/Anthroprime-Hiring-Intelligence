@@ -30,6 +30,7 @@ async function cloudFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url);
   const method = init.method || input.method || 'GET';
   requests.push({ method, path: url.pathname, query: url.search });
+  if (url.pathname === '/rest/v1/rpc/api_server_execution_status') return json(false);
 
   if (url.pathname.endsWith('/auth/v1/token')) {
     const user = {

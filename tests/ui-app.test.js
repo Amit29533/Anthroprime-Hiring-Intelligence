@@ -398,8 +398,10 @@ test('opening a profile records a view and editing keeps the reader on their tab
   await boot();
   await navTo('Candidates');
   await click(allText('Aarav Mehta')[0]);
-  await settle(3);
-  assert.ok(screen.getByText('Candidate 360'), 'the profile drawer opened');
+  assert.ok(
+    await screen.findByText('Candidate 360', {}, { timeout: 30000 }),
+    'the profile drawer opened',
+  );
   await press('ECOD');
   assert.ok(screen.getByText('ECOD readiness'), 'the ECOD tab shows its content');
   await press('Edit');

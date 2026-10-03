@@ -1,3 +1,5 @@
+import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
+import { HostedIntelligence } from './HostedIntelligence.jsx';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Plus,
@@ -64,7 +66,7 @@ import {
 } from './repositoryFilters.js';
 import {
   classifyFile,
-  extractText,
+  extractDocumentText,
   sha256,
   buildDocumentRecord,
   persistBinary,
@@ -236,6 +238,7 @@ export function Candidates({
           </>
         )}
       </PageHeader>
+      <HostedIntelligence candidates={data.candidates} onOpen={onOpen} />
       <div className="repository-tabs">
         {['All candidates', 'Ready', 'Near-ready', 'Assessing', 'Stale'].map((s) => (
           <button
@@ -957,42 +960,12 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
               placeholder="Client favourite, Fast-track"
             />
           </Field>
-          {(
-            data.settings.find((r) => r && r.id === 'workspace')?.custom?.customFields
-              ?.candidates || []
-          ).map((f) => (
-            <Field key={f.name} label={f.name}>
-              {f.type === 'select' ? (
-                <select
-                  value={form.custom?.[f.name] ?? ''}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      custom: { ...(form.custom || {}), [f.name]: e.target.value },
-                    })
-                  }
-                >
-                  {(f.options || []).map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
-                  value={form.custom?.[f.name] ?? ''}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      custom: {
-                        ...(form.custom || {}),
-                        [f.name]: f.type === 'number' ? Number(e.target.value) : e.target.value,
-                      },
-                    })
-                  }
-                />
-              )}
-            </Field>
-          ))}
+          <CustomFieldInputs
+            data={data}
+            module="candidates"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           <Field label="Professional summary" wide>
             <textarea
               rows={3}
@@ -1215,6 +1188,7 @@ export function CandidateProfile({
               <div className="profile-section">
                 <h3>About {c.name.split(' ')[0]}</h3>
                 <p>{c.summary || 'No professional summary added yet.'}</p>
+                <CustomFieldValues data={data} module="candidates" values={c.custom} />
               </div>
               <div className="profile-facts">
                 {[
@@ -1918,7 +1892,8 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
     setFileBusy(true);
     try {
       const buffer = await file.arrayBuffer();
-      const extracted = await extractText(buffer, cls.ext);
+      const extraction = await extractDocumentText(buffer, cls.ext);
+      const extracted = extraction.text;
       const hash = await sha256(buffer);
       const record = buildDocumentRecord({
         file,
@@ -1926,9 +1901,11 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
         hash,
         extracted,
         candidateId: c.id,
+        parserStatusHint: extraction.status,
       });
       await persistBinary(record, file);
       await onSave('documents', [record]);
+      if (extraction.warning) setErr(`Original saved. ${extraction.warning}`);
     } catch (saveErr) {
       setErr(saveErr.message);
     } finally {

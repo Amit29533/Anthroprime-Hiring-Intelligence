@@ -1,5 +1,7 @@
 # Feature Equivalence Verification — ECOD vs. Zoho Recruit & the ECOD Blueprint
 
+> Current planning reference: [Product audit, 3 October 2026](PRODUCT_AUDIT_2026_10_03.md). The percentages and batch descriptions below are historical. The new audit corrects the custom-field administration overstatement and includes migrations 031–034. It does not assert authenticated production equivalence.
+
 Refreshed 28 September 2026 · Code reviewed: `codex/remaining-features-phase-1` based on `031ec39`; Phase 1 changes are uncommitted
 
 > **Blueprint source:** `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx` (v1.0, 18 September 2026) lives on the repository's `main` branch (commit `910ece0`). The full text was extracted and reconciled section-by-section in matrix section N below.
@@ -574,3 +576,19 @@ Assessment templates, structured rubric evidence, curated static pools and place
 ## Phase 2 second slice — 1 October 2026
 
 Client accounts now support admin-only agreement/document attachments with signed original-file access and archive/restore. Database rules protect both document records and their history snapshots. Repository filters add employer, engagement and admin-only compensation ceilings; cloud structured filtering is executed through a tenant-scoped, paginated PostgreSQL RPC, and saved views retain these filters. Existing text/semantic and other filters remain browser-based. Migration 033 persists the candidate merge marker for cloud filtering and includes client document links in both change feeds. Historical coverage percentages have not been rescored.
+
+### Phase 2 PDF extraction slice — 3 October 2026 (local implementation)
+
+E2 remains partial: compressed text PDFs now use PDF.js, while field detection remains heuristic and scanned documents require manual entry. Editable review cards support name/email/phone corrections and duplicate checks. No OCR, AI parser or automated enrichment is claimed. N20 continues using private originals, hashes and existing parsed/manual metadata. Frontend deployment is required; no new SQL migration is introduced by this slice.
+
+### Phase 3 server execution first slice — 3 October 2026 (local implementation)
+
+Assignment and event-based workflow actions can now run server-side for both UI and API writes after activation. Durable jobs use atomic task/note/tag/next-action execution, retries, failure visibility and admin replay. This improves the automation area without completing it: no outbound email/webhooks, time-based rule conditions or scheduled report delivery. Default mode remains browser execution until migration 035 and the scheduled worker are deployed and enabled.
+
+### Phase 4/5 integration and intelligence slices — 3 October 2026 (local implementation)
+
+The earlier baseline remains historical. Signed webhooks now have a durable metadata-only outbox, lease recovery, retries and admin health/replay controls. Candidate integration writes have transactional idempotency, source mapping and optimistic conflicts that also detect UI edits. Hosted similarity retrieval has tenant boundaries, live projection checks and SQL filters; optional pgvector and OpenAI embedding namespaces extend the private deterministic fallback. AI drafts retain provider/model/version and creator/reviewer identities, original/generated content, opt-in request quotas and explicit human approval without modifying profiles. Calendar/mailbox connectors, wider provider coverage, relevance benchmarks and authenticated hosted acceptance remain partial/missing. No new parity percentage is claimed. See [implementation details](PHASE4_5_INTEGRATIONS_INTELLIGENCE.md).
+
+### Operations follow-up — 3 October 2026 (local implementation)
+
+Migration 039 advances index maintenance from manual-only to automatic private backfill and profile-change jobs with leases, retries and admin health. External mapping pagination/reconciliation and paused/drained webhook key rotation are now implemented. Crashed pending-AI requests receive status cleanup. These additions retain the partial status of the broader integration/AI phases: OAuth connectors, automatic external-AI indexing, hosted acceptance, broader relevance testing and governance retention/encryption remain work. Details are in [operations maintenance](OPERATIONS_MAINTENANCE.md).

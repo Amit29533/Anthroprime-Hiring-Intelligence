@@ -1,3 +1,7 @@
+import { CustomFieldsPanel } from './CustomFields.jsx';
+import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
+import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
+import { IntelligenceSettings, IndexHealthPanel } from './HostedIntelligence.jsx';
 import React, { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import {
@@ -51,7 +55,7 @@ import { deriveGaps } from './gaps.js';
 import { duplicatePairs, mergePreview, MERGE_FIELDS, MERGE_FOLLOW_TABLES } from './dedupe.js';
 import {
   classifyFile,
-  extractText,
+  extractDocumentText,
   sha256,
   buildDocumentRecord,
   persistBinary,
@@ -158,7 +162,8 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
         if (!(await contentSignatureOk(f, cls.ext)))
           throw new Error(`File content does not look like a real ${cls.ext.toUpperCase()}.`);
         const buffer = await f.arrayBuffer();
-        const extracted = await extractText(buffer, cls.ext);
+        const extraction = await extractDocumentText(buffer, cls.ext);
+        const extracted = extraction.text;
         const parsed = parseCVText(extracted);
         const hash = await sha256(buffer);
         const record = buildDocumentRecord({
@@ -166,7 +171,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
           ext: cls.ext,
           hash,
           extracted,
-          parserStatusHint: undefined,
+          parserStatusHint: extraction.status,
         });
         const dupe =
           parsed.email || parsed.phone || parsed.linkedin
@@ -179,6 +184,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
           file: f,
           draft: parsed,
           record,
+          warning: extraction.warning,
           error: dupe
             ? `Duplicate of ${dupe.name}; skip or review.`
             : !parsed.name || (!parsed.email && !parsed.phone)
@@ -202,7 +208,34 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     setCvBusy(false);
   }
   const cvOk = (cvRows || []).filter((r) => r.checked && !r.error);
+  function reviewCv(index, field, value) {
+    setCvRows((rows) =>
+      rows.map((row, i) => {
+        if (i !== index || !row.draft) return row;
+        const draft = { ...row.draft, [field]: value };
+        const dupe = duplicate({ id: '', ...draft }, data.candidates);
+        const error = dupe
+          ? `Duplicate of ${dupe.name}; skip or review.`
+          : !draft.name.trim() || (!draft.email.trim() && !draft.phone.trim())
+            ? 'Enter a name and an email or phone before import.'
+            : null;
+        return { ...row, draft, error, checked: !error };
+      }),
+    );
+  }
   async function importCvs() {
+    // Recheck the current repository and this batch immediately before any writes.
+    const seen = [...data.candidates];
+    for (const row of cvOk) {
+      const dupe = duplicate({ id: '', ...row.draft }, seen);
+      if (dupe) {
+        setError(
+          `Duplicate of ${dupe.name}. Correct or deselect the duplicate draft before import.`,
+        );
+        return;
+      }
+      seen.push({ id: uid(), ...row.draft });
+    }
     const candidates = cvOk.map((r) => ({
       id: uid(),
       name: (r.draft.name || '').trim(),
@@ -419,61 +452,69 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
               {cvRows.length} CV files read. Parsed drafts are suggestions — fix details before
               importing. Originals are stored with each profile.
             </p>
-            <div className="import-preview table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>File</th>
-                    <th>Detected</th>
-                    <th>Contact</th>
-                    <th>Skills</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cvRows.map((r, i) => (
-                    <tr key={i}>
-                      <td>
+            <div className="cv-review-list">
+              {cvRows.map((r, i) => (
+                <article className="cv-review-card" key={i}>
+                  <div className="cv-review-heading">
+                    <label>
+                      <input
+                        type="checkbox"
+                        aria-label={`Import ${r.name}`}
+                        checked={r.checked}
+                        disabled={Boolean(r.error)}
+                        onChange={(e) =>
+                          setCvRows(
+                            cvRows.map((x, j) =>
+                              j === i ? { ...x, checked: e.target.checked } : x,
+                            ),
+                          )
+                        }
+                      />
+                      <strong>{r.name}</strong>
+                    </label>
+                    <Badge tone={r.record?.parserStatus === 'parsed' ? 'green' : 'amber'}>
+                      {r.record?.parserStatus === 'parsed' ? 'Text parsed' : 'Manual review'}
+                    </Badge>
+                  </div>
+                  {r.draft && (
+                    <div className="cv-review-fields">
+                      <Field label="Candidate name">
                         <input
-                          type="checkbox"
-                          aria-label={`Import ${r.name}`}
-                          checked={r.checked}
-                          disabled={Boolean(r.error)}
-                          onChange={(e) =>
-                            setCvRows(
-                              cvRows.map((x, j) =>
-                                j === i ? { ...x, checked: e.target.checked } : x,
-                              ),
-                            )
-                          }
+                          aria-label={`Candidate name for ${r.name}`}
+                          value={r.draft.name}
+                          onChange={(e) => reviewCv(i, 'name', e.target.value)}
                         />
-                      </td>
-                      <td>
-                        {r.name}
-                        <small className="block">
-                          {r.record?.parserStatus === 'parsed'
-                            ? 'text parsed'
-                            : 'no text extracted'}
-                        </small>
-                      </td>
-                      <td>
-                        {r.draft?.name || '—'}
-                        {r.draft?.title && <small className="block">{r.draft.title}</small>}
-                      </td>
-                      <td>{r.draft?.email || r.draft?.phone || '—'}</td>
-                      <td>{(r.draft?.skills || []).slice(0, 3).join(', ') || '—'}</td>
-                      <td>
-                        {r.error ? (
-                          <span className="text-red">{r.error}</span>
-                        ) : (
-                          <Badge tone="green">Draft ready</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </Field>
+                      <Field label="Email">
+                        <input
+                          aria-label={`Email for ${r.name}`}
+                          value={r.draft.email}
+                          onChange={(e) => reviewCv(i, 'email', e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Phone">
+                        <input
+                          aria-label={`Phone for ${r.name}`}
+                          value={r.draft.phone}
+                          onChange={(e) => reviewCv(i, 'phone', e.target.value)}
+                        />
+                      </Field>
+                    </div>
+                  )}
+                  {r.draft?.title && <p>{r.draft.title}</p>}
+                  {r.draft?.skills?.length > 0 && (
+                    <p className="muted">Skills: {r.draft.skills.join(', ')}</p>
+                  )}
+                  {r.warning && <p className="muted">{r.warning}</p>}
+                  {r.error ? (
+                    <p className="text-red" role="status">
+                      {r.error}
+                    </p>
+                  ) : (
+                    <Badge tone="green">Draft ready</Badge>
+                  )}
+                </article>
+              ))}
             </div>
           </>
         ) : !preview ? (
@@ -2014,6 +2055,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         />
         <CareersSeoPanel data={data} notify={notify} />
         <BrandingPanel data={data} onSave={onSave} notify={notify} />
+        <CustomFieldsPanel data={data} onSave={onSave} notify={notify} />
         <AssignmentPanel
           data={data}
           onSave={onSave}
@@ -2062,6 +2104,11 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
             audit={audit}
           />
         )}
+        {getRole() === 'admin' && <ExecutionJobsPanel />}
+        {getRole() === 'admin' && <IntegrationsPanel />}
+        {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
+        {getRole() === 'admin' && <IntelligenceSettings />}
+        {getRole() === 'admin' && <IndexHealthPanel />}
         {getRole() === 'admin' && (
           <AdminPanel data={data} onSave={onSave} notify={notify} audit={audit} />
         )}
@@ -3005,8 +3052,9 @@ function AdminPanel({ data, onSave, notify, audit }) {
       <p className="supporting-text">
         When a trigger fires — a candidate or demand stage change, an offer status, an interview
         recommendation — ECOD applies the rule&rsquo;s actions (task, note, tag, next action) and
-        records it in the audit log. Time-based re-checks and outbound calls (email, webhooks) need
-        a server.
+        records it in the audit log. With server execution enabled, database changes queue these
+        actions for the background worker. Otherwise the browser applies them on save. Automated
+        email, webhooks and time-based rule conditions are not available yet.
       </p>
       <div className="rules-list">
         {(data.workflowRules || []).map((r) => (

@@ -274,3 +274,42 @@ Backup exports include all three new tables, and old backups remain readable. Cl
 The UI fetches all matching ID pages before applying existing local text/semantic/queue filters. This does not replace the current full-workspace initial load or provide server-side text/semantic search. Cancellation suppresses stale responses when filters change; failures are shown instead of falling back silently. Saved views retain structured filters; non-admin readers clear saved compensation criteria.
 
 Cloud setup requires migration 033 and the existing Netlify/R2 configuration. Demo attachments are capped at 1 MB so the original can be stored inline; cloud uploads retain the 5 MB allowlist limit. Attachments are scanned by content signature, not antivirus. No live service provisioning or deployment is performed by this implementation.
+# Custom fields — migration 034
+
+Admin configuration is stored under `settings[id=workspace].custom.customFields`, keyed by `candidates`, `demands`, `clients` or `clientContacts`. Each definition has a stable `name`, `type` (`text`, `number`, `date`, `select`), optional `options` for choices and optional boolean `archived`. Limit: 40 definitions per module; names 1–60 characters; choice arrays 1–50 unique strings of up to 100 characters.
+
+Values live in each record's `custom` JSON object. Fields are optional: absent, null and empty string remain empty. Numbers must be JSON numbers; dates must be valid ISO calendar dates; select values must match a configured choice. Active text values are limited to 2000 characters and the complete custom object to 100000 bytes in PostgreSQL. Unknown legacy keys are retained. Archiving hides a field from forms and keeps recorded values available for display/restoration. Existing definitions cannot be removed/retyped or have their choice sets changed through the database; use a new field and archive the old one.
+
+Settings definitions inherit admin-only writes; values inherit each record's workspace/RBAC rules. Custom fields are member-visible and must not be used to bypass restricted compensation/commercial tables. The existing `clients`/`clientContacts` full-row incremental projection includes the new values, and record changes retain historical snapshots.
+
+### PDF extraction (Phase 2, local implementation)
+
+`extractDocumentText(buffer, ext)` returns `{ text, status, warning }`. Text PDFs use a lazy PDF.js worker with self-hosted fonts and CMaps; limits are 50 pages, 40,000 characters and 20 seconds. Originals are copied before transfer so hashes and storage remain valid. Unreadable, scanned, password-protected and limited PDFs return `manual` with no partial text, while their originals may still be saved using existing private document storage. No OCR or new network endpoint is provided. Candidate drafts remain human-reviewed; the import save rechecks current-repository and in-batch duplicates. Existing `parserStatus` values and document schema are unchanged.
+
+## Phase 3 execution RPCs (migration 035)
+
+- `api_server_execution_status()` → boolean: active workspace mode; authenticated only. Cloud saves query this before invoking client rules. Missing migration falls back to browser mode; other failures block rule-bearing saves.
+- `api_set_server_execution(p_enabled boolean)` → void: admin-only workspace enable/pause; default false.
+- `api_execution_jobs(p_status text = "", p_offset integer = 0)` → `{ enabled, jobs, total }`: admin-only, 25 summaries per page; status may be pending/completed/failed or empty. Captured actions are excluded.
+- `api_retry_execution_job(p_id uuid)` → void: active-workspace admin only; failed jobs only. Restores pending with the currently enabled rule’s actions, original event date and links. Completed jobs cannot replay.
+- `worker_run_execution_jobs(p_limit integer = 20)` → `{ completed, retriedOrFailed }`: service role only, limit 1–50. Claims use locked rows in enqueue order; actions and completion are atomic. No external delivery is performed.
+
+The queue table is deliberately excluded from normal repository TABLES and public/incremental record feeds; admin operations use the dedicated API. Existing tasks/notes/profile effects enter normal history and sync; job lifecycle audit summaries exclude action payloads. See [deployment and failure behavior](PHASE3_SERVER_EXECUTION.md).
+
+## Phase 4/5 RPCs and functions (036/037, optional 038)
+
+`integration-candidate` is a POST-only editor endpoint with bearer auth, bounded allowlisted candidate JSON, an `Idempotency-Key` header and `version` on updates. `api_integrate_candidate` returns candidateId/version/replayed atomically with its receipt; `api_external_mappings(p_source='')` returns the most recent 100 mappings. UI edits advance mapping versions; conflicts return HTTP 409.
+
+`api_webhook_admin(p_operation, p_id, p_name, p_url, p_secret, p_enabled)` is admin-only. Operations: list/create/toggle/retry. Create defaults to paused; output excludes secrets and payloads. Retry accepts only failed deliveries on enabled subscriptions. `worker_claim_webhooks` and `worker_finish_webhook` are service-role-only leased queue operations; the scheduled worker uses two deliveries per batch.
+
+`api_index_candidates(p_offset=0)` returns 20 editor-visible professional projections/fingerprints. `api_index_candidate(p_id,p_fingerprint,p_vector)` stores a valid current 384-dimensional local vector. `api_hosted_search(p_vector,p_namespace='local-v1',p_location='',p_status='',p_min_experience=0)` returns at most 20 active-workspace, unmerged, current-projection matches; filters run in PostgreSQL. Optional 038 replaces array cosine search with pgvector while preserving the API and security predicates.
+
+`api_intelligence_settings(p_operation='get',p_enabled=false,p_daily_limit=20)` returns enabled/dailyLimit/usedToday. Save is admin-only; get is workspace-member-visible. `api_intelligence_reserve(p_kind,p_id)` is editor-only, requires explicit AI activation and atomically enforces daily quota. The POST-only `intelligence` function calls the configured provider using the safe projection (or the user's query), then finalizes through service-only `worker_intelligence_complete`. Kinds are embedding/draft/query. Query searches only the matching provider/model namespace; it currently has no structured filters.
+
+`api_intelligence_drafts(p_candidate=null)` returns up to 50 editor-visible draft summaries and review metadata. `api_review_intelligence(p_id,p_approve,p_content='')` accepts only a current draft; approvals require current source and edited content within 5000 characters. Approval/rejection records reviewer identity; original generated content stays protected in the database. It does not update candidate profiles. New provider/configuration/outbox tables are excluded from bulk workspace backup and sync: dedicated APIs and database-owner backups are required. See [security, signatures and deployment](PHASE4_5_INTEGRATIONS_INTELLIGENCE.md).
+
+## Operations RPCs (migration 039)
+
+The private scheduled `index-worker` uses service-only `worker_claim_index(p_limit=20)` and `worker_finish_index(p_workspace,p_candidate,p_lease,p_vector=null,p_failed=false)` to compute local vectors and atomically finish queued profile updates. Claims are leased and obsolete completions return false. Admin-only `api_index_health(p_retry_failed=false)` returns indexed/pending/processing/failed counts and at most 25 failed candidate summaries. The queue is excluded from regular workspace reads/backups; database-owner backups are required.
+
+Editor-only `api_mapping_page(p_source='',p_offset=0)` returns `{rows,total}` with 25 stable-order external mappings. `api_reconcile_mapping(p_source,p_external_id,p_version,p_candidate)` changes a link to an active candidate in the same workspace, advances its version and records metadata history. It never copies candidate fields. `api_rotate_webhook(p_id,p_secret)` requires an admin, a paused subscription and no active delivery leases. Claims lock subscriptions as well as deliveries to serialize pause/rotation with worker claims. See [operations contract](OPERATIONS_MAINTENANCE.md).

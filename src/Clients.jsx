@@ -1,3 +1,5 @@
+import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
+import { validateCustomValues } from './customFields.js';
 import React, { useState } from 'react';
 import ClientDocuments from './ClientDocuments.jsx';
 import {
@@ -67,6 +69,8 @@ export function ClientForm({ client, data, onClose, onSave, onCreated, busy }) {
   async function submit(e) {
     e.preventDefault();
     const found = validateClient(form, data.clients, client?.id || null);
+    const customError = validateCustomValues(data, 'clients', form.custom || {});
+    if (customError) found.custom = customError;
     setErrors(found);
     if (Object.keys(found).length) return;
     const row = {
@@ -141,6 +145,19 @@ export function ClientForm({ client, data, onClose, onSave, onCreated, busy }) {
             <textarea rows={3} value={form.notes} onChange={set('notes')} />
           </Field>
         </div>
+        <div className="form-grid">
+          <CustomFieldInputs
+            data={data}
+            module="clients"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
+        </div>
+        {errors.custom && (
+          <p className="form-error" role="alert">
+            {errors.custom}
+          </p>
+        )}
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
@@ -163,6 +180,8 @@ export function ContactForm({ contact, clientId, data, onClose, onSave, busy }) 
   async function submit(e) {
     e.preventDefault();
     const found = validateContact(form, data.clientContacts, contact?.id || null);
+    const customError = validateCustomValues(data, 'clientContacts', form.custom || {});
+    if (customError) found.custom = customError;
     setErrors(found);
     if (Object.keys(found).length) return;
     const row = {
@@ -211,6 +230,19 @@ export function ContactForm({ contact, clientId, data, onClose, onSave, busy }) 
             <textarea rows={2} value={form.notes} onChange={set('notes')} />
           </Field>
         </div>
+        <div className="form-grid">
+          <CustomFieldInputs
+            data={data}
+            module="clientContacts"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
+        </div>
+        {errors.custom && (
+          <p className="form-error" role="alert">
+            {errors.custom}
+          </p>
+        )}
         <div className="client-checkboxes">
           <label className="checkbox-label">
             <input type="checkbox" checked={!!form.isPrimary} onChange={check('isPrimary')} />
@@ -713,6 +745,7 @@ export function ClientDetail({
                     <strong>{c.name}</strong> {c.isPrimary && <Badge tone="green">Primary</Badge>}{' '}
                     {c.decisionMaker && <Badge tone="blue">Decision maker</Badge>}
                     <small>{c.title || 'No title recorded'}</small>
+                    <CustomFieldValues data={data} module="clientContacts" values={c.custom} />
                     <small>
                       {c.email && (
                         <a href={`mailto:${c.email}`}>
@@ -760,6 +793,7 @@ export function ClientDetail({
             )}
           </dl>
           {client.notes && <p className="supporting-text">{client.notes}</p>}
+          <CustomFieldValues data={data} module="clients" values={client.custom} />
         </section>
 
         <section className="panel">

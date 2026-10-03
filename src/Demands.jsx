@@ -1,3 +1,4 @@
+import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import React, { useState } from 'react';
 import {
   Plus,
@@ -254,42 +255,12 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
               placeholder="Data platform, High priority"
             />
           </Field>
-          {(
-            data.settings.find((r) => r && r.id === 'workspace')?.custom?.customFields?.demands ||
-            []
-          ).map((f) => (
-            <Field key={f.name} label={f.name}>
-              {f.type === 'select' ? (
-                <select
-                  value={form.custom?.[f.name] ?? ''}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      custom: { ...(form.custom || {}), [f.name]: e.target.value },
-                    })
-                  }
-                >
-                  {(f.options || []).map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
-                  value={form.custom?.[f.name] ?? ''}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      custom: {
-                        ...(form.custom || {}),
-                        [f.name]: f.type === 'number' ? Number(e.target.value) : e.target.value,
-                      },
-                    })
-                  }
-                />
-              )}
-            </Field>
-          ))}
+          <CustomFieldInputs
+            data={data}
+            module="demands"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           <Field label="Demand owner" hint="Who owns this requirement internally.">
             <input
               value={owner}
@@ -884,6 +855,7 @@ export function DemandDetail({
                 visible.
               </p>
             </div>
+            <CustomFieldValues data={data} module="demands" values={d.custom} />
             {d.description && (
               <details>
                 <summary>Original job description</summary>

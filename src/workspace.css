@@ -429,3 +429,21 @@
 .cal-entry strong{display:block;font-size:12px;font-weight:600;color:#3a555f;line-height:1.35}
 .cal-entry small{display:block;font-size:11px;color:#7e919a;margin-top:2px}
 @media(max-width:1000px){.cal-week{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Configurable repository fields retain the existing settings and account layout. */
+.custom-field-list { list-style: none; padding: 0; margin: 16px 0; }
+.custom-field-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #dce5e8; }
+.custom-field-list li > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.custom-field-list small { display: block; margin-top: 4px; color: var(--muted); }
+.custom-field-form { display: grid; gap: 12px; }
+.custom-field-values dd { overflow-wrap: anywhere; }
+.cv-review-list{display:grid;gap:14px;max-height:50vh;overflow-y:auto;overflow-x:hidden;padding:2px}.cv-review-card{border:1px solid var(--border,#dce5e8);border-radius:10px;padding:18px;min-width:0}.cv-review-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.cv-review-heading label{display:flex;align-items:center;gap:10px;min-width:0;overflow-wrap:anywhere}.cv-review-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.cv-review-fields input{width:100%;box-sizing:border-box}.cv-review-card p{font-size:13px;line-height:1.6;margin:10px 0;overflow-wrap:anywhere}@media(max-width:650px){.cv-review-fields{grid-template-columns:1fr}.cv-review-heading{align-items:flex-start;flex-wrap:wrap}}
+.execution-job-list{display:grid;gap:12px;margin-top:16px}.execution-job{border:1px solid var(--border,#dce5e8);border-radius:8px;padding:16px;overflow-wrap:anywhere}.execution-job p{font-size:13px;line-height:1.6;margin:8px 0}.execution-job small{color:var(--muted)}
+/* Hosted search and connector controls wrap within the existing workspace column. */
+.intelligence-panel .section-toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+.intelligence-panel label { display:flex; flex-direction:column; gap:6px; min-width:0; flex:1 1 180px; }
+.intelligence-panel input,.intelligence-panel select,.intelligence-panel textarea { max-width:100%; width:100%; box-sizing:border-box; }
+.intelligence-panel .section-toolbar span { overflow-wrap:anywhere; min-width:0; }
+.intelligence-panel .settings-body > label { max-width:420px; margin-block:12px; }
+.intelligence-panel .section-toolbar + .section-toolbar { margin-top:12px; }
+.intelligence-panel .settings-body .panel { margin-top:14px; }
+.intelligence-panel p { line-height:1.6; }

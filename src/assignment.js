@@ -11,8 +11,8 @@
 //      rules would make assignment depend on row order, which is not a rule at all.
 //
 // Evaluation is pure so the "what would this do?" dry run and the live path are the same code.
-// It runs in the client, like the existing workflow rules — a record created through the API
-// rather than the app is not assigned. That limit is documented, not hidden.
+// The client evaluator supports demo/legacy mode and previews. With server execution
+// enabled, migration 035 assigns new API and browser records inside PostgreSQL.
 
 export const ASSIGNABLE = {
   candidates: {

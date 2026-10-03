@@ -10,8 +10,8 @@
     "check:bundle": "node scripts/check-bundle.mjs",
     "release": "node scripts/release.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test --test-force-exit tests/*.test.js",
-    "test:unit": "node --test --test-force-exit tests/*.test.js",
+    "test": "node --test --test-concurrency=4 --test-force-exit tests/*.test.js",
+    "test:unit": "node --test --test-concurrency=4 --test-force-exit tests/*.test.js",
     "lint": "eslint src tests netlify/functions",
     "format": "prettier --write \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"*.{js,mjs}\""
@@ -20,13 +20,16 @@
     "@aws-sdk/client-s3": "^3.1141.0",
     "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@supabase/supabase-js": "^2.57.0",
+    "ipaddr.js": "2.3.0",
     "lucide-react": "^0.468.0",
     "papaparse": "^5.5.3",
+    "pdfjs-dist": "6.3.289",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-pgvector": "0.0.9",
     "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -40,6 +43,6 @@
     "vite": "^6.3.5"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   }
 }

@@ -1,5 +1,6 @@
 import { makeSeed } from './seed.js';
 import { uid } from './domain.js';
+import { CUSTOM_MODULES, validateCustomValues } from './customFields.js';
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
 const url = env.VITE_SUPABASE_URL;
 const key = env.VITE_SUPABASE_ANON_KEY;
@@ -221,9 +222,25 @@ export function historyRefreshLimit(rowCount) {
 }
 
 export async function saveRows(table, rows, current) {
+  if (Object.hasOwn(CUSTOM_MODULES, table)) {
+    for (const row of rows) {
+      const problem = validateCustomValues(current, table, row.custom || {});
+      if (problem) throw new Error(problem);
+    }
+  }
   if (cloud) {
     const supabase = await getSupabase();
-    const { data, error } = await supabase.from(table).upsert(rows).select();
+    // Mode is changed only through its dedicated admin RPC. A stale settings
+    // snapshot (branding, rules or restore) must not silently flip execution.
+    const writableRows =
+      table === 'settings'
+        ? rows.map((row) => {
+            const saved = { ...row };
+            delete saved.serverAutomation;
+            return saved;
+          })
+        : rows;
+    const { data, error } = await supabase.from(table).upsert(writableRows).select();
     if (error) throw error;
     const { data: recentHistory } = await supabase
       .from('history')

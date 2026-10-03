@@ -1,6 +1,6 @@
 // Blueprint §4.1/§11 — documents and CV handling: allowlisted uploads with randomized storage
 // names and hashes, best-effort text extraction (txt/md/csv natively, DOCX via zip inflate,
-// PDF heuristic), and a heuristic CV parser that always produces a reviewable draft.
+// PDF.js), and a heuristic CV parser that always produces a reviewable draft.
 // No AI dependency: extraction failures fall back to recruiter-entered text.
 import { uid } from './domain.js';
 import { scanSkills } from './taxonomy.js';
@@ -127,16 +127,22 @@ export async function docxText(buffer) {
   return '';
 }
 
-// PDF best-effort: pull readable literal strings from uncompressed content streams.
 export async function pdfText(buffer) {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  let raw = '';
-  for (const b of bytes) raw += String.fromCharCode(b);
-  const literals = [...raw.matchAll(/\((?:\\.|[^()\\]){2,}\)/g)].map((m) =>
-    m[0].slice(1, -1).replace(/\\([()\\])/g, '$1'),
-  );
-  const text = literals.join(' ');
-  return /[A-Za-z]{3}/.test(text) ? text : '';
+  const { extractPdf } = await import('./pdfExtraction.js');
+  return (await extractPdf(buffer)).text;
+}
+
+export async function extractDocumentText(buffer, ext) {
+  if (ext === 'pdf') {
+    const { extractPdf } = await import('./pdfExtraction.js');
+    return extractPdf(buffer);
+  }
+  const text = await extractText(buffer, ext);
+  return {
+    text,
+    status: text ? 'parsed' : 'manual',
+    warning: text ? '' : 'No readable text found. Enter candidate details manually.',
+  };
 }
 
 export async function extractText(buffer, ext) {
@@ -212,6 +218,7 @@ export function buildDocumentRecord({
   clientId = null,
   kind,
   uploadedBy = 'Recruiter',
+  parserStatusHint,
 }) {
   return {
     id: uid(),
@@ -227,7 +234,7 @@ export function buildDocumentRecord({
     dataUrl: '',
     stored: false,
     storageError: '',
-    parserStatus: extracted ? 'parsed' : 'manual',
+    parserStatus: parserStatusHint === 'manual' ? 'manual' : extracted ? 'parsed' : 'manual',
     extracted: extracted || '',
     removed: false,
     uploadedBy,

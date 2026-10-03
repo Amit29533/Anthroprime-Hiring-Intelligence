@@ -218,6 +218,9 @@ export function normalizeData(data) {
     c.isPrimary = c.isPrimary === true;
     c.decisionMaker = c.decisionMaker === true;
   }
+  for (const c of [...out.clients, ...out.clientContacts]) {
+    c.custom = c.custom && typeof c.custom === 'object' && !Array.isArray(c.custom) ? c.custom : {};
+  }
   for (const c of out.candidates) {
     c.tags = Array.isArray(c.tags) ? c.tags : [];
     c.custom = c.custom && typeof c.custom === 'object' && !Array.isArray(c.custom) ? c.custom : {};
