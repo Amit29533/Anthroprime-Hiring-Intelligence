@@ -99,7 +99,14 @@ test('hosted retrieval sends database filters and opens the returned candidate I
     rpc: async (name, args) => {
       calls.push([name, args]);
       return [
-        { id: 'c1', name: 'Candidate', title: 'Engineer', location: 'Delhi', similarity: 0.8 },
+        {
+          id: 'c1',
+          anthroNumber: 1,
+          name: 'Candidate',
+          title: 'Engineer',
+          location: 'Delhi',
+          similarity: 0.8,
+        },
       ];
     },
     onOpen: (id) => opened.push(id),
@@ -111,7 +118,7 @@ test('hosted retrieval sends database filters and opens the returned candidate I
   await settle();
   assert.equal(calls[0][1].p_location, 'Delhi');
   assert.equal(calls[0][1].p_min_experience, 3);
-  fireEvent.click(screen.getByRole('button', { name: 'Candidate' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Candidate · ANTHRO-00001' }));
   assert.deepEqual(opened, ['c1']);
 });
 

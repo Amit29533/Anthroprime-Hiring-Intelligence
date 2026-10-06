@@ -1,5 +1,6 @@
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import { validateCustomValues } from './customFields.js';
+import { candidateLabel } from './anthroId.js';
 import React, { useState } from 'react';
 import ClientDocuments from './ClientDocuments.jsx';
 import {
@@ -354,7 +355,7 @@ export function PlacementForm({ placement, clientId, data, onClose, onSave, busy
               <option value="">Select candidate</option>
               {data.candidates.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>
-                  {candidate.name}
+                  {candidateLabel(candidate)}
                 </option>
               ))}
             </select>

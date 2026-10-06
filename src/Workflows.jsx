@@ -1,3 +1,13 @@
+import { candidateLabel, anthroIdFor } from './anthroId.js';
+import { LifecycleAnalytics } from './LifecycleAnalytics.jsx';
+import { DocumentReputation } from './DocumentReputation.jsx';
+import { DocumentReviewQueue } from './DocumentReviewQueue.jsx';
+import { DocumentAccessAudit } from './DocumentAccessAudit.jsx';
+import { CandidateExportAudit } from './CandidateExportAudit.jsx';
+import { SubjectRequests } from './SubjectRequests.jsx';
+import { MfaPanel } from './MfaPanel.jsx';
+import { InterviewReminders } from './InterviewReminders.jsx';
+import { SavedImports } from './SavedImports.jsx';
 import { CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
 import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
@@ -64,8 +74,16 @@ import {
 } from './analytics.js';
 import { thresholdFor, DEFAULT_CRITERIA, templatesFor } from './feedback.js';
 import { changesSince } from './sync.js';
-import { exportCandidates, exportSensitiveFile } from './downloads.js';
-import { cloud, getSupabase, getRole, canWriteForRole, resetDemo } from './repository.js';
+import { exportSensitiveFile } from './downloads.js';
+import { exportCandidateData } from './candidateExports.js';
+import {
+  cloud,
+  getSupabase,
+  getRole,
+  getWorkspaceId,
+  canWriteForRole,
+  resetDemo,
+} from './repository.js';
 import { backupBundle, parseBackup, restoreBackupRows } from './backup.js';
 import { TRIGGERS, TRIGGER_VALUES, describeRule, describeActions } from './automation.js';
 import { documentTemplatesFor, MERGE_FIELD_CATALOG } from './templates.js';
@@ -185,7 +203,7 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
               {!data.candidates.length && <option value="">Add a candidate first</option>}
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -330,7 +348,7 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
               {!form.candidateId && <option value="">Add a candidate first</option>}
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -504,7 +522,7 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                   <div>
                     <h3>{a.title}</h3>
                     <button className="inline-link" onClick={() => onOpen(c?.id)}>
-                      {c?.name}
+                      {c ? candidateLabel(c) : 'Unknown candidate'}
                     </button>
                     <p>{a.description}</p>
                     <small>
@@ -743,7 +761,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
               <option value="">No candidate</option>
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -784,7 +802,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
                 <div className="task-meta">
                   {c && (
                     <button className="text-link" onClick={() => onOpen(c.id)}>
-                      {c.name}
+                      {candidateLabel(c)}
                     </button>
                   )}
                   {d && <small>{d.title}</small>}
@@ -1074,6 +1092,7 @@ export function Analytics({ data, navigate }) {
         />
       </div>
       <div className="analytics-grid">
+        <LifecycleAnalytics />
         <SkillInventoryPanel
           data={data}
           onOpenCandidate={(id) => navigate('Candidates', { personId: id })}
@@ -1520,11 +1539,21 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
             audit={audit}
           />
         )}
+        <MfaPanel key={`mfa-${getWorkspaceId()}`} />
         {getRole() === 'admin' && <ExecutionJobsPanel />}
+        {getRole() === 'admin' && <InterviewReminders key={`reminders-${getWorkspaceId()}`} />}
+        {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}
         {getRole() === 'admin' && <IndexHealthPanel />}
+        {getRole() === 'admin' && <DocumentReputation documents={data.documents} />}
+        {getRole() === 'admin' && <DocumentReviewQueue onReload={onReload} />}
+        {getRole() === 'admin' && <DocumentAccessAudit />}
+        {getRole() === 'admin' && <CandidateExportAudit />}
+        {getRole() === 'admin' && (
+          <SubjectRequests key={getWorkspaceId()} onHoldChange={onReload} />
+        )}
         {getRole() === 'admin' && (
           <AdminPanel data={data} onSave={onSave} notify={notify} audit={audit} />
         )}
@@ -1544,23 +1573,24 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
               icon={Download}
               disabled={viewer}
               title={viewer ? 'Viewer role cannot export candidate data' : ''}
-              onClick={() => {
-                if (!exportCandidates(data.candidates, notify)) return;
+              onClick={async () => {
+                const exportRows = data.candidates.filter((c) => !c.mergedInto);
+                if (!(await exportCandidateData(exportRows, notify))) return;
                 notify('Candidate CSV exported.');
                 audit &&
                   audit({
                     entityType: 'candidates',
                     entityId: null,
                     action: 'exported',
-                    detail: `${data.candidates.length} candidates`,
+                    detail: `${exportRows.length} candidates`,
                   });
               }}
             >
               Export candidate CSV
             </Button>
             <p className="supporting-text">
-              Includes contact details and compensation. Store the export in an appropriate private
-              location.
+              Includes contact details. Audited candidate CSVs include compensation only for
+              administrators. Store exports in an appropriate private location.
             </p>
             <div className="backup-row">
               <Button
@@ -1841,8 +1871,8 @@ function DataTools({ data, onSave, onReload, notify, audit }) {
         <div className="merge-review">
           <p className="supporting-text">
             Surviving record: <strong>{preview.name || pair.a.name}</strong> (
-            {pair.a.name || pair.b.name} keeps its id). {pair.b.name} is flagged merged and hidden.
-            Choose a value per field:
+            {pair.a.name || pair.b.name} keeps {anthroIdFor(pair.a)}). {pair.b.name} is flagged
+            merged and hidden; its former Anthro-ID remains searchable. Choose a value per field:
           </p>
           <div className="table-scroll merge-table">
             <table>
@@ -2103,6 +2133,7 @@ function AdminPanel({ data, onSave, notify, audit }) {
             <div key={c.id} className="quality-row">
               <span>
                 <strong>{c.name}</strong>
+                <small className="anthro-id">{anthroIdFor(c)}</small>
                 <small className="block">Last verified {c.verified}</small>
               </span>
               <Button
@@ -2112,7 +2143,7 @@ function AdminPanel({ data, onSave, notify, audit }) {
                 onClick={async () => {
                   if (
                     !window.confirm(
-                      `Anonymize ${c.name}? Identity and contact details are erased; skills and history remain for aggregate reporting.`,
+                      `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
                     )
                   )
                     return;

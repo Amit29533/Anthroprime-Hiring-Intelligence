@@ -1,5 +1,29 @@
 # Remaining Features Roadmap
 
+**LinkedIn import addition:** [candidate extraction by LinkedIn URL/handle/numeric ID](LINKEDIN_CANDIDATE_IMPORT.md) adds an optional server-side People Data Labs adapter, workspace opt-in, a shared daily attempt limit and a key-free pasted-text path. Drafts require review/contact details and use normal candidate persistence/Anthro-ID assignment. All 740 full-suite tests passed, plus seven focused checks for the final numeric-ID/parser/provider/endpoint/UI/database behavior. Lint, formatting, whitespace and the final Netlify build passed (13 functions; 64.8 KiB entry). Provider credentials, live provider coverage and hosted activation remain pending.
+
+**Phase E1 local slice:** [internal interview reminders](PHASE_E_INTERNAL_REMINDERS.md) create shared preparation tasks from a scheduled Netlify worker, with replay prevention, five-attempt retries, private receipts, source-change cancellation and admin enable/pause/retry controls. The full run exercised 734 tests: 731 passed and three migration fixtures without `service_role` failed; a conditional grant fixed the issue and all three plus the reminder migration passed on rerun. Four reminder migration/worker/UI checks also passed, including cross-workspace failure isolation. Lint, formatting and Netlify build passed (12 functions). Hosted scheduler/concurrency/advisors acceptance and external delivery remain pending.
+
+**Phase D5 local slice:** [optional administrator MFA](PHASE_D_PRIVILEGED_MFA.md) adds authenticator enrollment/verification in Settings and server assurance checks for request cases/holds, audited CSVs and document signing. Activation/downgrade requires AAL2; enabling pins the existing audited access controls. All 729 Node tests passed; final lock-order adjustments passed two focused migration tests and both MFA UI tests passed, including a later failed-challenge check. Lint, changed-file formatting and Netlify build passed. Hosted Auth/advisors acceptance, wider access governance and SSO remain pending.
+
+**Phase D4 local slice:** [reviewed outbound recruiting holds](PHASE_D_OUTBOUND_HOLDS.md) links admin-reviewed restriction cases to server-owned candidate flags, guarded pipeline writes/CSV preparation, merge protection and explicit release. All 727 Node tests passed; a final UPSERT fix passed five focused migration tests. Lint and Netlify build checks passed. Wider read/export restrictions and complete restriction/erasure fulfillment remain pending.
+
+**Phase D3 local slice:** [data-subject request review](PHASE_D_SUBJECT_REQUESTS.md) adds administrator case intake, identity/review states, assignment/review dates, version conflicts and actor-bound idempotent history. All 724 Node tests, lint and Netlify's offline build passed. Full request fulfillment, restriction enforcement, original/history cleanup and hosted acceptance remain pending.
+
+**Phase D2 local slice:** [audited candidate CSV preparation](PHASE_D_CANDIDATE_EXPORTS.md) adds fresh server projections, administrator-only compensation in these CSVs, distributed export quotas, snapshot receipts and an administrator volume-review panel. All 720 Node tests, lint and Netlify's offline build passed. Reports/dossiers/backups, broad read restrictions and hosted activation remain pending.
+
+**Phase D1 local slice:** [audited document signing](PHASE_D_DOCUMENT_ACCESS.md) adds opt-in distributed download quotas, service-only issuance receipts, direct Supabase Storage restrictions and an admin audit panel. All 716 Node tests, lint and Netlify's offline production build passed. Broader profile/export audit, role projections, session controls and data-subject workflows remain pending. Hosted activation is required.
+
+**Phase C5 local slice:** [legacy R2 quarantine and retention review](PHASE_C_LEGACY_DOCUMENT_REVIEW.md) brings eligible originals into existing private processing and adds admin-only keep/hold/archive decisions with server-owned receipts. Automatic provider migration, historical text gating and original deletion remain pending.
+
+**Phase C4 local slice:** [structured CV section evidence](PHASE_C_STRUCTURED_CV_EVIDENCE.md) adds cited employment, education, certification and project excerpts with explicit review and atomic candidate/original persistence. Netlify packaging and private worker images include the shared parser. Richer entity grouping, legacy backfill/retention and hosted acceptance remain pending.
+
+**Phase C local slices (6 October 2026):** [C1 private scanning for saved CV imports](PHASE_C_PRIVATE_SCANNING.md) adds scan leases, a ClamAV worker and extraction/approval/download gates. [C2/C3](PHASE_C_ATTACHMENTS_AND_OCR.md) extend quarantine to new candidate/client attachments and add optional private Poppler/Tesseract OCR with reviewable text and bound provenance. VirusTotal remains hash reputation only. All 702 Node tests and four Python tests passed. Live engine/container acceptance, legacy backfill/retention and richer structured extraction remain pending. No production activation was performed.
+
+**Current deployment sequence (6 October 2026):** [ECOD gap closure plan](PHASED_DEPLOYMENT_2026_10_06.md) supplements the phases below with staged rollout and acceptance gates. Historical lifecycle analytics and a server-only VirusTotal hash reputation lookup are the first local slices; neither is deployed. VirusTotal reputation is not CV malware scanning.
+
+**Phase B1 local slice:** [resumable spreadsheet imports](PHASE_B_IMPORTS.md) adds saved reviews, explicit approval, atomic background commits, failed-row correction and bounded progress/error pages. CV staging/extraction and broad server-side browsing remain subsequent Phase B work.
+
 This sequence comes from the 123-item blueprint audit and the current code, not from the age of the backlog. Each phase should land as a reviewable vertical slice with database rules, usable UI and tests.
 
 ## Baseline
@@ -67,5 +91,7 @@ Add the client review portal, then vendor collaboration if a real operating need
 **Exit criteria:** external users see an explicit field projection and cannot access internal commercials or notes; retention and backup jobs produce auditable evidence; restore is tested; exports and authentication policies are enforced on the server.
 
 ## Delivery rule
+
+**October 2026 Phase B continuation (local):** saved spreadsheet reviews and atomic background imports now have an opt-in [durable CV staging/extraction preview](PHASE_B_CV_STAGING.md) and opt-in [paged repository reads](PHASE_B_PAGED_REPOSITORY.md). Originals are private and immutable; leased parsing creates reviewable drafts and candidate/document commits are atomic. CV production activation requires the private scan gate. Startup, browsing and Candidate 360 reads are bounded in the new mode; legacy workflows still load full snapshots. Retention and hosted acceptance remain pending.
 
 Complete one phase before beginning the next unless a production defect requires a narrow interruption. Every phase must update the blueprint matrix, migration chain, API contract and operational documentation alongside the code.

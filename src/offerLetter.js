@@ -2,6 +2,7 @@
 // from the offer record's terms. Actual e-signature execution needs a server-side
 // provider and remains out of scope; this produces the letter humans sign today.
 import { money } from './domain.js';
+import { anthroIdFor } from './anthroId.js';
 
 const longDate = (iso) =>
   iso
@@ -19,6 +20,7 @@ export function offerLetterText(offer, candidate, demand, workspaceName = 'Anthr
   lines.push(`Date: ${longDate(new Date().toISOString().slice(0, 10))}`);
   lines.push('');
   lines.push(`${c.name || '[candidate name]'}`);
+  if (c.id) lines.push(`Anthro-ID: ${anthroIdFor(c)}`);
   lines.push('');
   lines.push(`Dear ${c.name ? c.name.split(' ')[0] : '[candidate]'},`);
   lines.push('');

@@ -16,6 +16,7 @@ import { makeSeed } from '../src/seed.js';
 
 const CANDIDATE = {
   id: 'p1',
+  anthroNumber: 1,
   name: 'Aarav Sharma',
   title: 'Lead Data Engineer',
   company: 'Northwind Retail',
@@ -289,9 +290,9 @@ test('branding comes from the workspace and is escaped into the document', () =>
 
 test('the reference and filename are stable and safe', () => {
   const doc = build();
-  assert.match(doc.reference, /^ANTH-[0-9A-Z]+$/);
+  assert.match(doc.reference, /^ANTHRO-\d{5}$/);
   assert.equal(buildPresentation(CANDIDATE, null, world(), {}, {}).reference, doc.reference);
-  assert.match(presentationFilename(doc), /^aarav-sharma-anth-.*\.html$/);
+  assert.match(presentationFilename(doc), /^aarav-sharma-anthro-.*\.html$/);
   assert.match(presentationFilename(build({ anonymise: true })), /^a-s-/);
   assert.equal(presentationFilename(null), 'candidate-.html');
 });

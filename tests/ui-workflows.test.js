@@ -706,6 +706,8 @@ test('talent pools are live views of skills, readiness and freshness, not a seco
   const added = {
     ...data.candidates[0],
     id: 'pool-new-person',
+    anthroNumber: undefined,
+    anthroId: '',
     name: 'Dynamic Pool Member',
     email: 'dynamic.pool.member@example.com',
     phone: '',

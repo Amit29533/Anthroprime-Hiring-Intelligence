@@ -1,3 +1,4 @@
+import { anthroIdFor, candidateIdentityText } from './anthroId.js';
 import React, { useState } from 'react';
 import { Plus, Layers, Pencil, Archive } from 'lucide-react';
 import { Button, PanelHeading, Field, Modal, SearchBox, PersonName, Badge, Empty } from './ui.jsx';
@@ -20,7 +21,9 @@ export function StaticPools({ data, onOpen, onSave, busy, role = getRole() }) {
   const candidates = data.candidates.filter(
     (c) =>
       !members.some((member) => member.id === c.id) &&
-      `${c.name} ${c.title} ${c.skills.join(' ')}`.toLowerCase().includes(query.toLowerCase()),
+      `${candidateIdentityText(c)} ${c.name} ${c.title} ${c.skills.join(' ')}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
   );
   async function save(event) {
     event.preventDefault();
@@ -248,6 +251,7 @@ export function StaticPools({ data, onOpen, onSave, busy, role = getRole() }) {
                   />
                   <span>
                     <strong>{c.name}</strong>
+                    <small className="anthro-id">{anthroIdFor(c)}</small>
                     <small>{c.title}</small>
                   </span>
                 </label>

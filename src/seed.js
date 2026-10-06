@@ -339,6 +339,7 @@ const detail = (skills, proficiency, evidence, validated) =>
   }));
 export function makeSeed() {
   const candidates = people.map((p, i) => ({
+    anthroNumber: i + 1,
     id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
     name: p[0],
     title: p[1],

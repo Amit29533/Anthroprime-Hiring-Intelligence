@@ -56,7 +56,12 @@ export const tokenize = (text) =>
     ?.filter((t) => !STOP.has(t) && !/^\d+$/.test(t)) || [];
 
 export function buildVectors(candidates, documents) {
-  const texts = new Map(candidates.map((c) => [c.id, tokenize(candidateSearchText(c, documents))]));
+  const texts = new Map(
+    candidates.map((c) => [
+      c.id,
+      tokenize(candidateSearchText(c, documents, { includeIdentity: false })),
+    ]),
+  );
   const df = new Map();
   for (const tokens of texts.values())
     for (const t of new Set(tokens)) df.set(t, (df.get(t) || 0) + 1);

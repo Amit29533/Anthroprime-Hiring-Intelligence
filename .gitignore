@@ -6,3 +6,8 @@ dist/
 .netlify/
 artifacts/
 releases/
+__pycache__/
+*.py[cod]
+supabase/.temp/
+.codex-push-*.log
+.codex-push-*.json

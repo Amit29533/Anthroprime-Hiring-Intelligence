@@ -1,0 +1,48 @@
+services:
+  clamav:
+    image: clamav/clamav:1.4_base
+    restart: unless-stopped
+    mem_limit: 4g
+    environment:
+      FRESHCLAM_CHECKS: 12
+    volumes:
+      - signatures:/var/lib/clamav
+      - ./clamd.conf:/etc/clamav/clamd.conf:ro
+    # No published ports: the daemon has no authentication.
+    networks: [scan]
+  worker:
+    build:
+      context: ..
+      dockerfile: scanner/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    env_file: .env
+    environment:
+      CLAMD_HOST: clamav
+    networks: [scan, ocr-private]
+  ocr:
+    profiles: [ocr]
+    build:
+      context: ..
+      dockerfile: scanner/ocr/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 2
+    pids_limit: 64
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    environment:
+      OCR_SHARED_TOKEN: ${OCR_SHARED_TOKEN:-}
+    networks: [ocr-private]
+volumes:
+  signatures:
+networks:
+  scan:
+  ocr-private:
+    internal: true

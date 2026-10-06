@@ -2,6 +2,7 @@
 // curated api_portal_overview RPC; demo mode opens the same view from the local workspace
 // by email. Self-service is limited to availability preferences (see portal.js).
 import React, { useState, useEffect } from 'react';
+import { anthroIdFor } from './anthroId.js';
 import { createRoot } from 'react-dom/client';
 import { cloud, getSupabase, loadData, saveRows } from './repository.js';
 
@@ -53,6 +54,7 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
     <main className="careers-main portal-main">
       <section className="careers-status portal-card">
         <h2 style={{ margin: '0 0 2px' }}>{p.name}</h2>
+        <p className="anthro-id">Anthro-ID: {anthroIdFor(p)}</p>
         <p style={{ margin: 0, color: '#a9c3bc' }}>
           {[p.title, p.location].filter(Boolean).join(' · ') || 'Candidate profile'}
         </p>

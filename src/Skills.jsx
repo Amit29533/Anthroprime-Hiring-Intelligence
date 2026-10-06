@@ -1,3 +1,4 @@
+import { anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import { Plus, ShieldCheck, AlertTriangle, Clock, FileText } from 'lucide-react';
 import { PanelHeading, Button, Field, Badge, Empty } from './ui.jsx';
@@ -311,6 +312,7 @@ export function SkillInventoryPanel({ data, onOpenCandidate }) {
                   <button className="text-link" onClick={() => onOpenCandidate?.(c.candidateId)}>
                     <strong>
                       {c.candidate?.name || 'Unknown'} · {c.name}
+                      <small className="anthro-id">{anthroIdFor(c.candidate)}</small>
                     </strong>
                   </button>
                   <small>

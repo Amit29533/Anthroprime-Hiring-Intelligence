@@ -11,6 +11,7 @@
 //   2. RESULTS ARE RANKED, NOT FILTERED. An exact name match outranks a passing mention in a
 //      note, so the thing you meant is first rather than buried.
 
+import { candidateIdentityText, anthroIdFor } from './anthroId.js';
 /** Fields that must never be searchable, because matching on them reveals them. */
 const NEVER_INDEXED = new Set([
   'expected',
@@ -85,6 +86,7 @@ export function searchWorkspace(data, query, { isAdmin = false, limit = 20 } = {
 
   for (const c of data?.candidates || []) {
     const score = best(q, [
+      [candidateIdentityText(c).split(' '), 1.2],
       [c.name, 1],
       [c.email, 0.8],
       [c.phone, 0.8],
@@ -99,7 +101,7 @@ export function searchWorkspace(data, query, { isAdmin = false, limit = 20 } = {
         type: 'candidate',
         id: c.id,
         title: c.name,
-        subtitle: [c.title, c.location].filter(Boolean).join(' · '),
+        subtitle: [anthroIdFor(c), c.title, c.location].filter(Boolean).join(' · '),
         meta: c.status,
         score,
       });

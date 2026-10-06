@@ -1,5 +1,9 @@
+import { AttachmentProcessing } from './AttachmentProcessing.jsx';
+import { SubjectRequests } from './SubjectRequests.jsx';
+import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import { HostedIntelligence } from './HostedIntelligence.jsx';
+import { anthroIdFor } from './anthroId.js';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Plus,
@@ -57,7 +61,13 @@ import {
 import { captureChanges } from './history.js';
 import { queueById } from './quality.js';
 import { deriveGaps } from './gaps.js';
-import { cloud, getRole, canWriteForRole, queryRepositoryIds } from './repository.js';
+import {
+  cloud,
+  getRole,
+  getWorkspaceId,
+  canWriteForRole,
+  queryRepositoryIds,
+} from './repository.js';
 import {
   blankRepositoryFilters,
   hasRepositoryFilters,
@@ -67,6 +77,7 @@ import {
 import {
   classifyFile,
   extractDocumentText,
+  privateAttachmentsEnabled,
   sha256,
   buildDocumentRecord,
   persistBinary,
@@ -77,7 +88,8 @@ import { documentTemplatesFor, mergeContext, renderTemplate, dossierHtml } from 
 import { parseTalentQuery, matchesSemantic, skillsUnder, allSkillDomains } from './semantic.js';
 import { placementsForCandidate } from './placements.js';
 export { downloadFile, canExportData, exportSensitiveFile, exportCandidates } from './downloads.js';
-import { exportSensitiveFile, exportCandidates } from './downloads.js';
+import { exportSensitiveFile } from './downloads.js';
+import { exportCandidateData } from './candidateExports.js';
 export function Candidates({
   data,
   query,
@@ -310,8 +322,8 @@ export function Candidates({
             title={
               cloud && !canWriteForRole(getRole()) ? 'Viewer role cannot export candidate data' : ''
             }
-            onClick={() => {
-              const exported = exportCandidates(
+            onClick={async () => {
+              const exported = await exportCandidateData(
                 selected.length ? rows.filter((c) => selected.includes(c.id)) : rows,
                 notify,
               );
@@ -815,6 +827,12 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
     >
       <form onSubmit={submit}>
         <div className="modal-body form-grid">
+          <Field label="Anthro-ID">
+            <input
+              readOnly
+              value={candidate ? anthroIdFor(candidate) : 'Assigned automatically when saved'}
+            />
+          </Field>
           <Field label="Full name *">
             {field('name', 'text', { required: true, maxLength: 120 })}
           </Field>
@@ -1004,6 +1022,7 @@ export function CandidateProfile({
   initialTab,
   onTabChange,
   notify,
+  onReload,
 }) {
   const viewer = cloud && !canWriteForRole(getRole());
   const [tab, setTab] = useState(initialTab || 'Overview'),
@@ -1070,12 +1089,36 @@ export function CandidateProfile({
           <Avatar name={c.name} size="large" />
           <div>
             <h1>{c.name}</h1>
+            <div className="anthro-identity">
+              <span className="anthro-id">Anthro-ID: {anthroIdFor(c)}</span>
+              <Button
+                variant="secondary"
+                className="small"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(anthroIdFor(c));
+                    notify('Anthro-ID copied.');
+                  } catch {
+                    notify('Copy unavailable. Select the Anthro-ID above to copy it.');
+                  }
+                }}
+              >
+                Copy ID
+              </Button>
+            </div>
+            {!!c.anthroAliases?.filter((id) => /^ANTHRO-\d{5}$/.test(id)).length && (
+              <small className="anthro-id">
+                Former Anthro-IDs:{' '}
+                {c.anthroAliases.filter((id) => /^ANTHRO-\d{5}$/.test(id)).join(', ')}
+              </small>
+            )}
             <p>
               {c.title} · {c.company}
             </p>
             <div className="profile-badges">
               <Badge>{c.status}</Badge>
               <Badge>{freshness(c.verified)}</Badge>
+              {c.processingRestricted && <Badge tone="amber">Outbound recruiting hold</Badge>}
               {viewer && <Badge>Read only</Badge>}
               <span>
                 <MapPin size={13} />
@@ -1280,7 +1323,12 @@ export function CandidateProfile({
                         ))}
                     </select>
                     <Button
-                      disabled={!demand || busy || applications.some((a) => a.demandId === demand)}
+                      disabled={
+                        c.processingRestricted ||
+                        !demand ||
+                        busy ||
+                        applications.some((a) => a.demandId === demand)
+                      }
                       onClick={() => onShortlist(c.id, demand)}
                     >
                       {applications.some((a) => a.demandId === demand)
@@ -1341,13 +1389,16 @@ export function CandidateProfile({
             </>
           )}
           {tab === 'Employment' && (
-            <EmploymentTab
-              candidate={c}
-              data={data}
-              onSave={onSave}
-              busy={busy}
-              readOnly={viewer}
-            />
+            <>
+              <EmploymentTab
+                candidate={c}
+                data={data}
+                onSave={onSave}
+                busy={busy}
+                readOnly={viewer}
+              />
+              <CvEvidenceReview value={c.cvEvidence} />
+            </>
           )}
           {tab === 'Documents' && (
             <DocumentsTab candidate={c} data={data} onSave={onSave} busy={busy} readOnly={viewer} />
@@ -1373,6 +1424,7 @@ export function CandidateProfile({
               busy={busy}
               readOnly={viewer}
               notify={notify}
+              onReload={onReload}
             />
           )}
           {tab === 'Applications' && (
@@ -1892,7 +1944,15 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
     setFileBusy(true);
     try {
       const buffer = await file.arrayBuffer();
-      const extraction = await extractDocumentText(buffer, cls.ext);
+      const quarantine = await privateAttachmentsEnabled();
+      const extraction = quarantine
+        ? {
+            text: '',
+            status: 'quarantined',
+            warning:
+              'Original is quarantined until private scanning and background extraction finish.',
+          }
+        : await extractDocumentText(buffer, cls.ext);
       const extracted = extraction.text;
       const hash = await sha256(buffer);
       const record = buildDocumentRecord({
@@ -1946,14 +2006,19 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
           <FileText size={20} />
           <div className="document-info">
             <strong>{d.name}</strong>
+            <AttachmentProcessing record={d} readOnly={readOnly} onSave={onSave} />
             <small className="block">
               {d.kind} · v{d.version} · {(d.size / 1024).toFixed(0)} KB ·{' '}
               {d.uploaded ? new Date(d.uploaded).toLocaleString() : ''} · {d.uploadedBy}
             </small>
             <small>
-              {d.parserStatus === 'parsed'
-                ? `Parsed text captured (${(d.extracted || '').length} characters) — evidence stays with the profile.`
-                : 'Text could not be extracted automatically; the original is kept for reference.'}
+              {['quarantined', 'scan-error', 'blocked', 'queued', 'extracting'].includes(
+                d.parserStatus,
+              )
+                ? 'Private scan/extraction is pending or blocked. Refresh processing status for details.'
+                : d.parserStatus === 'parsed'
+                  ? `Parsed text captured (${(d.extracted || '').length} characters) — evidence stays with the profile.`
+                  : 'Text could not be extracted automatically; the original is kept for reference.'}
             </small>
             {d.stored === false && (
               <small className="block text-amber">
@@ -2137,7 +2202,16 @@ function EcodTab({ candidate: c, data, onSave, busy, readOnly = false }) {
     </>
   );
 }
-function ConsentTab({ candidate: c, data, onSave, audit, busy, readOnly = false, notify }) {
+function ConsentTab({
+  candidate: c,
+  data,
+  onSave,
+  audit,
+  busy,
+  readOnly = false,
+  notify,
+  onReload,
+}) {
   const purposes = ['recruiting-contact', 'profile-sharing', 'assessment', 'marketing'];
   const [form, setForm] = useState({
     purpose: 'recruiting-contact',
@@ -2214,9 +2288,17 @@ function ConsentTab({ candidate: c, data, onSave, audit, busy, readOnly = false,
       </div>
       <p className="supporting-text">
         Blueprint §12: record what consent covers, which notice version the person saw, and when.
-        Data-subject export returns everything held about this person; correction is via Edit;
-        erasure is the admin Anonymize action (audited).
+        Profile export includes the records available in this workspace view and may exclude
+        originals or history. Correction is via Edit. Profile anonymization does not remove all
+        linked records; request review tracks the wider work.
       </p>
+      {getRole() === 'admin' && (
+        <SubjectRequests
+          key={`${getWorkspaceId()}:${c.id}`}
+          candidateId={c.id}
+          onHoldChange={onReload}
+        />
+      )}
       {!readOnly && (
         <form className="consent-form" onSubmit={addConsent}>
           <Field label="Purpose">

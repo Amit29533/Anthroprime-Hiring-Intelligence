@@ -1,3 +1,4 @@
+import { candidateLabel, anthroIdFor, candidateIdentityText } from './anthroId.js';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import React, { useState } from 'react';
 import {
@@ -608,12 +609,16 @@ export function DemandDetail({
     [offerOpen, setOfferOpen] = useState(false),
     [submitFor, setSubmitFor] = useState(null);
   const ranked = data.candidates
+    .filter((c) => !c.processingRestricted)
     .map((c) => ({ c, m: matchCandidate(c, d, data.assessments) }))
     .filter(
       ({ c, m }) =>
         (!onlyQualified || m.eligible) &&
         m.score >= minScore &&
-        [c.name, c.title, ...c.skills].join(' ').toLowerCase().includes(search.toLowerCase()),
+        [candidateIdentityText(c), c.name, c.title, ...c.skills]
+          .join(' ')
+          .toLowerCase()
+          .includes(search.toLowerCase()),
     )
     .sort((a, b) => b.m.score - a.m.score);
   const account = (data.clients || []).find((c) => c.id === d.clientId) || null;
@@ -711,7 +716,7 @@ export function DemandDetail({
                 const oc = data.candidates.find((x) => x.id === o.candidateId);
                 return (
                   <div className="offer-line" key={o.id}>
-                    <span className="person-compact">{oc ? oc.name : 'Removed'}</span>
+                    <span className="person-compact">{oc ? candidateLabel(oc) : 'Removed'}</span>
                     <Badge
                       tone={
                         o.status === 'Accepted'
@@ -750,7 +755,7 @@ export function DemandDetail({
                 const sc = data.candidates.find((x) => x.id === sub.candidateId);
                 return (
                   <div className="offer-line" key={sub.id}>
-                    <span className="person-compact">{sc ? sc.name : 'Removed'}</span>
+                    <span className="person-compact">{sc ? candidateLabel(sc) : 'Removed'}</span>
                     <Badge>{sub.method}</Badge>
                     <small>
                       {sub.submittedOn}
@@ -902,6 +907,7 @@ export function DemandDetail({
                   <Avatar name={c.name} index={i} />
                   <button className="match-person" onClick={() => onOpenCandidate(c.id)}>
                     <strong>{c.name}</strong>
+                    <small className="anthro-id">{anthroIdFor(c)}</small>
                     <span>
                       {c.title} · {c.company}
                     </span>
@@ -1222,6 +1228,7 @@ export function Pipeline({ data, selectedDemand, setSelectedDemand, onOpen, onNe
                         <button className="pipeline-person" onClick={() => onOpen(c.id)}>
                           <Avatar name={c.name} size="small" />
                           <strong>{c.name}</strong>
+                          <small className="anthro-id">{anthroIdFor(c)}</small>
                         </button>
                         <p>{c.title}</p>
                         <div className="pipeline-card-info">
@@ -1425,7 +1432,7 @@ export function SubmissionModal({ demand: d, data, onClose, onSave, audit, busy 
               <option value="">Select from this demand's pipeline…</option>
               {eligible.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} · {c.title}
+                  {candidateLabel(c)} · {c.title}
                 </option>
               ))}
             </select>

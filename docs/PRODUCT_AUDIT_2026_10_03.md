@@ -51,7 +51,7 @@ Baseline count: **20 present, 18 partial, 10 missing**. The customization slice 
 | 33 | Automatic resume inbox ingestion | Missing | Pasting forwarded-email text exists; no monitored mailbox or inbound attachment webhook. |
 | 34 | SMS, WhatsApp and telephony connectors | Missing | Manual interaction notes exist; no live provider integrations. Optional, after email foundation. |
 | 35 | Durable background automation and assignment | Partial | `automation.js`, `assignment.js`, rules UI; executed through browser save flow, not for all direct API writes or scheduled triggers. |
-| 36 | Team notifications, mentions and scheduled reminders | Partial | Bell/worklist and follow-up tasks exist. No delivery jobs, mention notification recipients or scheduled email/report sends. |
+| 36 | Team notifications, mentions and scheduled reminders | Partial | Bell/worklist and follow-up tasks exist. E1 adds scheduled internal interview preparation tasks with atomic receipts/retries/cancellation (local, 6 October); external delivery, mention recipients and scheduled email/report sends remain pending. |
 | 37 | Integration APIs, pagination and reconciliation | Partial | Supabase RPCs and incremental feeds exist; no integration-grade write endpoints, scoped integration credentials, mapping registry or idempotent write contract. |
 | 38 | Signed outgoing webhooks with retries | Missing | No event outbox, signed delivery, retry or failure replay. |
 | 39 | Analytics and report builder | Partial | `analytics.js`, `reports.js`, placement reporting; current-state funnels work. Historical stage cohorts, time-to-shortlist/submit/fill/hire and scheduled delivery remain. Current-stage counts are not conversion rates. |

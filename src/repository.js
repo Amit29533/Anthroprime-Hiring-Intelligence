@@ -1,6 +1,8 @@
+import { allCandidateRows, assignAnthroIds } from './anthroId.js';
 import { makeSeed } from './seed.js';
 import { uid } from './domain.js';
 import { CUSTOM_MODULES, validateCustomValues } from './customFields.js';
+import { normalizeRow } from './rowDefaults.js';
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
 const url = env.VITE_SUPABASE_URL;
 const key = env.VITE_SUPABASE_ANON_KEY;
@@ -130,7 +132,7 @@ export async function createWorkspace(name) {
   return loadWorkspaceContext(supabase);
 }
 
-export async function loadData() {
+export async function loadData({ forceFull = false } = {}) {
   if (!cloud) {
     applyWorkspaceContext([{ id: 'demo', name: 'AnthroPrime', role: 'admin' }], 'demo');
     const stored = localStorage.getItem(STORAGE);
@@ -152,6 +154,23 @@ export async function loadData() {
   const supabase = await getSupabase();
   const data = emptyData();
   await loadWorkspaceContext(supabase);
+  if (!forceFull) {
+    const { data: settings, error } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('id', 'workspace');
+    if (error) throw error;
+    if (settings?.some((row) => row.custom?.pagedRepository === true)) {
+      data.settings = settings;
+      const { data: taxonomy, error: taxError } = await supabase
+        .from('taxonomy')
+        .select('*')
+        .eq('id', 'workspace');
+      if (taxError) throw taxError;
+      data.taxonomy = taxonomy;
+      return { ...normalizeData(data, { assignIdentities: false }), repositoryPartial: true };
+    }
+  }
   await Promise.all(
     TABLES.map(async (table) => {
       let from = 0;
@@ -177,7 +196,7 @@ export async function loadData() {
       }
     }),
   );
-  return normalizeData(data);
+  return normalizeData(data, { assignIdentities: false });
 }
 
 // Structured repository filtering is evaluated by PostgreSQL in cloud mode. Return IDs only;
@@ -221,7 +240,47 @@ export function historyRefreshLimit(rowCount) {
   return Math.max(1000, rowCount);
 }
 
-export async function saveRows(table, rows, current) {
+let demoCandidateQueue = Promise.resolve();
+export async function saveRows(table, rows, current, { identityLocked = false } = {}) {
+  if (current?.repositoryPartial) throw new Error('Load the full workspace before saving records.');
+  if (!cloud && table === 'candidates' && !identityLocked) {
+    const commit = () => saveRows(table, rows, current, { identityLocked: true });
+    const operation = demoCandidateQueue.then(() =>
+      globalThis.navigator?.locks?.request
+        ? globalThis.navigator.locks.request('ecod-demo-candidate-save', commit)
+        : commit(),
+    );
+    demoCandidateQueue = operation.catch(() => {});
+    return operation;
+  }
+  if (table === 'candidates') {
+    if (!cloud) {
+      // Under the browser lock, include allocations saved by another tab since
+      // this screen loaded. Do not overwrite or reuse its newly allocated IDs.
+      const stored = localStorage.getItem(STORAGE);
+      if (stored) {
+        // The draft rows below are the requested edit; every other record must
+        // come from the latest committed workspace, including notes/history.
+        current = normalizeData(JSON.parse(stored), { activatePreferences: false });
+      }
+      const existing = allCandidateRows(current);
+      const byId = new Map(existing.map((c) => [c.id, c]));
+      const combined = assignAnthroIds([
+        ...existing.filter((c) => !rows.some((r) => r.id === c.id)),
+        ...rows.map((row) =>
+          byId.has(row.id)
+            ? {
+                ...row,
+                anthroNumber: byId.get(row.id).anthroNumber,
+                anthroId: byId.get(row.id).anthroId,
+              }
+            : row,
+        ),
+      ]);
+      rows = combined.filter((c) => rows.some((r) => r.id === c.id));
+    }
+    rows = rows.map((row) => normalizeRow(table, row));
+  }
   if (Object.hasOwn(CUSTOM_MODULES, table)) {
     for (const row of rows) {
       const problem = validateCustomValues(current, table, row.custom || {});
@@ -239,7 +298,17 @@ export async function saveRows(table, rows, current) {
             delete saved.serverAutomation;
             return saved;
           })
-        : rows;
+        : table === 'candidates'
+          ? rows.map((row) => {
+              const saved = { ...row };
+              // PostgreSQL owns the allocated number and generated label; aliases are derived from tombstones.
+              delete saved.anthroId;
+              delete saved.anthroNumber;
+              delete saved.anthroAliases;
+              delete saved.processingRestricted;
+              return saved;
+            })
+          : rows;
     const { data, error } = await supabase.from(table).upsert(writableRows).select();
     if (error) throw error;
     const { data: recentHistory } = await supabase
@@ -248,7 +317,7 @@ export async function saveRows(table, rows, current) {
       .order('date', { ascending: false })
       .limit(historyRefreshLimit(data.length));
     return {
-      rows: data,
+      rows: table === 'candidates' ? data.map((row) => normalizeRow(table, row)) : data,
       history: mergeHistory(current.history || [], recentHistory || []),
     };
   }
@@ -263,11 +332,12 @@ export async function saveRows(table, rows, current) {
     actor: 'Demo recruiter',
     snapshot: current[table].find((r) => r.id === row.id) || null,
   }));
-  const next = {
+  let next = {
     ...current,
     [table]: [...rows, ...current[table].filter((r) => !rows.some((n) => n.id === r.id))],
     history: [...history, ...current.history],
   };
+  if (table === 'candidates') next = normalizeData(next);
   localStorage.setItem(STORAGE, JSON.stringify(next));
   return { rows, history: next.history };
 }
@@ -280,6 +350,8 @@ export async function saveRows(table, rows, current) {
 export const DELETABLE_TABLES = ['reports', 'assignmentRules'];
 
 export async function deleteRows(table, ids, current) {
+  if (current?.repositoryPartial)
+    throw new Error('Load the full workspace before deleting records.');
   if (!DELETABLE_TABLES.includes(table))
     throw new Error(`${table} records cannot be deleted from the product.`);
   if (cloud) {

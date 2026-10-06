@@ -57,6 +57,8 @@ async function workspaceFetch(input, init = {}) {
 
   if (url.pathname === '/rest/v1/rpc/api_my_workspaces')
     return json({ activeWorkspace, workspaces });
+  if (url.pathname === '/rest/v1/rpc/api_interview_reminders')
+    return json({ enabled: false, rows: [], total: 0, lastRun: null });
   if (url.pathname === '/rest/v1/rpc/api_switch_workspace' && method === 'POST') {
     const selected = workspaces.find((workspace) => workspace.id === body.p_workspace);
     if (!selected) return json({ error: 'workspace access required' });
@@ -71,6 +73,8 @@ async function workspaceFetch(input, init = {}) {
   }
 
   if (url.pathname.startsWith('/rest/v1/')) {
+    if (url.pathname.startsWith('/rest/v1/rpc/'))
+      return json({ message: 'RPC unavailable in this workspace fixture' }, 404);
     const table = decodeURIComponent(url.pathname.slice('/rest/v1/'.length));
     if (table === 'candidates' && activeWorkspace === SECOND)
       return json([
@@ -111,6 +115,8 @@ test.beforeEach(() => {
     { id: SECOND, name: 'Client Desk', role: 'viewer' },
   ];
 });
+
+test.afterEach(cleanup);
 
 test('a signed-in user switches and creates isolated workspaces from the sidebar', async () => {
   await mount(M.App);
@@ -156,4 +162,52 @@ test('a signed-in user switches and creates isolated workspaces from the sidebar
   assert.ok(screen.getByRole('heading', { name: 'Good to have you here.' }));
   assert.equal(screen.queryByRole('button', { name: 'Open your account', exact: true }), null);
   cleanup();
+});
+
+test('a delayed repository reload cannot replace the newly selected workspace', async () => {
+  await mount(M.App);
+  await screen.findByRole('heading', { name: 'Good to have you here.' }, { timeout: 30000 });
+  await type('Work email', 'owner@example.com');
+  await type('Password', 'not-a-real-password');
+  await press('Sign in');
+  await settle(12);
+  await press('Workspace settings');
+  await screen.findByRole('button', { name: 'Reload repository' }, { timeout: 5000 });
+  let release;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/rest/v1/candidates' && activeWorkspace === FIRST && !release) {
+      return new Promise((resolve) => {
+        release = () =>
+          resolve(
+            json([
+              {
+                id: '00000000-0000-4000-8000-000000000199',
+                name: 'Stale workspace candidate',
+                email: 'stale@example.com',
+                skills: [],
+              },
+            ]),
+          );
+      });
+    }
+    return workspaceFetch(input, init);
+  };
+  try {
+    await click(screen.getByRole('button', { name: /AnthroPrime.*Admin access/i }));
+    await press('Reload repository');
+    await settle(4);
+    assert.equal(typeof release, 'function', 'the old workspace reload is pending');
+    await click(screen.getByRole('menuitemradio', { name: /Client Desk.*viewer/i }));
+    await settle(12);
+    await navTo('Candidates');
+    await screen.findByText('Client Candidate', {}, { timeout: 5000 });
+    release();
+    await settle(12);
+    assert.ok(screen.getByText('Client Candidate'));
+    assert.equal(screen.queryByText('Stale workspace candidate'), null);
+  } finally {
+    release?.();
+    globalThis.fetch = workspaceFetch;
+  }
 });

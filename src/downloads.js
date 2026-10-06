@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { anthroIdFor } from './anthroId.js';
 import { getRole, canExportForRole } from './repository.js';
 
 export function downloadFile(content, name, type = 'text/csv;charset=utf-8') {
@@ -26,6 +27,7 @@ export function exportCandidates(rows, notify) {
   return exportSensitiveFile(
     Papa.unparse(
       rows.map((c) => ({
+        anthroId: anthroIdFor(c),
         name: c.name,
         email: c.email,
         phone: c.phone,

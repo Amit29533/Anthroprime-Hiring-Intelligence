@@ -1,3 +1,4 @@
+import { candidateLabel } from './anthroId.js';
 import React, { useState, useEffect } from 'react';
 import { cloud, canWriteForRole, getRole } from './repository.js';
 import { intelligenceRpc, intelligenceRequest, localVector } from './intelligence.js';
@@ -158,7 +159,7 @@ export function HostedIntelligence({
               matches.map((row) => (
                 <div className="section-toolbar" key={row.id}>
                   <Button variant="secondary" onClick={() => onOpen(row.id)}>
-                    {row.name}
+                    {candidateLabel(row)}
                   </Button>
                   <span>
                     {row.title} · {row.location} · Similarity {Math.round(row.similarity * 100)}%
@@ -186,7 +187,7 @@ export function HostedIntelligence({
                   .filter((c) => !c.mergedInto)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {candidateLabel(c)}
                     </option>
                   ))}
               </select>

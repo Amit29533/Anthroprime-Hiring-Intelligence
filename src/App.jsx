@@ -25,6 +25,7 @@ import {
 import {
   loadData,
   saveRows,
+  normalizeData,
   deleteRows,
   cloud,
   getSupabase,
@@ -61,6 +62,8 @@ const referralsModule = () => import('./Referrals.jsx');
 const Candidates = lazyNamed(candidatesModule, 'Candidates');
 const CandidateForm = lazyNamed(candidatesModule, 'CandidateForm');
 const CandidateProfile = lazyNamed(candidatesModule, 'CandidateProfile');
+const PagedCandidates = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedCandidates');
+const PagedOverview = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedOverview');
 const Demands = lazyNamed(demandsModule, 'Demands');
 const DemandForm = lazyNamed(demandsModule, 'DemandForm');
 const DemandDetail = lazyNamed(demandsModule, 'DemandDetail');
@@ -174,7 +177,8 @@ export default function App() {
     [workspaceCreate, setWorkspaceCreate] = useState(false);
   const dataRef = useRef(data),
     saving = useRef(false),
-    activeSessionUserId = useRef(null);
+    activeSessionUserId = useRef(null),
+    reloadSequence = useRef(0);
   dataRef.current = data;
   useEffect(() => {
     if (!cloud) return;
@@ -183,6 +187,7 @@ export default function App() {
     const acceptSession = (nextSession) => {
       const nextUserId = nextSession?.user?.id || null;
       if (activeSessionUserId.current !== nextUserId) {
+        reloadSequence.current++;
         activeSessionUserId.current = nextUserId;
         resetRoleForSessionChange();
         const cleared = emptyData();
@@ -276,21 +281,30 @@ export default function App() {
     }
   }, [toast]);
   async function reload() {
+    const sequence = ++reloadSequence.current;
+    const user = activeSessionUserId.current;
+    const workspace = getWorkspace()?.id;
+    const currentRequest = () =>
+      sequence === reloadSequence.current &&
+      user === activeSessionUserId.current &&
+      workspace === getWorkspace()?.id;
     setLoading(true);
     setError('');
     try {
-      const next = await loadData();
+      const next = await loadData({ forceFull: !dataRef.current.repositoryPartial });
+      if (!currentRequest()) return;
       dataRef.current = next;
       setData(next);
       setWorkspaces(getWorkspaces());
       setActiveWorkspace(getWorkspace());
     } catch (e) {
-      setError(e.message);
+      if (currentRequest()) setError(e.message);
     } finally {
-      setLoading(false);
+      if (currentRequest()) setLoading(false);
     }
   }
   function resetWorkspaceView() {
+    reloadSequence.current++;
     setPageFilter(null);
     const cleared = emptyData();
     dataRef.current = cleared;
@@ -370,7 +384,34 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
-  const navigate = (p, filter = null) => {
+  async function fullWorkspace() {
+    if (!dataRef.current.repositoryPartial) return true;
+    const user = activeSessionUserId.current,
+      workspace = getWorkspace()?.id;
+    setLoading(true);
+    setError('');
+    try {
+      const next = await loadData({ forceFull: true });
+      if (user !== activeSessionUserId.current || workspace !== getWorkspace()?.id) return false;
+      dataRef.current = next;
+      setData(next);
+      return true;
+    } catch (e) {
+      if (user === activeSessionUserId.current && workspace === getWorkspace()?.id)
+        setError(e.message);
+      return false;
+    } finally {
+      if (user === activeSessionUserId.current && workspace === getWorkspace()?.id)
+        setLoading(false);
+    }
+  }
+  const navigate = async (p, filter = null) => {
+    if (
+      dataRef.current.repositoryPartial &&
+      (!['Overview', 'Candidates'].includes(p) || filter?.ids || filter?.queue)
+    ) {
+      if (!(await fullWorkspace())) return;
+    }
     setPageFilter(filter);
     setPage(p);
     setMobile(false);
@@ -473,7 +514,7 @@ export default function App() {
     let ok = false;
     try {
       const result = await saveRows(table, rows, dataRef.current);
-      const next = {
+      let next = {
         ...dataRef.current,
         [table]: [
           ...result.rows,
@@ -481,6 +522,7 @@ export default function App() {
         ],
         history: result.history,
       };
+      if (table === 'candidates') next = normalizeData(next, { assignIdentities: !cloud });
       dataRef.current = next;
       setData(next);
       setToast(
@@ -590,9 +632,15 @@ export default function App() {
         },
       ]);
   }
-  const addCandidate = () => setModal({ type: 'candidate' }),
-    newDemand = () => setModal({ type: 'demand' }),
-    importCandidates = () => setModal({ type: 'import' }),
+  const addCandidate = async () => {
+      if (await fullWorkspace()) setModal({ type: 'candidate' });
+    },
+    newDemand = async () => {
+      if (await fullWorkspace()) setModal({ type: 'demand' });
+    },
+    importCandidates = async () => {
+      if (await fullWorkspace()) setModal({ type: 'import' });
+    },
     newAssessment = (candidateId) => setModal({ type: 'assessment', candidateId });
   const person = data.candidates.find((c) => c.id === personId),
     demand = data.demands.find((d) => d.id === demandId),
@@ -656,7 +704,23 @@ export default function App() {
       </Suspense>
     );
   let content;
-  if (page === 'Overview')
+  if (data.repositoryPartial)
+    content =
+      page === 'Candidates' ? (
+        <PagedCandidates
+          key={JSON.stringify(candidateFilter)}
+          initialFilter={candidateFilter}
+          onFull={async (id, action) => {
+            if (!(await fullWorkspace())) return;
+            setPage('Candidates');
+            if (id) openPerson(id);
+            if (action === 'add') setModal({ type: 'candidate' });
+          }}
+        />
+      ) : (
+        <PagedOverview onBrowse={() => navigate('Candidates')} onFull={fullWorkspace} />
+      );
+  else if (page === 'Overview')
     content = (
       <Dashboard
         data={data}
@@ -923,14 +987,17 @@ export default function App() {
               aria-current={page === name ? 'page' : undefined}
               key={name}
               onClick={() => navigate(name)}
+              disabled={loading}
             >
               <Icon size={19} />
               <span>{name}</span>
-              {name === 'Candidates' && <b>{data.candidates.length}</b>}
-              {name === 'Demands' && (
+              {!data.repositoryPartial && name === 'Candidates' && <b>{data.candidates.length}</b>}
+              {!data.repositoryPartial && name === 'Demands' && (
                 <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
               )}
-              {name === 'Clients' && <b>{(data.clients || []).length}</b>}
+              {!data.repositoryPartial && name === 'Clients' && (
+                <b>{(data.clients || []).length}</b>
+              )}
             </button>
           ))}
         </nav>
@@ -978,24 +1045,28 @@ export default function App() {
             <span className="crumb-divider">/</span>
             <strong>{page}</strong>
           </div>
-          <GlobalSearch
-            data={data}
-            isAdmin={getRole() === 'admin'}
-            query={query}
-            setQuery={setQuery}
-            onOpen={openSearchResult}
-          />
+          {!data.repositoryPartial && (
+            <GlobalSearch
+              data={data}
+              isAdmin={getRole() === 'admin'}
+              query={query}
+              setQuery={setQuery}
+              onOpen={openSearchResult}
+            />
+          )}
           <div className="topbar-actions">
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? workspaceName : 'Demo workspace'}
             </button>
-            <NotificationBell
-              data={data}
-              user={{ name: userName, email: session?.user?.email || '' }}
-              isAdmin={getRole() === 'admin'}
-              navigate={navigate}
-            />
+            {!data.repositoryPartial && (
+              <NotificationBell
+                data={data}
+                user={{ name: userName, email: session?.user?.email || '' }}
+                isAdmin={getRole() === 'admin'}
+                navigate={navigate}
+              />
+            )}
             <MotionToggle />
             <ThemeToggle theme={theme} onChange={setTheme} />
             <button
@@ -1108,6 +1179,7 @@ export default function App() {
             onEdit={(c) => setModal({ type: 'candidate', candidate: c })}
             onSave={save}
             onShortlist={shortlist}
+            onReload={reload}
             onAssess={newAssessment}
             busy={busy}
             audit={audit}
@@ -1206,6 +1278,7 @@ export default function App() {
         {modal?.type === 'import' && (
           <ImportModal
             data={data}
+            onReload={reload}
             onClose={() => setModal(null)}
             onSave={save}
             busy={busy}

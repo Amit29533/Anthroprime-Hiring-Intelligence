@@ -113,6 +113,15 @@ export const MERGE_FOLLOW_TABLES = [
   'employmentHistory',
   'compensationHistory',
   'availabilityHistory',
+  'interviews',
+  'offers',
+  'tasks',
+  'consents',
+  'submissions',
+  'referrals',
+  'interviewSlots',
+  'placements',
+  'poolMembers',
 ];
 
 // Transfer related rows before hiding the duplicate. Saves are sequential so a failure
@@ -133,9 +142,13 @@ export async function mergeCandidateRecords(data, winner, loser, onSave) {
       .filter((row) => row.candidateId === loser.id && !row.removed)
       .filter(
         (row) =>
-          table !== 'considerations' ||
+          !['considerations', 'poolMembers'].includes(table) ||
           !records.some(
-            (existing) => existing.candidateId === winner.id && existing.demandId === row.demandId,
+            (existing) =>
+              existing.candidateId === winner.id &&
+              (table === 'poolMembers'
+                ? existing.poolId === row.poolId
+                : existing.demandId === row.demandId),
           ),
       )
       .map((row) => ({ ...row, candidateId: winner.id }));

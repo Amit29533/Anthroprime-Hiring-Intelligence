@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { CvEvidenceReview } from './CvEvidenceReview.jsx';
+import { evidenceReady } from './cvEvidence.js';
 import Papa from 'papaparse';
 import { Upload, Download, ArrowRight } from 'lucide-react';
 import { Button, Field, Modal, Badge } from './ui.jsx';
@@ -8,6 +10,7 @@ import { readXLSX, isXlsxName } from './xlsx.js';
 import {
   classifyFile,
   extractDocumentText,
+  privateAttachmentsEnabled,
   sha256,
   buildDocumentRecord,
   persistBinary,
@@ -16,8 +19,23 @@ import {
 } from './documents.js';
 import { downloadFile, exportSensitiveFile } from './downloads.js';
 import { emailBodyText } from './documents.js';
+import { cloud } from './repository.js';
+import { cvManifest, uploadSavedCv } from './durableCv.js';
+import { saveImportReview, importRpc } from './durableImports.js';
+import { SavedImports } from './SavedImports.jsx';
+import { DurableCvUploads } from './DurableCvUploads.jsx';
+import { LinkedinImport } from './LinkedinImport.jsx';
 
-export function ImportModal({ data, onClose, onSave, busy, notify }) {
+export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
+  const durableCvEnabled =
+    cloud &&
+    (data.settings?.find((row) => row.id === 'workspace')?.custom?.durableCvImports === true ||
+      data.settings?.find((row) => row.id === 'workspace')?.custom?.privateDocuments === true);
+  const [savedBatchId, setSavedBatchId] = useState('');
+  const [savingReview, setSavingReview] = useState(false);
+  const [savedMessage, setSavedMessage] = useState('');
+  const [resumeTarget, setResumeTarget] = useState(null);
+  const [sourceName, setSourceName] = useState('Pasted CSV');
   const [raw, setRaw] = useState(null),
     [mapping, setMapping] = useState({}),
     [preview, setPreview] = useState(null),
@@ -32,6 +50,14 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     setCvBusy(true);
     try {
       const body = emailBodyText(emailText);
+      if (cloud && (await privateAttachmentsEnabled())) {
+        await savePrivateCvs([
+          new File([body], `Forwarded email ${today()}.txt`, { type: 'text/plain' }),
+        ]);
+        setEmailText('');
+        setCvBusy(false);
+        return;
+      }
       const parsed = parseCVText(body);
       const hash = await sha256(new TextEncoder().encode(body));
       const record = buildDocumentRecord({
@@ -70,7 +96,37 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     }
     setCvBusy(false);
   }
+  async function savePrivateCvs(files) {
+    const id = uid();
+    await importRpc('api_create_cv_import', { p_id: id, p_files: await cvManifest(files) });
+    for (let i = 0; i < files.length; i++) await uploadSavedCv(id, i + 1, files[i]);
+    setSavedMessage(
+      'Originals saved in quarantine. Review them in Saved imports after processing.',
+    );
+    onReload?.();
+  }
   async function cvChanged(e) {
+    if (cloud) {
+      const files = [...(e.target.files || [])];
+      e.target.value = '';
+      if (!files.length) return;
+      setCvBusy(true);
+      setError('');
+      try {
+        if (await privateAttachmentsEnabled()) {
+          await savePrivateCvs(files);
+          return;
+        }
+      } catch (err) {
+        setError(err.message);
+        return;
+      } finally {
+        setCvBusy(false);
+      }
+      // Preserve the old off-mode path's event shape without depending on a cleared input.
+      e = { target: { files, value: '' } };
+    }
+
     const files = [...e.target.files];
     e.target.value = '';
     if (!files.length) return;
@@ -139,7 +195,9 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     setCvRows(rows);
     setCvBusy(false);
   }
-  const cvOk = (cvRows || []).filter((r) => r.checked && !r.error);
+  const cvOk = (cvRows || []).filter(
+    (r) => r.checked && !r.error && evidenceReady(r.draft?.cvEvidence),
+  );
   function reviewCv(index, field, value) {
     setCvRows((rows) =>
       rows.map((row, i) => {
@@ -195,6 +253,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
       mode: 'Flexible',
       source: 'CV upload',
       summary: r.draft.summary || '',
+      cvEvidence: r.draft.cvEvidence || {},
       created: today(),
       verified: today(),
       owner: 'Recruiter',
@@ -229,23 +288,31 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     }
   }
   /** Accept a parsed sheet from either source and set up the same mapping step. */
-  function accept(result, note = '') {
+  function accept(result, note = '', name = 'Pasted CSV') {
+    if (resumeTarget && result.rows.length !== resumeTarget.total) {
+      setError('Choose the original spreadsheet: its row count must match the saved import.');
+      return;
+    }
+    setSavedBatchId(resumeTarget?.id || '');
+    setSavedMessage('');
+    setSourceName(name.slice(0, 160));
     setRaw(result);
     setMapping(
-      Object.fromEntries(
-        IMPORT_FIELDS.map((f) => [
-          f,
-          result.headers.find((h) => h.replace(/[ _]/g, '').toLowerCase() === f.toLowerCase()) ||
-            '',
-        ]),
-      ),
+      resumeTarget?.mapping ||
+        Object.fromEntries(
+          IMPORT_FIELDS.map((f) => [
+            f,
+            result.headers.find((h) => h.replace(/[ _-]/g, '').toLowerCase() === f.toLowerCase()) ||
+              '',
+          ]),
+        ),
     );
     setError(note);
     setPreview(null);
   }
-  function parse(value) {
+  function parse(value, name = 'Pasted CSV') {
     try {
-      accept(readCSV(value));
+      accept(readCSV(value), '', name);
     } catch (e) {
       setError(e.message);
     }
@@ -264,6 +331,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
           result.sheetCount > 1
             ? `Read “${result.sheet}” only — this workbook has ${result.sheetCount} sheets, and the rest were ignored.`
             : '',
+          file.name,
         );
       } catch (err) {
         setError(err.message);
@@ -271,7 +339,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
       return;
     }
     if (!name.endsWith('.csv')) return setError('Choose a .csv or .xlsx file.');
-    parse(await file.text());
+    parse(await file.text(), file.name);
   }
   const valid = preview?.filter((p) => !p.error) || [];
   useEffect(() => {
@@ -298,14 +366,61 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
     )
       onClose();
   }
+  async function saveReview() {
+    const id = savedBatchId || uid();
+    setSavedBatchId(id);
+    setSavingReview(true);
+    setError('');
+    setSavedMessage('');
+    try {
+      const sourceHash = await sha256(new TextEncoder().encode(JSON.stringify(raw.rows)));
+      if (!sourceHash) throw new Error('This browser cannot compute a secure source fingerprint.');
+      if (resumeTarget && sourceHash !== resumeTarget.mapping._sourceHash)
+        throw new Error(
+          'The selected spreadsheet does not match the saved source. Choose the original file.',
+        );
+      await saveImportReview({
+        id,
+        name: resumeTarget?.name || sourceName,
+        mapping: { ...mapping, _sourceHash: sourceHash },
+        preview,
+      });
+      setSavedMessage(
+        'Review saved. Open Saved spreadsheet imports to approve background processing.',
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingReview(false);
+    }
+  }
   return (
     <Modal
       title="Bring your talent into ECOD"
-      subtitle="Map your CSV, review duplicates, then import."
+      subtitle="Import from spreadsheets, CVs or LinkedIn, then review before saving."
       onClose={onClose}
       wide
     >
       <div className="modal-body">
+        <LinkedinImport data={data} onSave={onSave} onImported={onClose} />
+        {durableCvEnabled && <DurableCvUploads />}
+        {cloud && (
+          <SavedImports
+            onReload={onReload}
+            notify={notify}
+            onResume={(batch) => {
+              setResumeTarget(batch);
+              setRaw(null);
+              setPreview(null);
+              setCvRows(null);
+              setSavedBatchId(batch.id);
+              setSavedMessage(
+                'Resuming saved import. Choose the original spreadsheet again; its fingerprint will be checked.',
+              );
+            }}
+          />
+        )}
+        {savedMessage && <p role="status">{savedMessage}</p>}
         <div className="import-steps">
           <span className={!raw ? 'active' : ''}>1 · Choose data</span>
           <span className={raw && !preview ? 'active' : ''}>2 · Map fields</span>
@@ -323,12 +438,19 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
                 onChange={fileChanged}
               />
             </label>
-            <label className="file-drop">
-              <Upload size={32} />
-              <strong>Or upload CVs</strong>
-              <span>PDF · DOCX · TXT · MD · CSV — parsed into reviewable drafts</span>
-              <input type="file" multiple accept=".pdf,.docx,.txt,.md,.csv" onChange={cvChanged} />
-            </label>
+            {!durableCvEnabled && (
+              <label className="file-drop">
+                <Upload size={32} />
+                <strong>Or upload CVs</strong>
+                <span>PDF · DOCX · TXT · MD · CSV — parsed into reviewable drafts</span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.docx,.txt,.md,.csv"
+                  onChange={cvChanged}
+                />
+              </label>
+            )}
             <label className="file-drop">
               <Upload size={32} />
               <strong>Or paste a forwarded application email</strong>
@@ -434,6 +556,15 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
                     </div>
                   )}
                   {r.draft?.title && <p>{r.draft.title}</p>}
+                  <CvEvidenceReview
+                    value={r.draft?.cvEvidence}
+                    label={r.name}
+                    disabled={cvBusy}
+                    onChange={(value) => reviewCv(i, 'cvEvidence', value)}
+                  />
+                  {!evidenceReady(r.draft?.cvEvidence) && (
+                    <p>Confirm or remove every CV excerpt before importing this file.</p>
+                  )}
                   {r.draft?.skills?.length > 0 && (
                     <p className="muted">Skills: {r.draft.skills.join(', ')}</p>
                   )}
@@ -573,11 +704,16 @@ export function ImportModal({ data, onClose, onSave, busy, notify }) {
             <ArrowRight size={15} />
           </Button>
         )}
-        {preview && (
-          <Button disabled={!valid.length || busy} onClick={importRows}>
-            {busy ? 'Importing…' : `Import ${valid.length} candidates`}
-          </Button>
-        )}
+        {preview &&
+          (cloud ? (
+            <Button disabled={!valid.length || busy || savingReview} onClick={saveReview}>
+              {savingReview ? 'Saving review…' : 'Save review for background import'}
+            </Button>
+          ) : (
+            <Button disabled={!valid.length || busy} onClick={importRows}>
+              {busy ? 'Importing…' : `Import ${valid.length} candidates`}
+            </Button>
+          ))}
         {cvRows && (
           <Button disabled={!cvOk.length || busy || cvBusy} onClick={importCvs}>
             {busy || cvBusy

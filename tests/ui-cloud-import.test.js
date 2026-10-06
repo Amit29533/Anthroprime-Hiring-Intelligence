@@ -1,4 +1,4 @@
-// Exercise the cloud-only recovery path without a hosted Supabase project. The browser still
+// Exercise cloud staging recovery without a hosted Supabase project. The browser still
 // uses the real App, repository adapter and Supabase JS client; fetch fakes the HTTP boundary.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,6 +19,9 @@ let realFetch;
 let requests;
 let candidates;
 let upsertCount;
+let batch;
+let stagedRow;
+let stageCount = 0;
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -31,6 +34,43 @@ async function cloudFetch(input, init = {}) {
   const method = init.method || input.method || 'GET';
   requests.push({ method, path: url.pathname, query: url.search });
   if (url.pathname === '/rest/v1/rpc/api_server_execution_status') return json(false);
+  const args = init.body ? JSON.parse(init.body) : {};
+  if (url.pathname === '/rest/v1/rpc/api_create_import') {
+    batch ||= {
+      id: args.p_id,
+      name: args.p_name,
+      total: args.p_total,
+      version: 1,
+      status: 'draft',
+      mapping: args.p_mapping,
+    };
+    return json({ id: batch.id, version: batch.version, status: batch.status });
+  }
+  if (url.pathname === '/rest/v1/rpc/api_stage_import') {
+    stageCount++;
+    assert.equal(args.p_version, batch.version);
+    stagedRow = { ...args.p_rows[0], status: 'draft' };
+    batch.version++;
+    // The server saved the draft, but the browser did not receive its receipt.
+    if (stageCount === 1)
+      return json({ code: 'XX000', message: 'Connection interrupted after save' }, 503);
+    return json({ id: batch.id, version: batch.version, status: batch.status });
+  }
+  if (url.pathname === '/rest/v1/rpc/api_import_action') {
+    assert.equal(args.p_version, batch.version);
+    assert.equal(args.p_action, 'approve');
+    batch.version++;
+    batch.status = 'completed';
+    // Simulate the background worker finding a contact added after review.
+    stagedRow.status = 'duplicate';
+    stagedRow.error = 'Duplicate candidate contact; skipped.';
+    return json({ id: batch.id });
+  }
+  if (url.pathname === '/rest/v1/rpc/api_import_page') {
+    if (args.p_batch)
+      return json({ batch, saved: 1, rows: [stagedRow], counts: { [stagedRow.status]: 1 } });
+    return json({ batches: batch ? [batch] : [], total: batch ? 1 : 0 });
+  }
 
   if (url.pathname.endsWith('/auth/v1/token')) {
     const user = {
@@ -105,7 +145,7 @@ test.after(async () => {
 
 afterEach(() => cleanup());
 
-test('a cloud unique-index conflict reloads candidates and reclassifies the CSV row', async () => {
+test('cloud import recovers a lost staging receipt and reports a later duplicate without direct upserts', async () => {
   await mount(M.App, {});
   assert.ok(
     await screen.findByRole('heading', { name: 'Good to have you here.' }, { timeout: 30000 }),
@@ -129,20 +169,31 @@ test('a cloud unique-index conflict reloads candidates and reclassifies the CSV 
   await press('Read pasted CSV');
   await press('Review import');
   await settle(3);
-  assert.equal(screen.getByText('Import 1 candidates').disabled, false);
+  assert.equal(
+    screen.getByRole('button', { name: 'Save review for background import' }).disabled,
+    false,
+  );
 
-  await press('Import 1 candidates');
+  await press('Save review for background import');
   await settle(16);
-
-  assert.equal(upsertCount, 1, 'the row was attempted once and was not retried automatically');
-  assert.ok(
-    requests.filter((request) => request.path === '/rest/v1/candidates').length >= 2,
-    'candidate records were loaded again after the failed upsert',
+  assert.ok(screen.getByText('Connection interrupted after save'));
+  const originalId = batch.id;
+  await press('Save review for background import');
+  await settle(16);
+  assert.equal(batch.id, originalId);
+  assert.equal(stageCount, 2);
+  assert.equal(upsertCount, 0);
+  await press('Refresh saved imports');
+  await settle(8);
+  await press('Pasted CSV');
+  await settle(8);
+  await press('Approve background import');
+  await settle(8);
+  assert.ok(screen.getByText(/Duplicate candidate contact; skipped/));
+  assert.equal(upsertCount, 0, 'the cloud browser never directly writes candidate rows');
+  assert.equal(
+    requests.filter((r) => r.path === '/rest/v1/rpc/api_create_import').length,
+    2,
+    'retry reuses the same manifest',
   );
-  assert.ok(screen.getByText('Duplicate of Already Here; skipped.'));
-  assert.ok(screen.getByText('The repository changed. Review the updated duplicate check.'));
-  assert.ok(
-    screen.getByText(/Could not save: A candidate with matching contact details already exists/),
-  );
-  assert.equal(screen.getByRole('button', { name: 'Import 0 candidates' }).disabled, true);
 });

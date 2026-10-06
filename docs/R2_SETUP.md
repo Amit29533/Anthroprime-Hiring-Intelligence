@@ -19,8 +19,8 @@ Open the bucket's **Settings → CORS Policy** and use this policy after replaci
       "http://localhost:8888",
       "https://YOUR-SITE.netlify.app"
     ],
-    "AllowedMethods": ["PUT"],
-    "AllowedHeaders": ["Content-Type"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "If-None-Match"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3600
   }
@@ -60,7 +60,7 @@ Trigger a new production deployment after saving the variables.
 
 ## 5. Apply the metadata migration
 
-Run `supabase/migrations/030_document_storage_provider.sql` in the Supabase SQL Editor. Existing rows default to `supabase`, so files already uploaded to the old private bucket continue to open. New uploads are marked `r2`. The migration also adds the persisted upload-result fields required by the document UI.
+Apply the complete migration chain in filename order; see [current Netlify deployment instructions](NETLIFY_DEPLOYMENT.md). Migration `030_document_storage_provider.sql` introduces the R2 provider fields; later attachment functions require the timestamped Phase C migrations too. Existing rows default to `supabase`, so files already uploaded to the old private bucket continue to open. New uploads are marked `r2`.
 
 Do not remove the old Supabase `documents` bucket until its objects have been migrated and every related metadata row has been updated to `storageProvider = 'r2'` with the new R2 object path.
 

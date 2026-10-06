@@ -3,6 +3,7 @@
 // (row-level deletes are not applied — the audit table is append-only by design).
 // Encrypted server-side backups with RPO/RTO targets remain an operations concern.
 import { TABLES, normalizeData } from './schema.js';
+import { allCandidateRows } from './anthroId.js';
 
 export function backupBundle(data) {
   const bundle = {
@@ -13,7 +14,7 @@ export function backupBundle(data) {
     counts: {},
   };
   for (const t of TABLES) {
-    bundle[t] = (data && data[t]) || [];
+    bundle[t] = t === 'candidates' ? allCandidateRows(data) : (data && data[t]) || [];
     bundle.counts[t] = bundle[t].length;
   }
   return bundle;
@@ -68,13 +69,14 @@ export async function restoreBackupRows(rows, onSave) {
   let touched = 0,
     total = 0;
   for (const table of TABLES) {
-    if (!rows[table]?.length) continue;
-    if ((await onSave(table, rows[table])) === false)
+    const records = table === 'candidates' ? allCandidateRows(rows) : rows[table];
+    if (!records?.length) continue;
+    if ((await onSave(table, records)) === false)
       throw new Error(
         `Restore stopped at the ${table} table. Earlier tables may already have been restored.`,
       );
     touched++;
-    total += rows[table].length;
+    total += records.length;
   }
   return { touched, total };
 }

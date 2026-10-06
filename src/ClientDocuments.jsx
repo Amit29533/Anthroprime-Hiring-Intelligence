@@ -1,3 +1,4 @@
+import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import React, { useState } from 'react';
 import { FileText, Upload, Archive, RotateCcw } from 'lucide-react';
 import { Button, PanelHeading, Badge, Empty, Field } from './ui.jsx';
@@ -131,6 +132,7 @@ export default function ClientDocuments({ client, data, onSave, busy, uploadedBy
           <FileText size={20} />
           <div className="document-info">
             <strong>{record.name}</strong>
+            <AttachmentProcessing record={record} onSave={onSave} />
             <small className="block">
               {record.kind} · {(record.size / 1024).toFixed(0)} KB ·{' '}
               {String(record.uploaded).slice(0, 10)} · {record.uploadedBy}

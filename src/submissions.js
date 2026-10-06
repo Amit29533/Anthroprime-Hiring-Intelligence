@@ -3,6 +3,7 @@
 // already knows; it deliberately EXCLUDES internal-only data (current CTC, commercials,
 // internal notes) and is gated on the profile-sharing consent ledger (§12).
 import { freshness } from './domain.js';
+import { anthroIdFor } from './anthroId.js';
 import { overallOf } from './feedback.js';
 
 export const SUBMISSION_METHODS = ['Email', 'Portal', 'Manual'];
@@ -53,6 +54,7 @@ export function buildSubmissionPack(candidate, demand, data) {
     : (c.skills || []).map((s) => `${s} — proficiency per profile`);
   const lines = [];
   lines.push(`CANDIDATE SUBMISSION — ${d ? d.title : c.title}`);
+  lines.push(`Anthro-ID: ${anthroIdFor(c)}`);
   if (d)
     lines.push(
       `${d.client}${d.businessUnit ? ` · ${d.businessUnit}` : ''} · ${d.location} · ${d.mode}`,

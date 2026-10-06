@@ -1,7 +1,9 @@
 import Papa from 'papaparse';
+import { anthroIdFor, candidateIdFromAnthroId } from './anthroId.js';
 import { duplicate, skillList, today, uid, validateCandidate } from './domain.js';
 import { ENGAGEMENT_TYPES } from './taxonomy.js';
 export const IMPORT_FIELDS = [
+  'anthroId',
   'name',
   'email',
   'phone',
@@ -83,7 +85,9 @@ export function previewImport(raw, mapping, existing, rowNumbers = []) {
     const c = Object.fromEntries(
       IMPORT_FIELDS.map((field) => [field, String(row[mapping[field]] ?? '').trim()]),
     );
+    const suppliedAnthroId = c.anthroId;
     c.id = uid();
+    c.anthroId = anthroIdFor(c);
     c.skills = skillList(c.skills);
     c.skillsDetail = [];
     c.created = today();
@@ -101,6 +105,19 @@ export function previewImport(raw, mapping, existing, rowNumbers = []) {
     for (const key of ['experience', 'relevantExperience', 'notice', 'current', 'expected'])
       c[key] = c[key] === '' ? null : Number(c[key]);
     let error = validateCandidate(c);
+    if (suppliedAnthroId) {
+      const knownId = candidateIdFromAnthroId(suppliedAnthroId, existing);
+      const known = existing.find(
+        (p) =>
+          p.id === knownId ||
+          (p.anthroAliases || []).some(
+            (alias) => alias.toUpperCase() === suppliedAnthroId.toUpperCase(),
+          ),
+      );
+      error = known
+        ? `Duplicate of ${known.name} (${anthroIdFor(known)}); skipped.`
+        : 'Anthro-ID is assigned automatically. Leave it blank for a new candidate; supplied ID was not found in this workspace.';
+    }
     if (!error && !['Ready', 'Near-ready', 'Assessing', 'Unavailable'].includes(c.status))
       error = 'Status must be Ready, Near-ready, Assessing or Unavailable.';
     if (!error && !['Remote', 'Hybrid', 'Onsite', 'Flexible'].includes(c.mode))

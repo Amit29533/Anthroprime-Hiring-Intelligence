@@ -1,7 +1,10 @@
+import { anthroIdFor } from './anthroId.js';
 // Per-table defaults, separate from workspace activation and persistence.
 const normalizers = {
   candidates: (row) => {
+    row.anthroId = anthroIdFor(row);
     row.skills = row.skills || [];
+    row.cvEvidence = row.cvEvidence || {};
     row.skillsDetail = Array.isArray(row.skillsDetail) ? row.skillsDetail : [];
     row.engagement = row.engagement || '';
     row.earliestStart = row.earliestStart || null;

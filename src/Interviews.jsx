@@ -1,3 +1,4 @@
+import { candidateLabel, anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import {
   CalendarClock,
@@ -153,7 +154,7 @@ export function ScheduleModal({
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} · {c.title}
+                    {candidateLabel(c)} · {c.title}
                   </option>
                 ))}
             </select>
@@ -416,6 +417,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
               <Avatar name={c.name} size="small" />
               <span>
                 <strong>{c.name}</strong>
+                <small className="anthro-id">{anthroIdFor(c)}</small>
                 <small>
                   {c.title}
                   {d ? ` · ${d.title}` : ''}
@@ -846,7 +848,7 @@ export function OfferModal({
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} · {c.title}
+                    {candidateLabel(c)} · {c.title}
                   </option>
                 ))}
             </select>
@@ -973,6 +975,7 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
               <Avatar name={c.name} size="small" />
               <span>
                 <strong>{c.name}</strong>
+                <small className="anthro-id">{anthroIdFor(c)}</small>
                 <small>
                   {o.role || d?.title || 'Offer'}
                   {d ? ` · ${d.client}` : ''}
@@ -1329,7 +1332,7 @@ function IcsModal({ drafts, data, onClose, onSave, notify, audit }) {
                       <option value="">— match a candidate —</option>
                       {data.candidates.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name}
+                          {candidateLabel(c)}
                         </option>
                       ))}
                     </select>
