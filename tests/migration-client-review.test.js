@@ -21,6 +21,9 @@ test('client review isolates clients and demands, projects approved versions and
       'utf8',
     ),
   );
+  await db.exec(
+    await readFile(new URL('20261007165508_stage2_readiness_consumers.sql', path), 'utf8'),
+  );
   for (let n = 1; n <= 7; n++)
     await db.query('insert into auth.users values($1,$2)', [id(n), `user${n}@e.com`]);
   await db.exec(`insert into workspaces(id,name) values('${id(11)}','One'),('${id(12)}','Two');insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
@@ -258,7 +261,7 @@ test('client review isolates clients and demands, projects approved versions and
     ).count > 0,
   );
   const inventory = await rpc('ecod_private.erasure_inventory', [id(11), id(101)]);
-  assert.equal(inventory.counts.length, 41);
+  assert.equal(inventory.counts.length, 48);
   for (const category of ['duplicateDecisions', 'evaluationAssignments', 'assignmentReceipts'])
     assert.ok(inventory.counts.some((row) => row.category === category));
   assert.ok(inventory.counts.find((c) => c.category === 'clientPacks').count >= 3);

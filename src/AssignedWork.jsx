@@ -1,3 +1,5 @@
+import { AssignedDemandJourney } from './DemandJourney.jsx';
+import { getRole } from './repository.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Field } from './ui.jsx';
 import { repositoryRead } from './pagedRepository.js';
@@ -81,6 +83,7 @@ export function AssignedWork({ rpc = repositoryRead }) {
   return (
     <section className="panel">
       <h1>Assigned work</h1>
+      {getRole() === 'assessor' && <AssignedDemandJourney rpc={rpc} />}
       <p>
         Your administrator assigns access with an expiry. Refresh checks whether access is still
         available.

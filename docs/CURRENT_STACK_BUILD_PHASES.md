@@ -6,6 +6,10 @@ These are implementation phases, not five releases already completed. Close each
 
 Latest [five-phase code audit and continuation](FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md) distinguishes existing foundations from unfinished workflows and records the prioritized next build order.
 
+Continuation milestones 1 and 2 are implemented locally: [Stage 1 facts/access](STAGE_1_COMPLETION_CHECKLIST.md) and [Stage 2 demand journey](STAGE_2_COMPLETION_CHECKLIST.md). Stage 2 closes the demand-specific journey slice of original Phase 3; hosted acceptance remains separate.
+
+Stage 2 final verification: 841 Node tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (17 functions; main entry 67.6 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No push or deployment.
+
 Audit continuation verification: 803 Node tests and four OCR tests passed, with lint, changed-file formatting, documentation links and offline Netlify packaging of 17 functions (65.4 KiB main entry). Local advisors could not connect to `127.0.0.1:54322`; hosted acceptance remains pending. Changes are local only.
 
 ## Phase 1 — Bounded repository and everyday workflow
@@ -41,6 +45,8 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 - Exit: concurrent updates cannot silently overwrite verified facts; prohibited fields never arrive in unauthorized browser/API/report responses; review decisions and history are traceable.
 
 ## Phase 3 — Complete ECOD evaluation and readiness
+
+The [Stage 2 demand journey](STAGE_2_COMPLETION_CHECKLIST.md) now implements typed constraints, independent assigned blind cards, debrief/gaps/reassessment, demand validation and shortlist/submission/client/report consumers. Earlier slice notes below describe their historical state; general candidate readiness remains a separate workflow. Other original Phase 3 scope remains as listed.
 
 **Status: in progress; general readiness review and rubric scorecard slices implemented locally. Depends on verified facts and role boundaries.**
 

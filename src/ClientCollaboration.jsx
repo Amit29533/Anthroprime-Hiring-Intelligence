@@ -14,6 +14,12 @@ export function Snapshot({ pack }) {
         {p.demandTitle} · version {pack.version}
       </p>
       <p>{p.skills?.join(', ')}</p>
+      {p.demandReadiness?.validatedReady && (
+        <p>
+          Validated for this demand until {p.demandReadiness.validUntil}. Requirements version{' '}
+          {p.demandReadiness.configurationVersion}.
+        </p>
+      )}
       <small>
         Profile status: {p.profileStatus || 'Unrecorded'}. Profile verification date:{' '}
         {p.profileVerified || 'Unrecorded'}. These are recorded profile facts, not a hiring

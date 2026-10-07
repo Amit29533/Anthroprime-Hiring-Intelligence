@@ -24,10 +24,12 @@ The Vite app, authenticated APIs and scheduled JavaScript jobs deploy together o
 
 Stage 1 adds six database migrations and frontend workflows, with no new function or environment variable. Its [activation and acceptance checklist](STAGE_1_COMPLETION_CHECKLIST.md#activation-and-hosted-acceptance) includes field/role projections, assignments, reviewed merges and hosted concurrency/recovery gates. Apply the complete chain before serving the updated frontend.
 
+Stage 2 adds three more migrations and the demand journey, assigned blind cards and readiness reports. Follow its [activation and acceptance checklist](STAGE_2_COMPLETION_CHECKLIST.md#activation-and-hosted-acceptance); no new function, service or environment variable is required.
+
 ## Git deployment
 
 1. Import this repository into Netlify. Use the repository root as the base directory, `pnpm run build` as the build command, `dist` as the publish directory and `netlify/functions` as the functions directory. `netlify.toml` already declares these settings, Node 24 and the PDF worker's required assets. `package.json` pins pnpm; commit `pnpm-lock.yaml` and `pnpm-workspace.yaml` with the source. The workspace uses a hoisted dependency layout so dynamically launched PDF workers are packaged without build-machine symlinks.
-2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007141611_stage1_fact_quality.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
+2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007165705_stage2_privacy_scope.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
 3. Create the administrator account and workspace using the existing provisioning instructions. Set Supabase Auth's Site URL to your production HTTPS origin and allow the required login/reset redirect URLs. Use a separate database/bucket for deploy previews if you test writes there.
 4. Configure Netlify environment variables using the table below. Keep production credentials restricted to the production context. Do not expose production server secrets to untrusted pull-request builds.
 5. Create a private R2 bucket and configure CORS for your exact app origin as described below. Deploy the source through Git so Netlify builds both frontend and functions.

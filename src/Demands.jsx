@@ -1,3 +1,5 @@
+import { DemandJourney } from './DemandJourney.jsx';
+import { cloud } from './repository.js';
 import { candidateLabel, anthroIdFor, candidateIdentityText } from './anthroId.js';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import React, { useState } from 'react';
@@ -656,6 +658,13 @@ export function DemandDetail({
         audit={audit}
         busy={busy}
       />
+      {cloud && <DemandJourney demand={d} onOpenCandidate={onOpenCandidate} />}
+      {cloud && (
+        <p className="supporting-text">
+          The fit scores below describe general profile matching. Use the demand journey above for
+          confirmed hard requirements and current validated readiness.
+        </p>
+      )}
       <div className="matching-layout">
         <aside className="panel requirements">
           <PanelHeading title="The brief" action={<Badge>{d.status}</Badge>} />

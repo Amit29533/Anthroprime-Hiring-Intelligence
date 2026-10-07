@@ -4,6 +4,8 @@ import { PageHeader, PanelHeading, Button, Field, Badge } from './ui.jsx';
 import { uid, today } from './domain.js';
 import { canWriteForRole, getRole } from './repository.js';
 import { downloadFile } from './downloads.js';
+import { DemandReadinessReport } from './DemandJourney.jsx';
+import { cloud } from './repository.js';
 import {
   ENTITIES,
   ENTITY_LABELS,
@@ -112,6 +114,8 @@ export function Reports({ data, onSave, onDelete, notify, audit, busy, role = ge
           New report
         </Button>
       </PageHeader>
+
+      {cloud && <DemandReadinessReport demands={data.demands || []} role={role} />}
 
       <div className="report-layout">
         <section className="panel">
