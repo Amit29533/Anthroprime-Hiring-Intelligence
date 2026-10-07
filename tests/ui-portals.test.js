@@ -26,6 +26,38 @@ const store = () => JSON.parse(localStorage.getItem(KEY));
 const putStore = (data) => localStorage.setItem(KEY, JSON.stringify(data));
 const boot = () => localStorage.removeItem(KEY);
 
+test('an attributed feed application preserves its source through recruiter acceptance', async () => {
+  await boot();
+  history.replaceState({}, '', '/careers.html?source=Community%20board');
+  try {
+    await mount(M.CareersApp, {});
+    await settle(6);
+    await press('Apply');
+    await type('Full name', 'Attributed Applicant');
+    await type('Email', 'attributed@example.com');
+    await click(screen.getByLabelText(/consent to AnthroPrime contacting me/));
+    await submitVia('Submit application');
+    assert.equal(
+      store().publicApplications.find((a) => a.email === 'attributed@example.com').source,
+      'Community board',
+    );
+    cleanup();
+    history.replaceState({}, '', '/');
+    await mount(M.App, {});
+    await settle(6);
+    await navTo('Activities');
+    assert.ok(screen.getByText(/Source: Community board/));
+    await pressIn(rowOf('Attributed Applicant'), 'Accept into repository');
+    await settle(4);
+    assert.equal(
+      store().candidates.find((c) => c.email === 'attributed@example.com').source,
+      'Community board',
+    );
+  } finally {
+    history.replaceState({}, '', '/');
+  }
+});
+
 test('the careers page publishes the recruiter workspace, not a frozen seed', async () => {
   const data = makeSeed();
   const open = data.demands.filter((d) => d.status === 'Open').length;

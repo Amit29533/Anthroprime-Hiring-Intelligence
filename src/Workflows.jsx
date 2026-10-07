@@ -12,6 +12,7 @@ import { SavedImports } from './SavedImports.jsx';
 import { CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
 import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
+import MachineCredentials from './MachineCredentials.jsx';
 import { IntelligenceSettings, IndexHealthPanel } from './HostedIntelligence.jsx';
 import React, { useState, useMemo } from 'react';
 import {
@@ -615,7 +616,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
         skillsDetail: [],
         status: 'Assessing',
         mode: 'Flexible',
-        source: 'Career page',
+        source: a.source || 'Career page',
         summary: a.message
           ? `Applied via the careers page: ${a.message}`
           : 'Applied via the careers page.',
@@ -859,6 +860,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
                     {a.phone ? ` · ${a.phone}` : ''}
                     {a.linkedin ? ` · LinkedIn` : ''}
                     {d ? ` · applied for ${d.title}` : ''}
+                    {a.source ? ` · Source: ${a.source}` : ''}
                   </small>
                   {a.message && <p className="app-msg">{a.message}</p>}
                   <div className="app-flags">
@@ -1546,6 +1548,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
         {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
+        {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}
         {getRole() === 'admin' && <IndexHealthPanel />}

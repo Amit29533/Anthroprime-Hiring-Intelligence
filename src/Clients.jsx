@@ -3,6 +3,7 @@ import { validateCustomValues } from './customFields.js';
 import { candidateLabel } from './anthroId.js';
 import React, { useState } from 'react';
 import ClientDocuments from './ClientDocuments.jsx';
+import ClientCollaboration from './ClientCollaboration.jsx';
 import {
   Plus,
   Building2,
@@ -716,6 +717,7 @@ export function ClientDetail({
         />
       </div>
 
+      <ClientCollaboration clientId={client.id} />
       <ClientDocuments
         client={client}
         data={data}

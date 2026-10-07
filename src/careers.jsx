@@ -82,6 +82,10 @@ function ApplyForm({ role, onDone }) {
     message: '',
     consentContact: false,
     consentSharing: false,
+    source: (() => {
+      const value = new URLSearchParams(location.search).get('source') || 'Career page';
+      return /^[A-Za-z0-9 ._-]{1,100}$/.test(value) ? value : 'Career page';
+    })(),
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -123,6 +127,7 @@ function ApplyForm({ role, onDone }) {
           linkedin: form.linkedin.trim(),
           message: form.message.trim(),
           status: 'pending',
+          source: form.source,
           consentContact: form.consentContact,
           consentSharing: form.consentSharing,
           created: new Date().toISOString(),

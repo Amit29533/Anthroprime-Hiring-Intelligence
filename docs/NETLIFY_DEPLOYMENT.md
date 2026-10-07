@@ -1,5 +1,7 @@
 # Deploy Anthroprime on Netlify
 
+Phase 4 adds [client collaboration and scoped integration foundations](PHASE_N4_CLIENTS_AND_INTEGRATIONS.md). Apply every migration through `20261007095813_phase4_privacy_scope.sql` before deploying the UI. The source build includes `/client.html` and packages 17 functions, including `machine-api` and `approved-job-feed`. Machine writes use existing server Supabase credentials; make existing public Supabase URL/anon-key variables available to Functions as well as Builds for the public feed. Provision client Auth accounts without internal workspace membership, grant scoped access from Client detail, and share the portal link manually. Recapture erasure checklists and regenerate reviewed access packages after the privacy changes. Hosted Auth, permissions, concurrency and advisor acceptance remains pending.
+
 Phase N3.2 adds [sealed candidate scorecards](PHASE_N3_CANDIDATE_SCORECARDS.md). Apply every migration through `20261007092050_candidate_scorecards.sql` before deploying the UI. No new service, function or credential is required; offline packaging passes with 15 functions and a 65.2 KiB main entry. Recapture erasure checklists and regenerate reviewed access snapshots/packages after the source and scope-notice updates. Hosted migration/concurrency/advisor acceptance remains pending.
 
 Existing-stack Phase 3 adds [assessment-backed readiness review](PHASE_N3_READINESS_JOURNAL.md). Apply all migrations through `20261007085457_candidate_readiness_journal.sql` before deploying its UI. No function, service or credential is added; the offline build packages 15 functions. Recapture erasure checklists and regenerate previously prepared access packages after the scope updates. Hosted authority, expiry and concurrent-write acceptance remains pending.
@@ -23,7 +25,7 @@ The Vite app, authenticated APIs and scheduled JavaScript jobs deploy together o
 ## Git deployment
 
 1. Import this repository into Netlify. Use the repository root as the base directory, `pnpm run build` as the build command, `dist` as the publish directory and `netlify/functions` as the functions directory. `netlify.toml` already declares these settings, Node 24 and the PDF worker's required assets. `package.json` pins pnpm; commit `pnpm-lock.yaml` and `pnpm-workspace.yaml` with the source. The workspace uses a hoisted dependency layout so dynamically launched PDF workers are packaged without build-machine symlinks.
-2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007092050_candidate_scorecards.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
+2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007095813_phase4_privacy_scope.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
 3. Create the administrator account and workspace using the existing provisioning instructions. Set Supabase Auth's Site URL to your production HTTPS origin and allow the required login/reset redirect URLs. Use a separate database/bucket for deploy previews if you test writes there.
 4. Configure Netlify environment variables using the table below. Keep production credentials restricted to the production context. Do not expose production server secrets to untrusted pull-request builds.
 5. Create a private R2 bucket and configure CORS for your exact app origin as described below. Deploy the source through Git so Netlify builds both frontend and functions.
@@ -31,8 +33,8 @@ The Vite app, authenticated APIs and scheduled JavaScript jobs deploy together o
 
 | Variable                                                 | Scope               | Purpose                                                                           |
 | -------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`                                      | Builds              | Public project URL                                                                |
-| `VITE_SUPABASE_ANON_KEY`                                 | Builds              | Public anon/publishable key; never service role                                   |
+| `VITE_SUPABASE_URL`                                      | Builds and Functions | Public project URL; also used by public job feed                                   |
+| `VITE_SUPABASE_ANON_KEY`                                 | Builds and Functions | Public anon/publishable key and public job feed; never service role                |
 | `SUPABASE_URL`                                           | Functions           | Same project's URL                                                                |
 | `SUPABASE_ANON_KEY`                                      | Functions           | Same project's public key for authenticated APIs                                  |
 | `SUPABASE_SERVICE_ROLE_KEY`                              | Functions           | Private scheduled job access and optional audited document signing                |

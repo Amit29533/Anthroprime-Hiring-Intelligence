@@ -48,7 +48,11 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 
 ## Phase 4 — Client collaboration and integration foundations
 
-**Status: planned. Depends on field projections and evaluated submissions.**
+**Status: locally complete for the current-stack foundation scope; hosted activation pending.**
+
+- Implemented: [client collaboration and integration foundations](PHASE_N4_CLIENTS_AND_INTEGRATIONS.md), including expiring client/demand access, reviewed immutable versions, structured feedback/interview requests, approved demand progress, private commercial segregation, exact public-content approval for the job feed, source attribution, scoped machine credentials, versioned candidate/demand writes, incremental metadata/mapping feeds and webhook reconciliation.
+- Verification: all 793 Node regression tests passed, followed by 34 migration-chain checks on the final publication/identity protections. Focused UI/endpoint checks, four OCR tests, lint, changed-file formatting, documentation links and build checks passed. Offline Netlify packaging contains 17 functions and the client portal; final main entry is 65.4 KiB. Work is committed locally only; no new provider/service, deployment or GitHub push.
+- Activation: apply migrations through `20261007095813_phase4_privacy_scope.sql`, re-review/republish existing jobs for the new feed, provision client Auth accounts and perform hosted client/permission/concurrency/backup acceptance. Local advisors could not connect to `127.0.0.1:54322`. Recapture erasure checklists and regenerate reviewed access artifacts. Earlier incomplete readiness/field-scope work remains tracked in Phases 1–3; manual review of a submission does not establish demand-specific validated readiness.
 
 - Client-scoped portal memberships, approved immutable submission versions, structured comments/ratings/decisions, interview requests and feedback aging.
 - Account demand/placement progress with commercial segregation; submission/offer approval-change invalidation.

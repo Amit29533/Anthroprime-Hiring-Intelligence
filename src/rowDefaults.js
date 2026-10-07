@@ -215,6 +215,7 @@ const normalizers = {
     row.contactId = row.contactId || null;
   },
   publicApplications: (row) => {
+    row.source = row.source || 'Career page';
     row.name = row.name || '';
     row.email = row.email || '';
     row.phone = row.phone || '';
