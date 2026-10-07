@@ -2132,6 +2132,13 @@ function AdminPanel({ data, onSave, notify, audit }) {
           {due.length} profile{due.length === 1 ? '' : 's'} due for review
         </span>
       </div>
+      {cloud && (
+        <p className="supporting-text">
+          Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked files,
+          history or verified privacy fulfillment. Use subject-request and erasure review to record
+          scope and decisions. Destructive execution remains pending.
+        </p>
+      )}
       {!!due.length && (
         <div className="retention-list">
           {due.slice(0, 10).map((c) => (
@@ -2144,7 +2151,7 @@ function AdminPanel({ data, onSave, notify, audit }) {
               <Button
                 variant="ghost"
                 className="small"
-                disabled={busy}
+                disabled={busy || cloud}
                 onClick={async () => {
                   if (
                     !window.confirm(

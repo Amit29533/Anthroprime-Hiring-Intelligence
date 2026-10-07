@@ -4,6 +4,10 @@ Started: 7 October 2026. Scope: features classified as buildable in the [Netlify
 
 These are implementation phases, not five releases already completed. Close each slice with meaningful permission/migration/UI checks and update its status. Hosted activation requires migrations and staging acceptance; local work does not imply deployment.
 
+Latest [five-phase code audit and continuation](FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md) distinguishes existing foundations from unfinished workflows and records the prioritized next build order.
+
+Audit continuation verification: 803 Node tests and four OCR tests passed, with lint, changed-file formatting, documentation links and offline Netlify packaging of 17 functions (65.4 KiB main entry). Local advisors could not connect to `127.0.0.1:54322`; hosted acceptance remains pending. Changes are local only.
+
 ## Phase 1 — Bounded repository and everyday workflow
 
 **Status: in progress; first slice implemented locally.**
@@ -11,7 +15,8 @@ These are implementation phases, not five releases already completed. Close each
 Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and Netlify packaging passed. No external service, deployment or GitHub push was performed. Hosted migration/advisor/permission acceptance remains pending.
 
 - Implemented first slice: personal saved views, experience-range/tag filters, server-side name/recent-verification/experience/notice sorts, and conflict-aware owner/next-action quick editing in paged Candidate 360. See [slice contract](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md).
-- Next slices: richer paged saved filters; broader candidate editing with transactional history; bounded matching, reports, bulk previews/exports and cross-entity search; custom-field filtering/report metadata; accurate action-board totals; Anthro-ID capacity monitoring.
+- Continuation: bounded quality review and administrator Anthro-ID capacity warnings now appear on the cloud paged overview. Capacity uses the global sequence high-water position, accounts for burned allocations and never allocates/recycles an ID. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql`.
+- Next slices: richer paged saved filters; broader candidate editing with transactional history; bounded matching, reports, bulk previews/exports and cross-entity search; custom-field filtering/report metadata; broader action-board ownership/flows.
 - Experience: keep the common browse → filter → open → next-action workflow in paged mode, explain errors and preserve failed edit drafts.
 - Exit: these workflows operate without loading full candidate/document/history tables, preserve identity/history and obey permission projections. Large work is resumable and bounded.
 
@@ -22,6 +27,8 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 - Implemented first slice: sourced alternate email/phone records, explicit recruiter confirmation, preferred confirmed contacts, retirement, primary/alternate duplicate guards, merge-preserved evidence and bounded reads in both profile layouts. See [slice contract](PHASE_N2_CANDIDATE_CONTACTS.md). All 775 Node tests, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. No new service, deployment or push; hosted acceptance remains pending.
 - Privacy integration: D7 inventories include contact records/events/receipts; recapture older checklists. D6 explicitly excludes these records from its 18-category package and needs separately approved review; regenerate previously prepared packages after the scope-notice change.
 - Next slices: broader verified facts, data-quality queues and narrower role/field scopes below. Preferred contacts currently preserve primary profile/portal identity and recruiting consent.
+
+- Continuation: six bounded quality queues now review primary contact gaps, unknown notice, old/future profile dates and actual current weighted skill evidence, with exact overlapping counts and candidate navigation. Broader duplicate/correction dispositions and verified fact/field-scope work remain pending.
 
 - Multiple normalized contacts/preferred contact; date-rich employment; compensation currency/basis/components; availability/source/verification; latest applicable verified values and preserved superseded claims.
 - Duplicate suggestions and review queues, incomplete/stale fact findings, taxonomy correction and import error resolution.
@@ -68,6 +75,7 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 - Verification: all 799 Node tests and four OCR tests passed, together with lint, changed-file formatting, documentation links, offline Netlify packaging of 17 functions and the final frontend build (65.4 KiB main entry). Local Supabase advisors could not connect to `127.0.0.1:54322`.
 - Activation: apply all migrations through `20261007114511_recruiter_worklist.sql`; recapture D7 inventories (now 38 categories) and regenerate D6 packages after the receipt exclusion notice changes. Hosted permission/advisor/concurrency/volume acceptance remains pending. No new service, transport, destructive privacy execution, deployment or GitHub push.
 - Remaining slices: SLA/notification policies and candidate loops; test-only communication intents/suppression; further operational recovery; retention/subject-request coverage and erasure dry-run controls below.
+- Audit correction: the legacy cloud Anonymize action is disabled because its `anonymized` field is absent from the database and its profile-only scrubber cannot cover linked records. Subject-request/erasure review remains available; no destructive replacement is enabled.
 
 - Consolidated recruiter worklist, SLA/deadline/internal reminders, notification preferences, candidate self-update/review, redeployment prompts and portal feedback surveys.
 - Message templates/previews, durable communication intents, segmentation and suppression logic using a test transport only. External sends remain disabled.

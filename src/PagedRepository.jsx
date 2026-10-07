@@ -7,6 +7,7 @@ import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { RecruiterWorklist } from './RecruiterWorklist.jsx';
+import { RepositoryQuality } from './RepositoryQuality.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -170,7 +171,12 @@ export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull, onOpenWo
       <Button variant="secondary" onClick={() => setRevision((n) => n + 1)}>
         Refresh totals
       </Button>
-      {onOpenWorklist && <RecruiterWorklist key={getWorkspaceId()} onOpen={onOpenWorklist} />}
+      {onOpenWorklist && (
+        <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+      )}
+      {onOpenWorklist && (
+        <RepositoryQuality key={`quality-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+      )}
     </>
   );
 }

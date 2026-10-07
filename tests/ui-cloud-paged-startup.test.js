@@ -50,6 +50,10 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
       });
     if (url.pathname.endsWith('/rpc/api_repository_overview'))
       return json({ candidates: 150, ready: 50, fresh: 100, stale: 20, openDemands: 2 });
+    if (url.pathname.endsWith('/rpc/api_repository_quality'))
+      return json({ rows: [], counts: {}, affectedCandidates: 0, nextCursor: null });
+    if (url.pathname.endsWith('/rpc/api_anthro_id_capacity'))
+      return json({ limit: 99999, consumed: 150, remaining: 99849, level: 'healthy' });
     if (url.pathname.endsWith('/rpc/api_repository_page'))
       return json({
         rows: [
@@ -82,8 +86,17 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
           anthroId: 'ANTHRO-00101',
           skills: ['React'],
           status: 'Ready',
+          verified: '2020-01-01',
         },
       ]);
+    if (url.pathname.includes('/rpc/'))
+      return new Response(
+        JSON.stringify({
+          code: 'PGRST202',
+          message: 'Optional panel RPC unavailable in this fixture',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
+      );
     return json([]);
   };
   t.after(async () => {
@@ -100,6 +113,8 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   await press('Sign in');
   await settle(12);
   assert.ok(screen.getByRole('heading', { name: 'Repository overview' }));
+  assert.ok(screen.getByRole('heading', { name: 'Repository quality review' }));
+  assert.ok(calls.includes('/rest/v1/rpc/api_repository_quality'));
   assert.equal(
     calls.filter((p) => p === '/rest/v1/candidates' || p === '/rest/v1/documents').length,
     0,
@@ -129,4 +144,13 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   assert.ok(calls.includes('/rest/v1/documents'));
   assert.ok(await screen.findByText('Full candidate', {}, { timeout: 10000 }));
   assert.equal(screen.queryByRole('button', { name: 'More filters & bulk actions' }), null);
+  fireEvent.click(screen.getByRole('button', { name: /Workspace settings/ }));
+  await settle(10);
+  assert.ok(screen.getByText(/Cloud profile anonymization is unavailable/));
+  const scrub = screen.getByRole('button', { name: 'Anonymize' });
+  assert.equal(scrub.disabled, true);
+  const before = calls.filter((p) => p === '/rest/v1/candidates').length;
+  fireEvent.click(scrub);
+  await settle();
+  assert.equal(calls.filter((p) => p === '/rest/v1/candidates').length, before);
 });

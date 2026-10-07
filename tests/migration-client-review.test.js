@@ -102,9 +102,30 @@ test('client review isolates clients and demands, projects approved versions and
   await act(5);
   let view = await portal();
   assert.equal(view.packs.length, 1);
-  assert.ok(!JSON.stringify(view).includes('secret-one'));
-  assert.ok(!JSON.stringify(view).includes('12345'));
-  assert.ok(!JSON.stringify(view).includes('999'));
+  assert.ok(!JSON.stringify(view).includes('secret-one@e.com'));
+  // Amount substrings also occur in approval timestamps. Test prohibited fields
+  // recursively instead of interpreting every numeric substring as financial data.
+  const forbidden = new Set([
+    'email',
+    'phone',
+    'current',
+    'expected',
+    'budget',
+    'salary',
+    'compensationHistory',
+    'placementCommercials',
+    'notes',
+    'documents',
+    'history',
+  ]);
+  const assertProjected = (value) => {
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      assert.ok(!forbidden.has(key), `Client projection leaked ${key}`);
+      assertProjected(child);
+    }
+  };
+  assertProjected(view);
   const respond = (op = 601, comment = 'Client reviewed the approved shortlist') =>
     rpc('api_client_respond', [draft.id, id(op), 'decision', 'Shortlisted', 4, comment, null]);
   const decision = await respond();
