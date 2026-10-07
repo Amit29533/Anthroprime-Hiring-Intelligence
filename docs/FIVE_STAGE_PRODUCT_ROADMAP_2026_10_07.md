@@ -1,5 +1,7 @@
 # Anthroprime: five-stage product roadmap
 
+Hosting/dependency classification: [what can be built with the current Netlify stack and what needs additional services or decisions](NETLIFY_FEATURE_SPLIT_2026_10_07.md).
+
 Research date: **7 October 2026**. Implementation baseline: local commit **54a145d**, branch `codex/technical-improvements`. This document plans future work; it does not activate integrations or certify production readiness.
 
 ## Recommendation
