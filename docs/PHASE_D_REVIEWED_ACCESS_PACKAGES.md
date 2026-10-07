@@ -1,5 +1,7 @@
 # Phase D6 — Reviewed access packages
 
+The [Phase N2.1 contact slice](PHASE_N2_CANDIDATE_CONTACTS.md) adds alternate-contact records and private verification/operation history. The 18-category access package excludes them explicitly; arrange separate approved disclosure review. Regenerate previously prepared packages after that migration because the revised scope notice changes their bytes/checksums. Do not treat earlier copies as current complete fulfillment.
+
 This slice extends administrator data-subject access cases with a bounded disclosure review and JSON download. It does not fulfill an entire access request automatically. Original files, raw CV extraction, opaque custom fields, retired merged identities, provider/job tables, raw history snapshots and third-party commercial records require separate approved review. The package carries this scope notice. Erasure, mailbox delivery and portal intake remain pending.
 
 ## Workflow

@@ -17,7 +17,11 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 
 ## Phase 2 — Verified candidate facts, data quality and access
 
-**Status: planned. Depends on Phase 1 read/write infrastructure.**
+**Status: in progress; first contact slice implemented locally. Depends on Phase 1 read/write infrastructure.**
+
+- Implemented first slice: sourced alternate email/phone records, explicit recruiter confirmation, preferred confirmed contacts, retirement, primary/alternate duplicate guards, merge-preserved evidence and bounded reads in both profile layouts. See [slice contract](PHASE_N2_CANDIDATE_CONTACTS.md). All 775 Node tests, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. No new service, deployment or push; hosted acceptance remains pending.
+- Privacy integration: D7 inventories include contact records/events/receipts; recapture older checklists. D6 explicitly excludes these records from its 18-category package and needs separately approved review; regenerate previously prepared packages after the scope-notice change.
+- Next slices: broader verified facts, data-quality queues and narrower role/field scopes below. Preferred contacts currently preserve primary profile/portal identity and recruiting consent.
 
 - Multiple normalized contacts/preferred contact; date-rich employment; compensation currency/basis/components; availability/source/verification; latest applicable verified values and preserved superseded claims.
 - Duplicate suggestions and review queues, incomplete/stale fact findings, taxonomy correction and import error resolution.

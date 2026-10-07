@@ -3,6 +3,7 @@ import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
 import { getRole, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
+import { CandidateContacts } from './CandidateContacts.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -13,6 +14,7 @@ const SORTS = {
 
 const SECTIONS = [
   ['profile', 'Profile'],
+  ['contacts', 'Contacts'],
   ['notes', 'Notes'],
   ['documents', 'Documents'],
   ['employmentHistory', 'Employment'],
@@ -580,6 +582,7 @@ export function PagedCandidate360({
     let active = true;
     setError('');
     setPage(null);
+    if (section === 'contacts') return undefined;
     Promise.resolve()
       .then(() =>
         rpc('api_candidate_section', {
@@ -629,6 +632,9 @@ export function PagedCandidate360({
           ))}
         </div>
         {error && <p role="alert">{error}</p>}
+        {section === 'contacts' && (
+          <CandidateContacts key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
+        )}
         {section === 'profile' && !profile && !error && (
           <p role="status">Loading candidate profile…</p>
         )}
@@ -714,7 +720,7 @@ export function PagedCandidate360({
             )}
           </>
         )}
-        {section !== 'profile' && !page && !error && (
+        {section !== 'profile' && section !== 'contacts' && !page && !error && (
           <p role="status">Loading candidate section…</p>
         )}
         {page && page.sectionKey === section && (
