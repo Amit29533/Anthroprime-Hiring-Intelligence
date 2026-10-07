@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -165,8 +166,9 @@ test('sealed scorecards preserve rubric evidence and server authorship, replay s
     `insert into assessments select (jsonb_populate_record(null::public.assessments,to_jsonb(a)||jsonb_build_object('candidateId','${id(102)}'))).* from assessments a where "candidateId"='${id(101)}'
     on conflict(id) do update set "candidateId"=excluded."candidateId","templateSnapshot"=excluded."templateSnapshot",
     "recordedAt"=excluded."recordedAt","recordedBy"=excluded."recordedBy","recordedSequence"=excluded."recordedSequence";
-    update candidates set "mergedInto"='${id(102)}',email='' where id='${id(101)}'`,
+    `,
   );
+  await reviewedMerge(db, id(102), id(101));
   page = await read();
   assert.equal(page.candidateId, id(102));
   assert.equal(page.rows.length, 2);

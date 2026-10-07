@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -87,14 +88,8 @@ test('reviewed outbound holds govern pipeline writes and CSVs without blocking c
     /server-owned/,
   );
   await assert.rejects(db.query('update settings set custom=$1', ['{}']), /Release outbound holds/);
-  await assert.rejects(
-    db.query('update candidates set "mergedInto"=$1 where id=$2', [id(51), id(50)]),
-    /before merging/,
-  );
-  await assert.rejects(
-    db.query('update candidates set "mergedInto"=$1 where id=$2', [id(50), id(51)]),
-    /before merging/,
-  );
+  await assert.rejects(reviewedMerge(db, id(51), id(50)), /before merging/);
+  await assert.rejects(reviewedMerge(db, id(50), id(51)), /before merging/);
   await act(2);
   await assert.rejects(
     rpc('api_set_subject_outbound_hold', [
@@ -119,9 +114,21 @@ test('reviewed outbound holds govern pipeline writes and CSVs without blocking c
   assert.equal(upserted.processingRestricted, true);
   for (const table of ['considerations', 'submissions', 'interviews', 'offers', 'placements']) {
     await assert.rejects(
-      db.exec(
-        `insert into ${table} select (jsonb_populate_record(null::${table},to_jsonb(t)||jsonb_build_object('id','${id(300)}'))).* from ${table} t limit 1`,
-      ),
+      table === 'offers'
+        ? rpc('api_save_offers', [
+            [
+              {
+                id: id(300),
+                candidateId: id(50),
+                demandId: id(40),
+                role: 'Held offer',
+                status: 'Draft',
+              },
+            ],
+          ])
+        : db.exec(
+            `insert into ${table} select (jsonb_populate_record(null::${table},to_jsonb(t)||jsonb_build_object('id','${id(300)}'))).* from ${table} t limit 1`,
+          ),
       /outbound recruiting hold/,
     );
   }

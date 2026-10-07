@@ -4,10 +4,22 @@
 // The client-side guards exist so the UI can explain a refusal before making the round trip.
 import { cloud, getSupabase } from './repository.js';
 
-export const ROLES = ['admin', 'recruiter', 'viewer'];
+export const ROLES = ['admin', 'recruiter', 'viewer', 'assessor', 'sales'];
 
 /** What each role may do, shown in the admin UI so an assignment is an informed choice. */
 export const ROLE_GUIDE = {
+  assessor: {
+    label: 'Assessor',
+    summary: 'Evaluation access to explicitly assigned candidates only.',
+    detail:
+      'Records sourced evaluations; excludes contacts, financial facts, private files and unrelated candidates. Assignments expire and can be revoked.',
+  },
+  sales: {
+    label: 'Sales/Account',
+    summary: 'Progress summaries for assigned clients or demands only.',
+    detail:
+      'Views demand status and aggregate pipeline progress; excludes candidate contacts, compensation and private evaluation evidence.',
+  },
   admin: {
     label: 'Admin',
     summary: 'Full access, including workspace settings, user administration and commercials.',
@@ -68,7 +80,7 @@ export const removalBlockedReason = (member, adminCount) =>
 
 /** Sort for display: admins first, then by email, with the signed-in user pinned to the top. */
 export function orderMembers(members = []) {
-  const rank = { admin: 0, recruiter: 1, viewer: 2 };
+  const rank = { admin: 0, recruiter: 1, viewer: 2, assessor: 3, sales: 4 };
   return [...members].sort((a, b) => {
     if (a.isSelf !== b.isSelf) return a.isSelf ? -1 : 1;
     const byRole = (rank[a.role] ?? 9) - (rank[b.role] ?? 9);
@@ -78,7 +90,7 @@ export function orderMembers(members = []) {
 
 /** Headline counts for the panel. */
 export function memberSummary(members = []) {
-  const counts = { admin: 0, recruiter: 0, viewer: 0 };
+  const counts = Object.fromEntries(ROLES.map((role) => [role, 0]));
   for (const m of members) if (counts[m.role] !== undefined) counts[m.role] += 1;
   return { total: members.length, ...counts };
 }

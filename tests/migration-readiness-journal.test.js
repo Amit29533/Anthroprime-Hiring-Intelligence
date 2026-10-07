@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -167,7 +168,7 @@ test('readiness decisions require current evidence and administrator authority, 
   assert.ok((await read()).blockers.some((s) => s.includes('verification date is in the future')));
   await db.exec(`update candidates set verified=current_date-121 where id='${id(101)}'`);
   assert.ok((await read()).blockers.some((s) => s.includes('older than 120')));
-  await db.exec(`update candidates set "mergedInto"='${id(102)}',email='' where id='${id(101)}'`);
+  await reviewedMerge(db, id(102), id(101));
   page = await read();
   assert.equal(page.candidateId, id(102));
   assert.equal(page.state, 'Not reviewed');

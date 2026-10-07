@@ -32,6 +32,7 @@ import {
   getRole,
   canWriteForRole,
   resetRoleForSessionChange,
+  refreshWorkspaceAccess,
   getWorkspace,
   getWorkspaces,
   switchWorkspace,
@@ -51,6 +52,10 @@ import { serverExecutionEnabled } from './execution.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
 import AccountProfile from './AccountProfile.jsx';
 
+const AssignedWork = lazy(() =>
+  import('./AssignedWork.jsx').then((module) => ({ default: module.AssignedWork })),
+);
+
 // Keep the dashboard fast: each feature area is downloaded only when it is opened. Named-export
 // modules use one shared chunk per source file, so opening a form reuses the page's existing chunk.
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })));
@@ -64,6 +69,7 @@ const CandidateForm = lazyNamed(candidatesModule, 'CandidateForm');
 const CandidateProfile = lazyNamed(candidatesModule, 'CandidateProfile');
 const PagedCandidates = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedCandidates');
 const PagedOverview = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedOverview');
+const PagedCandidate360 = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedCandidate360');
 const Demands = lazyNamed(demandsModule, 'Demands');
 const DemandForm = lazyNamed(demandsModule, 'DemandForm');
 const DemandDetail = lazyNamed(demandsModule, 'DemandDetail');
@@ -269,6 +275,78 @@ export default function App() {
       active = false;
     };
   }, [authReady, userId]);
+  useEffect(() => {
+    if (!cloud || !userId) return undefined;
+    let active = true,
+      pending = false;
+    async function checkAccess() {
+      if (pending) return;
+      pending = true;
+      const before = getWorkspace();
+      let accessSequence = reloadSequence.current;
+      let loadingAccess = false;
+      try {
+        const next = await refreshWorkspaceAccess();
+        if (
+          !active ||
+          accessSequence !== reloadSequence.current ||
+          (before?.id === next?.id && before?.role === next?.role)
+        )
+          return;
+        accessSequence = ++reloadSequence.current;
+        const cleared = emptyData();
+        dataRef.current = cleared;
+        setData(cleared);
+        setPersonId(null);
+        setModal(null);
+        setDemandId(null);
+        setClientId(null);
+        setPageFilter(null);
+        setCandidateFilter(null);
+        setPipelineDemand(null);
+        setQuery('');
+        setPage('Overview');
+        setWorkspaces(getWorkspaces());
+        setActiveWorkspace(next);
+        loadingAccess = true;
+        setLoading(true);
+        const updated = await loadData();
+        if (active && accessSequence === reloadSequence.current) {
+          dataRef.current = updated;
+          setData(updated);
+          setError('');
+        }
+      } catch (err) {
+        if (active && accessSequence === reloadSequence.current) {
+          setLoading(false);
+          ++reloadSequence.current;
+          const cleared = emptyData();
+          dataRef.current = cleared;
+          setData(cleared);
+          setPersonId(null);
+          setModal(null);
+          setDemandId(null);
+          setClientId(null);
+          resetRoleForSessionChange();
+          setActiveWorkspace(null);
+          setWorkspaces([]);
+          setError(
+            'Access could not be verified. Cached workspace data was cleared. ' + err.message,
+          );
+        }
+      } finally {
+        pending = false;
+        if (active && loadingAccess && accessSequence === reloadSequence.current) setLoading(false);
+      }
+    }
+    const timer = setInterval(checkAccess, 60000);
+    window.addEventListener('focus', checkAccess);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener('focus', checkAccess);
+    };
+  }, [userId]);
   function openPerson(id, tab = 'Overview') {
     setPersonTab(tab);
     setPersonId(id);
@@ -722,6 +800,7 @@ export default function App() {
           onBrowse={() => navigate('Candidates')}
           onFull={fullWorkspace}
           onOpenWorklist={openPerson}
+          onSettings={() => navigate('Settings')}
         />
       );
   else if (page === 'Overview')
@@ -901,6 +980,42 @@ export default function App() {
         onDelete={remove}
         onModal={setModal}
       />
+    );
+  if (cloud && data.assignedOnly)
+    return (
+      <div className="app-shell">
+        <main>
+          <Field label="Assigned workspace">
+            <select
+              aria-label="Assigned workspace"
+              disabled={loading}
+              value={activeWorkspace?.id || ''}
+              onChange={(event) =>
+                selectWorkspace(workspaces.find((workspace) => workspace.id === event.target.value))
+              }
+            >
+              {workspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name} · {workspace.role}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {error && <p role="alert">{error}</p>}
+          <Suspense fallback={featureFallback}>
+            <AssignedWork key={`${activeWorkspace?.id}:${activeWorkspace?.role}`} />
+          </Suspense>
+          <Button variant="secondary" onClick={reload}>
+            Reload workspace access
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => getSupabase().then((client) => client.auth.signOut())}
+          >
+            Sign out
+          </Button>
+        </main>
+      </div>
     );
   return (
     <div className="app-shell">
@@ -1174,7 +1289,25 @@ export default function App() {
           </button>
         </div>
       )}
-      <Suspense fallback={modal || person ? featureFallback : null}>
+      <Suspense fallback={modal || person || personId ? featureFallback : null}>
+        {data.repositoryPartial && personId && !modal && (
+          <PagedCandidate360
+            key={`${activeWorkspace?.id}:${personId}:${personTab}`}
+            candidateId={personId}
+            initialSection={
+              {
+                Employment: 'employmentHistory',
+                Availability: 'availabilityHistory',
+                Contacts: 'contacts',
+              }[personTab] || 'profile'
+            }
+            onClose={() => setPersonId(null)}
+            onUpdated={reload}
+            onFull={async (id) => {
+              if (await fullWorkspace()) openPerson(id);
+            }}
+          />
+        )}
         {person && !modal && (
           <CandidateProfile
             candidate={person}

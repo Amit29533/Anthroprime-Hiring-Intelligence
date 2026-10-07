@@ -29,6 +29,23 @@ const json = (data, status = 200) =>
 async function fakeFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url),
     method = init.method || input.method || 'GET';
+  if (url.pathname === '/rest/v1/rpc/api_legacy_rows') {
+    const parameters = JSON.parse(init.body);
+    const response = await fakeFetch(new URL('/rest/v1/' + parameters.p_table, url).href, {
+      method: 'GET',
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
+  if (url.pathname === '/rest/v1/rpc/api_save_candidates') {
+    const parameters = JSON.parse(init.body);
+    const response = await fakeFetch(new URL('/rest/v1/candidates', url).href, {
+      method: 'POST',
+      body: JSON.stringify(parameters.p_rows),
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
   if (url.pathname.endsWith('/auth/v1/token'))
     return json({
       access_token: 'fake-token',

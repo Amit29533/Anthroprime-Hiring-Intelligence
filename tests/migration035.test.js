@@ -15,6 +15,8 @@ test('server execution enforces tenants, atomic retries, event snapshots and API
   for (const file of (await readdir(path)).filter((n) => /^\d+.*\.sql$/.test(n)).sort())
     await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(await readFile(new URL('035_server_execution.sql', path), 'utf8'));
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com');
     insert into workspaces(id,name) values('${id(11)}','Team'),('${id(12)}','Other');
     insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');`);
@@ -185,9 +187,11 @@ test('server execution enforces tenants, atomic retries, event snapshots and API
   );
   await act(3);
   assert.equal(
-    (await db.query(`select snapshot from history where "entityType"='executionJobs'`)).rows.some(
-      (row) => Object.hasOwn(row.snapshot, 'actions'),
-    ),
+    (
+      await db.query(
+        `select snapshot from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where "entityType"='executionJobs'`,
+      )
+    ).rows.some((row) => Object.hasOwn(row.snapshot, 'actions')),
     false,
   );
   assert.equal((await db.query('select * from "executionJobs"')).rows.length, 0);

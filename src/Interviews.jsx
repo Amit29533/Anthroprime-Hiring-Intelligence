@@ -49,7 +49,7 @@ import { exportSensitiveFile } from './downloads.js';
 import { icsFor, icsForInterview, parseICS, interviewDraftFromEvent } from './calendar.js';
 import { offerLetterText } from './offerLetter.js';
 import { documentTemplatesFor, mergeContext, renderTemplate } from './templates.js';
-import { canWriteForRole, getRole } from './repository.js';
+import { cloud, canWriteForRole, getRole } from './repository.js';
 
 const fmtDay = (iso) => {
   const d = new Date(iso);
@@ -795,7 +795,7 @@ export function OfferModal({
   async function submit(e) {
     e.preventDefault();
     if (!form.candidateId) return setError('Select the candidate receiving the offer.');
-    if (form.ctc === '' || isNaN(Number(form.ctc)))
+    if ((!cloud || getRole() === 'admin') && (form.ctc === '' || isNaN(Number(form.ctc))))
       return setError('Enter the annual package in rupee lakh per annum.');
     const record = {
       ...form,
@@ -888,16 +888,24 @@ export function OfferModal({
               placeholder="Bengaluru"
             />
           </Field>
-          <Field label="Annual package (₹ LPA) *">
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={form.ctc}
-              onChange={(e) => setForm({ ...form, ctc: e.target.value })}
-              placeholder="31"
-            />
-          </Field>
+          {(!cloud || getRole() === 'admin') && (
+            <Field label="Annual package (₹ LPA) *">
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={form.ctc}
+                onChange={(e) => setForm({ ...form, ctc: e.target.value })}
+                placeholder="31"
+              />
+            </Field>
+          )}
+          {cloud && getRole() !== 'admin' && (
+            <p>
+              Compensation is managed by an administrator. You can draft and update nonfinancial
+              offer details.
+            </p>
+          )}
           <Field label="Joining date">
             <input
               type="date"
@@ -1116,13 +1124,15 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
                   Submit for approval
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                className="small"
-                onClick={() => openModal && openModal({ type: 'letter', offer: o })}
-              >
-                Letter
-              </Button>
+              {(!cloud || getRole() === 'admin') && (
+                <Button
+                  variant="ghost"
+                  className="small"
+                  onClick={() => openModal && openModal({ type: 'letter', offer: o })}
+                >
+                  Letter
+                </Button>
+              )}
             </>
           )}
         </div>

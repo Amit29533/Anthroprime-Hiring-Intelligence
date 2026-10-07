@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, screen, cleanup, stopVite, settle, click } from './ui-harness.js';
+import { load, loadApp, mount, screen, cleanup, stopVite, settle, click } from './ui-harness.js';
 import { type, press, navTo } from './ui-drivers.js';
 
 process.env.VITE_SUPABASE_URL = 'https://workspace-switch-test.supabase.co';
@@ -28,6 +28,14 @@ async function workspaceFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url);
   const method = init.method || input.method || 'GET';
   const body = init.body ? JSON.parse(init.body) : {};
+  if (url.pathname === '/rest/v1/rpc/api_legacy_rows') {
+    const parameters = JSON.parse(init.body);
+    const response = await workspaceFetch(new URL('/rest/v1/' + parameters.p_table, url).href, {
+      method: 'GET',
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
   if (url.pathname === '/rest/v1/rpc/api_filter_candidates') {
     filterCalls.push(body);
     return json({ ids: ['00000000-0000-4000-8000-000000000101'] });
@@ -55,6 +63,7 @@ async function workspaceFetch(input, init = {}) {
       },
     });
 
+  if (url.pathname === '/rest/v1/rpc/api_assigned_work') return json({ rows: [], more: false });
   if (url.pathname === '/rest/v1/rpc/api_my_workspaces')
     return json({ activeWorkspace, workspaces });
   if (url.pathname === '/rest/v1/rpc/api_interview_reminders')
@@ -176,18 +185,25 @@ test('a delayed repository reload cannot replace the newly selected workspace', 
   let release;
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(typeof input === 'string' ? input : input.url);
-    if (url.pathname === '/rest/v1/candidates' && activeWorkspace === FIRST && !release) {
+    if (
+      url.pathname === '/rest/v1/rpc/api_legacy_rows' &&
+      JSON.parse(init.body).p_table === 'candidates' &&
+      activeWorkspace === FIRST &&
+      !release
+    ) {
       return new Promise((resolve) => {
         release = () =>
           resolve(
-            json([
-              {
-                id: '00000000-0000-4000-8000-000000000199',
-                name: 'Stale workspace candidate',
-                email: 'stale@example.com',
-                skills: [],
-              },
-            ]),
+            json({
+              rows: [
+                {
+                  id: '00000000-0000-4000-8000-000000000199',
+                  name: 'Stale workspace candidate',
+                  email: 'stale@example.com',
+                  skills: [],
+                },
+              ],
+            }),
           );
       });
     }
@@ -206,6 +222,63 @@ test('a delayed repository reload cannot replace the newly selected workspace', 
     await settle(12);
     assert.ok(screen.getByText('Client Candidate'));
     assert.equal(screen.queryByText('Stale workspace candidate'), null);
+  } finally {
+    release?.();
+    globalThis.fetch = workspaceFetch;
+  }
+});
+
+test('a membership role change clears an open cached profile on the next access check', async () => {
+  const repository = await load('/src/repository.js');
+  await (await repository.getSupabase()).auth.signOut();
+  localStorage.clear();
+  await mount(M.App);
+  await screen.findByRole('heading', { name: 'Good to have you here.' }, { timeout: 30000 });
+  await type('Work email', 'owner@example.com');
+  await type('Password', 'not-a-real-password');
+  await press('Sign in');
+  await settle(12);
+  await click(screen.getByRole('button', { name: /AnthroPrime.*Admin access/i }));
+  await click(screen.getByRole('menuitemradio', { name: /Client Desk.*viewer/i }));
+  await settle(12);
+  await navTo('Candidates');
+  await screen.findByText('Client Candidate', {}, { timeout: 5000 });
+  await click(screen.getByText('Client Candidate'));
+  await settle(6);
+  workspaces.find((workspace) => workspace.id === SECOND).role = 'assessor';
+  window.dispatchEvent(new Event('focus'));
+  await settle(12);
+  await screen.findByRole('heading', { name: 'Assigned work' }, { timeout: 5000 });
+  assert.equal(screen.queryByText('Client Candidate'), null);
+  assert.equal(screen.queryByRole('dialog'), null);
+  assert.equal(screen.queryByRole('button', { name: 'Add candidate' }), null);
+});
+
+test('an old workspace-context response cannot restore a role after a session context reset', async () => {
+  const repository = await load('/src/repository.js');
+  let release;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/rest/v1/rpc/api_my_workspaces' && !release) {
+      const response = await workspaceFetch(input, init);
+      return new Promise((resolve) => {
+        release = () => resolve(response);
+      });
+    }
+    return workspaceFetch(input, init);
+  };
+  try {
+    const pending = repository.loadData();
+    await settle(4);
+    assert.equal(typeof release, 'function');
+    activeWorkspace = FIRST;
+    repository.resetRoleForSessionChange();
+    await repository.loadData();
+    assert.equal(repository.getWorkspaceId(), FIRST);
+    release();
+    await pending;
+    assert.equal(repository.getWorkspaceId(), FIRST);
+    assert.equal(repository.getRole(), 'admin');
   } finally {
     release?.();
     globalThis.fetch = workspaceFetch;

@@ -1,5 +1,6 @@
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
+import { CandidateFacts } from './CandidateFacts.jsx';
 import { CandidateAvailability } from './CandidateAvailability.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
@@ -858,12 +859,16 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
           <Field label="Notice period (days)">
             {field('notice', 'number', { min: 0, max: MAX_NOTICE_DAYS })}
           </Field>
-          <Field label="Current CTC (₹ LPA)">
-            {field('current', 'number', { min: 0, step: 0.1 })}
-          </Field>
-          <Field label="Expected CTC (₹ LPA)">
-            {field('expected', 'number', { min: 0, step: 0.1 })}
-          </Field>
+          {(!cloud || getRole() === 'admin') && (
+            <>
+              <Field label="Current CTC (₹ LPA)">
+                {field('current', 'number', { min: 0, step: 0.1 })}
+              </Field>
+              <Field label="Expected CTC (₹ LPA)">
+                {field('expected', 'number', { min: 0, step: 0.1 })}
+              </Field>
+            </>
+          )}
           <Field label="Work preference">
             <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
               {['Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
@@ -1235,9 +1240,17 @@ export function CandidateProfile({
         </div>
         <div className="profile-body">
           {tab === 'Contacts' && <CandidateContacts key={c.id} candidateId={c.id} />}
-          {tab === 'Availability' && (
-            <CandidateAvailability key={c.id} candidateId={c.id} onUpdated={() => onReload?.()} />
-          )}
+          {tab === 'Availability' &&
+            (cloud ? (
+              <CandidateFacts
+                key={c.id}
+                candidateId={c.id}
+                kind="availability"
+                onUpdated={() => onReload?.()}
+              />
+            ) : (
+              <CandidateAvailability key={c.id} candidateId={c.id} />
+            ))}
           {tab === 'Readiness review' && <CandidateReadiness key={c.id} candidateId={c.id} />}
           {tab === 'Scorecards' && <CandidateScorecards key={c.id} candidateId={c.id} />}
           {tab === 'Overview' && (
@@ -1264,8 +1277,12 @@ export function CandidateProfile({
                         ? 'Immediate'
                         : `${c.notice} days`,
                   ],
-                  ['Current CTC', money(c.current)],
-                  ['Expected CTC', money(c.expected)],
+                  ...(!cloud || getRole() === 'admin'
+                    ? [
+                        ['Current CTC', money(c.current)],
+                        ['Expected CTC', money(c.expected)],
+                      ]
+                    : []),
                   ['Engagement', c.engagement || 'Not stated'],
                   ['Registry status', c.activeStatus || 'Active'],
                   ['Earliest start', c.earliestStart || 'Unknown'],
@@ -1404,13 +1421,30 @@ export function CandidateProfile({
           )}
           {tab === 'Employment' && (
             <>
-              <EmploymentTab
-                candidate={c}
-                data={data}
-                onSave={onSave}
-                busy={busy}
-                readOnly={viewer}
-              />
+              {cloud ? (
+                <>
+                  <CandidateFacts
+                    candidateId={c.id}
+                    kind="employment"
+                    onUpdated={() => onReload?.()}
+                  />
+                  {getRole() === 'admin' && (
+                    <CandidateFacts
+                      candidateId={c.id}
+                      kind="compensation"
+                      onUpdated={() => onReload?.()}
+                    />
+                  )}
+                </>
+              ) : (
+                <EmploymentTab
+                  candidate={c}
+                  data={data}
+                  onSave={onSave}
+                  busy={busy}
+                  readOnly={viewer}
+                />
+              )}
               <CvEvidenceReview value={c.cvEvidence} />
             </>
           )}
@@ -1605,8 +1639,12 @@ export function CandidateProfile({
                           {[
                             ['Employer', h.snapshot.company],
                             ['Title', h.snapshot.title],
-                            ['Current CTC', money(h.snapshot.current)],
-                            ['Expected CTC', money(h.snapshot.expected)],
+                            ...(!cloud || getRole() === 'admin'
+                              ? [
+                                  ['Current CTC', money(h.snapshot.current)],
+                                  ['Expected CTC', money(h.snapshot.expected)],
+                                ]
+                              : []),
                             [
                               'Notice',
                               h.snapshot.notice == null ? 'Unknown' : `${h.snapshot.notice} days`,

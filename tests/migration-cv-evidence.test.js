@@ -77,7 +77,7 @@ test('structured CV import binds citations, requires review and atomically retai
   assert.equal(result.completed, 1);
   assert.equal((await rpc('worker_run_imports')).completed, 0);
   await act(1);
-  const c = (await db.query('select * from candidates')).rows[0];
+  const c = (await db.query('select id,"cvEvidence","anthroId"from candidates')).rows[0];
   assert.deepEqual(c.cvEvidence, candidate.cvEvidence);
   assert.match(c.anthroId, /^ANTHRO-\d{5}$/);
   assert.equal(

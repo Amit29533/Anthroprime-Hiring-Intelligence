@@ -22,6 +22,8 @@ test('sourced availability enforces observation scope, provenance, chronology, c
       'utf8',
     ),
   );
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com'),('${id(5)}','external@e.com');
   insert into workspaces(id,name)values('${id(11)}','One'),('${id(12)}','Two');
   insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
@@ -152,10 +154,12 @@ test('sourced availability enforces observation scope, provenance, chronology, c
     /operation conflict/,
   );
   await act(2);
+  await db.exec('reset role');
   await db.query(
     'insert into "availabilityHistory"(id,workspace_id,"candidateId",source,observed,"recordedBy","recordedAt")values($1,$2,$3,$4,$5,$6,$7)',
     [id(34), id(11), id(21), 'Manual legacy insert', today, id(1), '2000-01-01'],
   );
+  await db.exec('set role authenticated');
   const stamped = (await read()).rows.find((r) => r.id === id(34));
   assert.equal(stamped.recordedBy, id(2));
   assert.notEqual(stamped.recordedAt, '2000-01-01T00:00:00+00:00');
@@ -193,10 +197,10 @@ test('sourced availability enforces observation scope, provenance, chronology, c
   assert.equal(person.verified, '2026-01-01');
   assert.equal(person.current, 12345);
   const snapshots = (
-    await db.query('select snapshot from history where "entityId"=$1 and action=$2', [
-      id(21),
-      'Profile updated',
-    ])
+    await db.query(
+      `select snapshot from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where "entityId"=$1 and action=$2`,
+      [id(21), 'Profile updated'],
+    )
   ).rows;
   assert.equal(snapshots.length, 2);
   assert.ok(snapshots.some((h) => h.snapshot.notice === 30));

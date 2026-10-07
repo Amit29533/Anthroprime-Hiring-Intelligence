@@ -176,15 +176,15 @@ test('paged Candidate 360 uses sourced availability without fetching legacy sect
       calls.push([name, args]);
       return name === 'api_candidate_section'
         ? { candidate: { id: 'one', name: 'Candidate', skills: [] } }
-        : page();
+        : { ...page(), kind: 'availability', head: 'a'.repeat(32), latestConfirmed: null };
     },
   });
   await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Availability' }));
   await settle();
-  assert.ok(screen.getByRole('region', { name: 'Candidate availability' }));
+  assert.ok(screen.getByRole('region', { name: 'availability facts' }));
   assert.deepEqual(
     calls.map(([name]) => name),
-    ['api_candidate_section', 'api_candidate_availability'],
+    ['api_candidate_section', 'api_candidate_facts'],
   );
 });

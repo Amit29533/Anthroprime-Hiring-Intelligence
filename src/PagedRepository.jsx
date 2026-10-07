@@ -9,7 +9,7 @@ import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { RecruiterWorklist } from './RecruiterWorklist.jsx';
 import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
-import { CandidateAvailability } from './CandidateAvailability.jsx';
+import { CandidateFacts } from './CandidateFacts.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -112,7 +112,13 @@ function fieldLabel(key) {
   return label[0].toUpperCase() + label.slice(1);
 }
 
-export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull, onOpenWorklist }) {
+export function PagedOverview({
+  rpc = repositoryRead,
+  onBrowse,
+  onFull,
+  onOpenWorklist,
+  onSettings,
+}) {
   const [stats, setStats] = useState(null),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0);
@@ -177,7 +183,11 @@ export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull, onOpenWo
         <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
       )}
       {onOpenWorklist && (
-        <RepositoryQuality key={`quality-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+        <RepositoryQuality
+          key={`quality-${getWorkspaceId()}`}
+          onOpen={onOpenWorklist}
+          onSettings={onSettings}
+        />
       )}
     </>
   );
@@ -533,13 +543,14 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
 
 export function PagedCandidate360({
   candidateId,
+  initialSection = 'profile',
   rpc = repositoryRead,
   onClose,
   onFull,
   openDocument = signedUrlFor,
   onUpdated = () => {},
 }) {
-  const [section, setSection] = useState('profile'),
+  const [section, setSection] = useState(initialSection),
     [offset, setOffset] = useState(0),
     [profile, setProfile] = useState(null),
     [page, setPage] = useState(null),
@@ -596,7 +607,16 @@ export function PagedCandidate360({
     let active = true;
     setError('');
     setPage(null);
-    if (['contacts', 'readiness', 'scorecards', 'availabilityHistory'].includes(section))
+    if (
+      [
+        'contacts',
+        'readiness',
+        'scorecards',
+        'availabilityHistory',
+        'employmentHistory',
+        'compensationHistory',
+      ].includes(section)
+    )
       return undefined;
     Promise.resolve()
       .then(() =>
@@ -633,18 +653,20 @@ export function PagedCandidate360({
     >
       <div className="modal-body">
         <div className="section-toolbar">
-          {SECTIONS.map(([key, label]) => (
-            <Button
-              key={key}
-              variant={section === key ? 'primary' : 'secondary'}
-              onClick={() => {
-                setSection(key);
-                setOffset(0);
-              }}
-            >
-              {label}
-            </Button>
-          ))}
+          {SECTIONS.filter(([key]) => key !== 'compensationHistory' || getRole() === 'admin').map(
+            ([key, label]) => (
+              <Button
+                key={key}
+                variant={section === key ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setSection(key);
+                  setOffset(0);
+                }}
+              >
+                {label}
+              </Button>
+            ),
+          )}
         </div>
         {error && <p role="alert">{error}</p>}
         {section === 'contacts' && (
@@ -656,8 +678,15 @@ export function PagedCandidate360({
         {section === 'scorecards' && (
           <CandidateScorecards key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
         )}
-        {section === 'availabilityHistory' && (
-          <CandidateAvailability
+        {['availabilityHistory', 'employmentHistory', 'compensationHistory'].includes(section) && (
+          <CandidateFacts
+            kind={
+              section === 'employmentHistory'
+                ? 'employment'
+                : section === 'compensationHistory'
+                  ? 'compensation'
+                  : 'availability'
+            }
             key={candidateId}
             candidateId={candidateId}
             rpc={rpc}
@@ -762,9 +791,15 @@ export function PagedCandidate360({
             )}
           </>
         )}
-        {!['profile', 'contacts', 'readiness', 'scorecards', 'availabilityHistory'].includes(
-          section,
-        ) &&
+        {![
+          'profile',
+          'contacts',
+          'readiness',
+          'scorecards',
+          'availabilityHistory',
+          'employmentHistory',
+          'compensationHistory',
+        ].includes(section) &&
           !page &&
           !error && <p role="status">Loading candidate section…</p>}
         {page && page.sectionKey === section && (

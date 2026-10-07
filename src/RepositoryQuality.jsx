@@ -1,9 +1,13 @@
+import { DuplicateReview } from './DuplicateReview.jsx';
 import React, { useEffect, useState } from 'react';
 import { Button, Field } from './ui.jsx';
 import { repositoryRead } from './pagedRepository.js';
 import { getRole } from './repository.js';
 
 const QUEUES = {
+  'employment-fact-review': 'Employment lacks a recent confirmation matching the current profile',
+  'availability-fact-review':
+    'Availability lacks a recent confirmation matching the current profile',
   'missing-email': 'Primary email missing',
   'missing-phone': 'Primary phone missing',
   'missing-availability': 'Notice period unknown',
@@ -12,7 +16,12 @@ const QUEUES = {
   'missing-current-skill-evidence': 'No current validated skill evidence',
 };
 
-export function RepositoryQuality({ rpc = repositoryRead, onOpen, admin = getRole() === 'admin' }) {
+export function RepositoryQuality({
+  rpc = repositoryRead,
+  onOpen,
+  onSettings,
+  admin = getRole() === 'admin',
+}) {
   const [kind, setKind] = useState('stale-profile'),
     [cursors, setCursors] = useState([null]);
   const [page, setPage] = useState(null),
@@ -20,6 +29,7 @@ export function RepositoryQuality({ rpc = repositoryRead, onOpen, admin = getRol
     [revision, setRevision] = useState(0);
   const [capacity, setCapacity] = useState(null),
     [capacityError, setCapacityError] = useState('');
+  const [duplicates, setDuplicates] = useState(false);
   const cursor = cursors.at(-1);
   useEffect(() => {
     let active = true;
@@ -91,6 +101,26 @@ export function RepositoryQuality({ rpc = repositoryRead, onOpen, admin = getRol
           Review recorded facts without loading the complete workspace. Findings do not establish
           readiness or verify a candidate automatically.
         </p>
+        <Button variant="secondary" onClick={() => setDuplicates((value) => !value)}>
+          {duplicates ? 'Close duplicate review' : 'Open duplicate review'}
+        </Button>
+        {duplicates && <DuplicateReview rpc={rpc} onUpdated={refresh} />}
+        {onSettings && (
+          <>
+            <Button variant="secondary" onClick={onSettings}>
+              Review saved import errors
+            </Button>
+            {admin && (
+              <Button variant="secondary" onClick={onSettings}>
+                Review taxonomy aliases
+              </Button>
+            )}
+            <p>
+              Saved imports retain row errors and reviewed corrections. Workspace settings contains
+              the shared skill taxonomy.
+            </p>
+          </>
+        )}
         <Field label="Quality queue">
           <select
             value={kind}
@@ -153,7 +183,21 @@ export function RepositoryQuality({ rpc = repositoryRead, onOpen, admin = getRol
                       <td>{row.verified || 'Unknown'}</td>
                       <td>{row.flags.map((flag) => QUEUES[flag]).join('; ')}</td>
                       <td>
-                        <Button variant="secondary" onClick={() => onOpen?.(row.id)}>
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            onOpen?.(
+                              row.id,
+                              kind.includes('employment')
+                                ? 'Employment'
+                                : kind.includes('availability')
+                                  ? 'Availability'
+                                  : kind.includes('email') || kind.includes('phone')
+                                    ? 'Contacts'
+                                    : 'Overview',
+                            )
+                          }
+                        >
                           Review candidate {row.anthroId}
                         </Button>
                       </td>

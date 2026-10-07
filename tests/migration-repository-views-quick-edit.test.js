@@ -27,6 +27,8 @@ test('personal views, sorted cursors and quick edits enforce scope, quotas, repl
       'utf8',
     ),
   );
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com');
     insert into workspaces(id,name) values('${id(11)}','One'),('${id(12)}','Two');
     insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
@@ -210,7 +212,7 @@ test('personal views, sorted cursors and quick edits enforce scope, quotas, repl
   await db.exec('reset role');
   const snapshot = (
     await db.query(
-      'select snapshot from public.history where "entityId"=$1 and snapshot->>\'name\'=$2',
+      `select snapshot from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where "entityId"=$1 and snapshot->>'name'=$2`,
       [id(101), facts.fields.name],
     )
   ).rows;

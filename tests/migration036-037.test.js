@@ -19,6 +19,8 @@ test('integrations, hosted retrieval and AI review enforce permissions, freshnes
   // Reapplying migrations must preserve records and permissions.
   for (const name of ['036_integrations.sql', '037_intelligence.sql'])
     await db.exec(await readFile(new URL(name, path), 'utf8'));
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com');
     insert into workspaces(id,name) values('${id(11)}','Team'),('${id(12)}','Other');
     insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');`);
@@ -170,7 +172,7 @@ test('integrations, hosted retrieval and AI review enforce permissions, freshnes
   assert.equal((await rpc('api_intelligence_drafts'))[0].provider, 'openai');
   const snapshots = (
     await db.query(
-      "select snapshot from history where \"entityType\" in ('intelligenceRequests','webhookSubscriptions','webhookDeliveries')",
+      `select snapshot from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where "entityType" in ('intelligenceRequests','webhookSubscriptions','webhookDeliveries')`,
     )
   ).rows;
   assert.ok(snapshots.length > 0);

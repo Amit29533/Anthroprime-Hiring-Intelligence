@@ -66,7 +66,7 @@ test('custom field definitions and values enforce roles, types, history, sync an
   assert.equal(
     (
       await db.query(
-        `select snapshot->'custom'->>'Seats' as seats from history where "entityId"='${id(21)}' and action='clients updated'`,
+        `select snapshot->'custom'->>'Seats' as seats from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where "entityId"='${id(21)}' and action='clients updated'`,
       )
     ).rows[0].seats,
     '0',

@@ -28,6 +28,9 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
     const url = new URL(typeof input === 'string' ? input : input.url);
     const body = init.body ? JSON.parse(init.body) : {};
     calls.push(url.pathname);
+    const projected = url.pathname.endsWith('/rpc/api_legacy_rows');
+    if (projected) url.pathname = '/rest/v1/' + body.p_table;
+    const tableJson = (value) => json(projected ? { rows: value } : value);
     if (url.pathname.endsWith('/auth/v1/token'))
       return json({
         access_token: 'fake-token',
@@ -76,9 +79,9 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
           : { rows: [], more: false },
       );
     if (url.pathname === '/rest/v1/settings')
-      return json([{ id: 'workspace', custom: { pagedRepository: true } }]);
+      return tableJson([{ id: 'workspace', custom: { pagedRepository: true } }]);
     if (url.pathname === '/rest/v1/candidates')
-      return json([
+      return tableJson([
         {
           id: PERSON,
           name: 'Full candidate',
@@ -97,7 +100,7 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
         }),
         { status: 404, headers: { 'Content-Type': 'application/json' } },
       );
-    return json([]);
+    return tableJson([]);
   };
   t.after(async () => {
     cleanup();
@@ -140,7 +143,8 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   await settle();
   fireEvent.click(screen.getByRole('button', { name: 'More filters & bulk actions' }));
   await settle(10);
-  assert.ok(calls.includes('/rest/v1/candidates'));
+  assert.ok(calls.includes('/rest/v1/rpc/api_legacy_rows'));
+  assert.equal(calls.includes('/rest/v1/candidates'), false);
   assert.ok(calls.includes('/rest/v1/documents'));
   assert.ok(await screen.findByText('Full candidate', {}, { timeout: 10000 }));
   assert.equal(screen.queryByRole('button', { name: 'More filters & bulk actions' }), null);

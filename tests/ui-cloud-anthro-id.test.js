@@ -13,11 +13,12 @@ test('cloud upserts omit generated identity and derived aliases while retaining 
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(typeof input === 'string' ? input : input.url);
     let data = [];
-    if (url.pathname === '/rest/v1/candidates') {
-      const rows = JSON.parse(init.body);
+    if (url.pathname === '/rest/v1/rpc/api_save_candidates') {
+      const rows = JSON.parse(init.body).p_rows;
       bodies.push(rows);
-      data = rows.map((row) => ({ ...row, anthroNumber: 41, anthroId: anthroIdFor(41) }));
+      data = { rows: rows.map((row) => ({ ...row, anthroNumber: 41, anthroId: anthroIdFor(41) })) };
     }
+    if (url.pathname === '/rest/v1/rpc/api_legacy_rows') data = { rows: [] };
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

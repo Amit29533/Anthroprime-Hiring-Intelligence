@@ -32,7 +32,15 @@ const json = (data, status = 200) =>
 async function cloudFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url);
   const method = init.method || input.method || 'GET';
-  requests.push({ method, path: url.pathname, query: url.search });
+  if (!init.fixtureProjection) requests.push({ method, path: url.pathname, query: url.search });
+  if (url.pathname === '/rest/v1/rpc/api_legacy_rows') {
+    const parameters = JSON.parse(init.body);
+    const response = await cloudFetch(new URL('/rest/v1/' + parameters.p_table, url).href, {
+      method: 'GET',
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
   if (url.pathname === '/rest/v1/rpc/api_server_execution_status') return json(false);
   const args = init.body ? JSON.parse(init.body) : {};
   if (url.pathname === '/rest/v1/rpc/api_create_import') {

@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -198,10 +199,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await rpc('worker_finish_webhook', [delivery.id, delivery.lease, true, '']);
   await act(1);
   await rpc('api_rotate_webhook', [sub, 'c'.repeat(40)]);
-  await db.query('update candidates set "mergedInto"=$1 where id=$2', [
-    second.candidateId,
-    first.candidateId,
-  ]);
+  await reviewedMerge(db, second.candidateId, first.candidateId);
   await db.exec('reset role');
   assert.equal(
     (

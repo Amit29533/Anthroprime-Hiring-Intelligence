@@ -28,6 +28,7 @@ export const getRole = () => currentRole;
 // the settings screen can show a link that actually works instead of a placeholder.
 let currentWorkspaceId = '';
 let currentWorkspaces = [];
+let workspaceContextRevision = 0;
 export const getWorkspaceId = () => currentWorkspaceId;
 export const getWorkspaces = () => currentWorkspaces.map((workspace) => ({ ...workspace }));
 export const getWorkspace = () =>
@@ -37,6 +38,7 @@ export const canExportForRole = canWriteForRole;
 
 // A new cloud identity must not inherit the previous account's UI permissions while loading.
 export function resetRoleForSessionChange() {
+  workspaceContextRevision++;
   currentRole = cloud ? 'viewer' : 'admin';
   currentWorkspaceId = '';
   currentWorkspaces = [];
@@ -46,12 +48,15 @@ import { TABLES, emptyData, normalizeData } from './schema.js';
 const STORAGE = 'ecod-demo-v1';
 
 function applyWorkspaceContext(workspaces, activeWorkspace) {
+  workspaceContextRevision++;
   currentWorkspaces = (workspaces || [])
     .filter((workspace) => workspace?.id)
     .map((workspace) => ({
       id: workspace.id,
       name: String(workspace.name || 'Untitled workspace'),
-      role: ['admin', 'recruiter', 'viewer'].includes(workspace.role) ? workspace.role : 'viewer',
+      role: ['admin', 'recruiter', 'viewer', 'assessor', 'sales'].includes(workspace.role)
+        ? workspace.role
+        : 'viewer',
     }));
   const active =
     currentWorkspaces.find((workspace) => workspace.id === activeWorkspace) ||
@@ -62,8 +67,22 @@ function applyWorkspaceContext(workspaces, activeWorkspace) {
   return active;
 }
 
+export async function refreshWorkspaceAccess() {
+  const revision = workspaceContextRevision;
+  const client = await getSupabase();
+  const { data, error } = await client.rpc('api_my_workspaces');
+  if (revision !== workspaceContextRevision) return getWorkspace();
+  if (error || !Array.isArray(data?.workspaces))
+    throw new Error(error?.message || 'Workspace access could not be verified.');
+  const active = applyWorkspaceContext(data.workspaces, data.activeWorkspace);
+  if (!active) throw new Error('Your workspace access has been removed.');
+  return active;
+}
+
 async function loadWorkspaceContext(supabase) {
+  const revision = workspaceContextRevision;
   const { data: payload, error: rpcError } = await supabase.rpc('api_my_workspaces');
+  if (revision !== workspaceContextRevision) return getWorkspace();
   if (!rpcError && payload && Array.isArray(payload.workspaces)) {
     if (payload.error) throw new Error(payload.error);
     const active = applyWorkspaceContext(payload.workspaces, payload.activeWorkspace);
@@ -90,6 +109,7 @@ async function loadWorkspaceContext(supabase) {
     .select('id,name')
     .eq('id', membership.workspace_id)
     .maybeSingle();
+  if (revision !== workspaceContextRevision) return getWorkspace();
   return applyWorkspaceContext(
     [
       {
@@ -154,6 +174,7 @@ export async function loadData({ forceFull = false } = {}) {
   const supabase = await getSupabase();
   const data = emptyData();
   await loadWorkspaceContext(supabase);
+  if (['assessor', 'sales'].includes(getRole())) return { ...data, assignedOnly: true };
   if (!forceFull) {
     const { data: settings, error } = await supabase
       .from('settings')
@@ -175,11 +196,16 @@ export async function loadData({ forceFull = false } = {}) {
     TABLES.map(async (table) => {
       let from = 0;
       while (true) {
-        const { data: rows, error } = await supabase
-          .from(table)
-          .select('*')
-          .order('id')
-          .range(from, from + 999);
+        const projected = ['candidates', 'history', 'offers', 'submissions'].includes(table);
+        const response = projected
+          ? await supabase.rpc('api_legacy_rows', { p_table: table, p_offset: from, p_limit: 1000 })
+          : await supabase
+              .from(table)
+              .select('*')
+              .order('id')
+              .range(from, from + 999);
+        const { error } = response;
+        const rows = projected ? response.data?.rows : response.data;
         if (error) {
           if (
             ['assessmentTemplates', 'talentPools', 'poolMembers'].includes(table) &&
@@ -190,6 +216,8 @@ export async function loadData({ forceFull = false } = {}) {
             );
           throw error;
         }
+        if (!Array.isArray(rows) || rows.length > 1000)
+          throw new Error('Workspace returned an invalid projected page.');
         data[table].push(...rows);
         if (rows.length < 1000) break;
         from += 1000;
@@ -306,16 +334,40 @@ export async function saveRows(table, rows, current, { identityLocked = false } 
               delete saved.anthroNumber;
               delete saved.anthroAliases;
               delete saved.processingRestricted;
+              delete saved.mergedInto;
+              if (getRole() !== 'admin') {
+                delete saved.current;
+                delete saved.expected;
+                delete saved.currency;
+              }
               return saved;
             })
-          : rows;
-    const { data, error } = await supabase.from(table).upsert(writableRows).select();
+          : table === 'offers'
+            ? rows.map((row) => {
+                const saved = { ...row };
+                delete saved.termsApproved;
+                if (getRole() !== 'admin')
+                  for (const key of ['ctc', 'approvedTerms', 'approvedAt', 'approvedBy'])
+                    delete saved[key];
+                return saved;
+              })
+            : rows;
+    const response = ['candidates', 'offers'].includes(table)
+      ? await supabase.rpc(table === 'candidates' ? 'api_save_candidates' : 'api_save_offers', {
+          p_rows: writableRows,
+        })
+      : await supabase.from(table).upsert(writableRows).select();
+    const { error } = response;
+    const data = ['candidates', 'offers'].includes(table) ? response.data?.rows : response.data;
     if (error) throw error;
-    const { data: recentHistory } = await supabase
-      .from('history')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(historyRefreshLimit(data.length));
+    if (!Array.isArray(data)) throw new Error('Workspace returned an invalid save response.');
+    const { data: historyResponse, error: historyError } = await supabase.rpc('api_legacy_rows', {
+      p_table: 'history',
+      p_offset: 0,
+      p_limit: 1000,
+    });
+    if (historyError) throw historyError;
+    const recentHistory = historyResponse?.rows;
     return {
       rows: table === 'candidates' ? data.map((row) => normalizeRow(table, row)) : data,
       history: mergeHistory(current.history || [], recentHistory || []),

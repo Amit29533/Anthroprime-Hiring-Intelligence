@@ -40,7 +40,8 @@ export const offerTermsChanged = (before = {}, after = {}) =>
 /** True only when an approval exists for the exact current terms. */
 export const offerApprovalCurrent = (offer) =>
   Boolean(
-    offer?.approvedAt && offer?.approvedTerms && !offerTermsChanged(offer.approvedTerms, offer),
+    offer?.termsApproved === true ||
+      (offer?.approvedAt && offer?.approvedTerms && !offerTermsChanged(offer.approvedTerms, offer)),
   );
 
 /** True while an approvals-enabled workspace still owes this draft an approval. */

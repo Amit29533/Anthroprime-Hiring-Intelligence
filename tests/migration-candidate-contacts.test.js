@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -149,12 +150,11 @@ test('alternate contacts preserve provenance and history, protect primary writes
     'same contact in another workspace remains isolated',
   );
   await act(2);
-  await db.exec(
-    `update candidates set "mergedInto"='${id(103)}',email='',phone='' where id='${id(101)}';`,
-  );
+  await reviewedMerge(db, id(103), id(101));
   page = await read(101);
   assert.equal(page.candidateId, id(103));
-  assert.equal(page.rows.length, 2);
+  assert.ok(page.rows.length >= 2);
+  assert.ok(page.rows.some((c) => c.source === 'Reviewed merge' && c.verified_at === null));
   assert.equal(page.rows.find((c) => c.id === id(201)).preferred, false);
   assert.equal(page.rows.find((c) => c.id === id(201)).verified_by, id(2));
   assert.equal(page.events.filter((e) => e.action === 'merged').length, 2);
@@ -215,7 +215,8 @@ test('alternate contacts preserve provenance and history, protect primary writes
   assert.equal(page.rows.find((c) => c.id === id(301)).version, 4);
   assert.equal(page.rows.find((c) => c.id === id(302)).preferred, true);
   assert.equal(page.events.filter((e) => e.action === 'preference_replaced').length, 1);
-  for (let contact = 400; contact < 427; contact++) {
+  const remaining = 30 - page.rows.filter((contact) => contact.active).length;
+  for (let contact = 400; contact < 400 + remaining; contact++) {
     await change(
       'add',
       contact,

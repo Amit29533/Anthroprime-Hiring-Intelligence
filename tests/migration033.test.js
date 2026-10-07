@@ -13,6 +13,8 @@ test('migration 033 isolates agreements and filters candidates without leaking c
   for (const file of (await readdir(path)).filter((name) => /^\d+.*\.sql$/.test(name)).sort())
     await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(await readFile(new URL('033_client_documents_filters.sql', path), 'utf8'));
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(
     `insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','outside@e.com');insert into public.workspaces(id,name) values('${id(11)}','Team'),('${id(12)}','Other');insert into public.memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');`,
   );
@@ -23,9 +25,11 @@ test('migration 033 isolates agreements and filters candidates without leaking c
   const rpc = async (args = "'' , '',null,1000,0") =>
     (await db.query(`select public.api_filter_candidates(${args}) as result`)).rows[0].result;
   await act(1);
+  await db.exec('reset role');
   await db.exec(
     `insert into public.clients(id,name) values('${id(31)}','Orion');insert into public.candidates(id,name,email,company,engagement,expected) values('${id(21)}','A','a@e.com','Deloitte','Contract',30),('${id(22)}','B','b@e.com','Deloitte','Permanent',45),('${id(23)}','C','c@e.com','Other','Contract',null),('${id(24)}','Retired','r@e.com','Deloitte','Contract',10);update public.candidates set "mergedInto"='${id(21)}' where id='${id(24)}';`,
   );
+  await db.exec('set role authenticated');
   assert.deepEqual((await rpc()).ids, [id(21), id(22), id(23)]);
   assert.deepEqual((await rpc("'DELO', 'Contract',35,1000,0")).ids, [id(21)]);
   assert.deepEqual(
@@ -89,7 +93,7 @@ test('migration 033 isolates agreements and filters candidates without leaking c
   assert.equal(
     (
       await db.query(
-        `select count(*)::int as n from public.history where snapshot->>'clientId' is not null`,
+        `select count(*)::int as n from jsonb_to_recordset(api_legacy_rows('history')->'rows') as h("entityType" text,"entityId" uuid,action text,snapshot jsonb) where snapshot->>'clientId' is not null`,
       )
     ).rows[0].n,
     0,

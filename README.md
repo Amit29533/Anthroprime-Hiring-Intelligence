@@ -1,5 +1,7 @@
 # ECOD Talent Intelligence
 
+Latest milestone: [Stage 1 verified facts, reviewed duplicates and scoped permissions](docs/STAGE_1_COMPLETION_CHECKLIST.md). Apply the complete migration chain through `20261007141611_stage1_fact_quality.sql` before activating this frontend. No new service or credential; local implementation and hosted acceptance are recorded separately.
+
 Latest continuation: [five-phase code audit](docs/FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md), bounded repository quality queues and admin Anthro-ID capacity warnings. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql` before activating the new panels. Phases 1–3 and 5 remain in progress; hosted activation is pending. The unsupported legacy cloud anonymization action is disabled.
 
 Current build plan: [five phases on the existing stack](docs/CURRENT_STACK_BUILD_PHASES.md). Phase 5 has started with a [bounded recruiter worklist](docs/PHASE_N5_RECRUITER_WORKLIST.md), personal display settings and retry-safe internal task/feedback handling. Apply migrations through `20261007114511_recruiter_worklist.sql` before activating it. Changes are local only; remaining Phase 5 slices and hosted acceptance are still pending.

@@ -1,3 +1,4 @@
+import { DuplicateReview } from './DuplicateReview.jsx';
 import { candidateLabel, anthroIdFor } from './anthroId.js';
 import { LifecycleAnalytics } from './LifecycleAnalytics.jsx';
 import { DocumentReputation } from './DocumentReputation.jsx';
@@ -1839,6 +1840,12 @@ function DataTools({ data, onSave, onReload, notify, audit }) {
       setBusy(false);
     }
   }
+  if (cloud)
+    return (
+      <section className="panel">
+        <DuplicateReview onUpdated={() => onReload?.()} />
+      </section>
+    );
   return (
     <section className="panel">
       <PanelHeading

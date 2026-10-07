@@ -22,6 +22,8 @@ test('paged reads bound payloads, enforce tenant/role access and resolve retired
       'utf8',
     ),
   );
+  for (const name of (await readdir(path)).filter((n) => n.includes('_stage1_')).sort())
+    await db.exec(await readFile(new URL(name, path), 'utf8'));
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com');
  insert into workspaces(id,name) values('${id(11)}','One'),('${id(12)}','Two');
  insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
@@ -87,7 +89,6 @@ test('paged reads bound payloads, enforce tenant/role access and resolve retired
     'considerations',
     'enrichment',
     'employmentHistory',
-    'compensationHistory',
     'availabilityHistory',
     'interviews',
     'offers',
@@ -106,7 +107,14 @@ test('paged reads bound payloads, enforce tenant/role access and resolve retired
     rpc('api_candidate_section', [id(101), 'documents;drop table candidates']),
     /Unsupported/,
   );
+  await assert.rejects(
+    rpc('api_candidate_section', [id(101), 'compensationHistory']),
+    /Administrator/,
+  );
   await act(1);
+  assert.ok(
+    Array.isArray((await rpc('api_candidate_section', [id(101), 'compensationHistory'])).rows),
+  );
   assert.equal((await rpc('api_repository_page', [{ maxExpected: 21 }])).rows.length, 50);
   const old = (await rpc('api_candidate_section', [id(102)])).candidate;
   await db.exec(`reset role;update candidates set "mergedInto"='${id(101)}',email='',phone='' where id='${id(102)}';

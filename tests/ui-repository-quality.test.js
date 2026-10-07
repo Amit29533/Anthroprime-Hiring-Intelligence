@@ -80,3 +80,27 @@ test('malformed quality/capacity responses never claim a healthy or empty reposi
   assert.equal(screen.queryByText(/allocations remain out/), null);
   assert.equal(screen.queryByText('No matching findings on this page.'), null);
 });
+
+test('quality review provides correction navigation and import/taxonomy handoffs', async () => {
+  let settings = 0;
+  const opened = [];
+  await mount(Quality, {
+    admin: true,
+    onOpen: (...args) => opened.push(args),
+    onSettings: () => settings++,
+    rpc: async (name, args) =>
+      name === 'api_anthro_id_capacity'
+        ? { limit: 99999, consumed: 0, remaining: 99999, level: 'healthy' }
+        : page([{ ...row, flags: [args.p_kind] }]),
+  });
+  await settle();
+  fireEvent.change(screen.getByLabelText('Quality queue'), {
+    target: { value: 'employment-fact-review' },
+  });
+  await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'Review candidate ANTHRO-00001' }));
+  assert.deepEqual(opened.at(-1), ['one', 'Employment']);
+  fireEvent.click(screen.getByRole('button', { name: 'Review saved import errors' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Review taxonomy aliases' }));
+  assert.equal(settings, 2);
+});
