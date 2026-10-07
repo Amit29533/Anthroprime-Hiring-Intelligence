@@ -8,6 +8,7 @@ import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { RecruiterWorklist } from './RecruiterWorklist.jsx';
 import { RepositoryQuality } from './RepositoryQuality.jsx';
+import CandidateProfileEditor from './CandidateProfileEditor.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -685,6 +686,15 @@ export function PagedCandidate360({
             <p>{(profile.skills || []).join(' · ') || 'No skills recorded'}</p>
             {canWriteForRole(getRole()) && (
               <>
+                <CandidateProfileEditor
+                  key={candidateId}
+                  candidateId={candidateId}
+                  rpc={rpc}
+                  onUpdated={(fields) => {
+                    setProfile((p) => ({ ...p, ...fields }));
+                    onUpdated();
+                  }}
+                />
                 {editError && <p role="alert">{editError}</p>}
                 {edit ? (
                   <form onSubmit={saveQuickEdit} aria-label="Candidate quick edit">

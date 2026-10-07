@@ -18,6 +18,15 @@ test('personal views, sorted cursors and quick edits enforce scope, quotas, repl
   for (const file of files) await db.exec(await readFile(new URL(file, path), 'utf8'));
   const migration = files.find((f) => f.endsWith('_repository_views_and_quick_edit.sql'));
   await db.exec(await readFile(new URL(migration, path), 'utf8'));
+  await db.exec(
+    await readFile(
+      new URL(
+        files.find((f) => f.endsWith('_candidate_profile_edit.sql')),
+        path,
+      ),
+      'utf8',
+    ),
+  );
   await db.exec(`insert into auth.users values('${id(1)}','admin@e.com'),('${id(2)}','recruiter@e.com'),('${id(3)}','viewer@e.com'),('${id(4)}','other@e.com');
     insert into workspaces(id,name) values('${id(11)}','One'),('${id(12)}','Two');
     insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
@@ -165,7 +174,66 @@ test('personal views, sorted cursors and quick edits enforce scope, quotas, repl
   );
   assert.equal((await rpc('api_repository_views', ['delete', id(600)])).views.length, 49);
   assert.equal((await rpc('api_repository_views', ['delete', id(600)])).views.length, 49);
+  const facts = await rpc('api_candidate_profile_context', [id(101)]);
+  const wanted = {
+    ...facts.fields,
+    name: 'Updated candidate',
+    company: 'New employer',
+    experience: 5.5,
+    relevantExperience: 4,
+    notice: 0,
+  };
+  const changed = await rpc('api_candidate_profile_edit', [id(101), facts.token, wanted]);
+  assert.equal(changed.fields.notice, 0);
+  assert.equal(changed.fields.experience, 5.5);
+  assert.deepEqual(
+    await rpc('api_candidate_profile_edit', [id(101), facts.token, wanted]),
+    changed,
+  );
+  await assert.rejects(
+    rpc('api_candidate_profile_edit', [id(101), facts.token, { ...wanted, name: 'Lost change' }]),
+    /changed/,
+  );
+  for (const bad of [
+    { ...wanted, verified: '2030-01-01' },
+    { ...wanted, notice: -1 },
+    { ...wanted, notice: 0.5 },
+    { ...wanted, experience: '5' },
+    { ...wanted, name: ' ' },
+    { ...wanted, relevantExperience: 99 },
+    { ...wanted, summary: null },
+  ]) {
+    await assert.rejects(rpc('api_candidate_profile_edit', [id(101), changed.token, bad]));
+  }
+  const history = (await rpc('api_candidate_section', [id(101), 'history'])).rows;
+  assert.equal(history.filter((r) => r.action === 'Profile updated').length, 2);
+  await db.exec('reset role');
+  const snapshot = (
+    await db.query(
+      'select snapshot from public.history where "entityId"=$1 and snapshot->>\'name\'=$2',
+      [id(101), facts.fields.name],
+    )
+  ).rows;
+  assert.ok(snapshot.some((row) => row.snapshot.company === facts.fields.company));
+  await act(2);
+  const preserved = (await rpc('api_candidate_section', [id(101), 'profile'])).candidate;
+  assert.equal(preserved.verified, '2026-09-02');
+  assert.equal(preserved.anthroId, profile.anthroId);
+  const unknown = await rpc('api_candidate_profile_edit', [
+    id(101),
+    changed.token,
+    { ...wanted, experience: null, relevantExperience: null, notice: null },
+  ]);
+  assert.equal(unknown.fields.notice, null);
+  await assert.rejects(rpc('api_candidate_profile_context', [id(500)]), /not found/);
+  await act(3);
+  await assert.rejects(rpc('api_candidate_profile_context', [id(101)]), /Editor/);
+  await assert.rejects(
+    rpc('api_candidate_profile_edit', [id(101), unknown.token, wanted]),
+    /Editor/,
+  );
   await act(0, 'anon');
+  await assert.rejects(rpc('api_candidate_profile_context', [id(101)]), /permission denied/);
   await assert.rejects(rpc('api_repository_views'), /permission denied/);
   await act(0);
   await assert.rejects(rpc('api_repository_views'), /membership/);

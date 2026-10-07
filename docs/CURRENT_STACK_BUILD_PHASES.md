@@ -16,7 +16,9 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 
 - Implemented first slice: personal saved views, experience-range/tag filters, server-side name/recent-verification/experience/notice sorts, and conflict-aware owner/next-action quick editing in paged Candidate 360. See [slice contract](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md).
 - Continuation: bounded quality review and administrator Anthro-ID capacity warnings now appear on the cloud paged overview. Capacity uses the global sequence high-water position, accounts for burned allocations and never allocates/recycles an ID. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql`.
-- Next slices: richer paged saved filters; broader candidate editing with transactional history; bounded matching, reports, bulk previews/exports and cross-entity search; custom-field filtering/report metadata; broader action-board ownership/flows.
+- Continuation: [candidate-scoped factual editing](PHASE_N1_CANDIDATE_PROFILE_EDIT.md) adds eight nonfinancial facts with strict server validation, row-lock/conflict checks, retry-safe no-op behavior and the existing transactional profile history. Apply migrations through `20261007124249_candidate_profile_edit.sql`. Broader sourced/dated facts and the field-permission matrix remain pending.
+- Candidate editing verification: all 806 Node tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed. Local advisors remain unavailable; hosted acceptance remains pending. Local commits only.
+- Next slices: richer paged saved filters; richer sourced candidate fact editing; bounded matching, reports, bulk previews/exports and cross-entity search; custom-field filtering/report metadata; broader action-board ownership/flows.
 - Experience: keep the common browse → filter → open → next-action workflow in paged mode, explain errors and preserve failed edit drafts.
 - Exit: these workflows operate without loading full candidate/document/history tables, preserve identity/history and obey permission projections. Large work is resumable and bounded.
 
