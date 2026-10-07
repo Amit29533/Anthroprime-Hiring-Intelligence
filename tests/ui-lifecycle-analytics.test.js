@@ -60,3 +60,62 @@ test('missing migration is visible and demo never fabricates historical metrics'
   assert.equal(calls, 0);
   assert.ok(screen.getByText(/Demo records have no verified transition history/));
 });
+
+const outcomes = {
+  trackingSince: '2026-10-07T00:00:00Z',
+  timings: [
+    {
+      metric: 'submission',
+      tracked: 2,
+      completed: 1,
+      unobserved: 1,
+      averageDays: 2,
+      medianDays: 2,
+      p90Days: 2,
+    },
+  ],
+  sources: [{ source: 'Referral', total: 2, assessed: 1, placed: 1, placementPct: 50 }],
+  enrichment: { plans: 1, completed: 1, reassessed: 1, readyAfterReassessment: 1 },
+};
+
+test('outcome analytics explain evidence limits and export the selected period with visible failures', async () => {
+  const exports = [];
+  await mount(Panel, {
+    isCloud: true,
+    role: 'recruiter',
+    fetchMetrics: async () => ({ ...sample, outcomes }),
+    exportMetrics: async (days) => {
+      exports.push(days);
+      throw new Error('Export quota reached');
+    },
+  });
+  await settle();
+  assert.ok(screen.getByText('Source to active placement'));
+  assert.ok(screen.getByText('50%'));
+  assert.ok(screen.getByText(/does not prove training caused improvement/));
+  fireEvent.change(screen.getByLabelText('Historical cohort period'), { target: { value: '30' } });
+  await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'Export historical metrics' }));
+  await settle();
+  assert.deepEqual(exports, [30]);
+  assert.match(screen.getByRole('alert').textContent, /quota reached/);
+});
+
+test('viewers can inspect outcomes but cannot initiate exports; old migrations remain usable', async () => {
+  await mount(Panel, {
+    isCloud: true,
+    role: 'viewer',
+    fetchMetrics: async () => ({ ...sample, outcomes }),
+  });
+  await settle();
+  assert.ok(screen.getByText('Source to active placement'));
+  assert.equal(screen.queryByRole('button', { name: 'Export historical metrics' }), null);
+  cleanup();
+  await mount(Panel, {
+    isCloud: true,
+    fetchMetrics: async () => ({ ...sample, outcomesUnavailable: true }),
+  });
+  await settle();
+  assert.ok(screen.getByText(/3 tracked demand journeys/));
+  assert.ok(screen.getByText(/Apply the ecod_outcome_analytics migration/));
+});

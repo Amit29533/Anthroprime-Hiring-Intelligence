@@ -1,5 +1,7 @@
 # ECOD gap closure and phased deployment
 
+Phase A2 adds [observed outcomes and hiring velocity](PHASE_A_OUTCOME_ANALYTICS.md): assessment/enrichment/demand/placement events, source-to-active-placement cohorts, first-shortlist/submission/placement/reassessment timing and audited aggregate CSVs. Dedicated validated-readiness and custom report-builder history fields remain pending; the six remaining feature groups are not complete.
+
 Phase E1 adds [internal interview preparation reminders](PHASE_E_INTERNAL_REMINDERS.md) locally using a minute-scheduled Netlify worker. Atomic shared tasks, private receipts, bounded retries, invalidation and admin controls work without a browser; external communication/delivery remains pending.
 
 Phase D5 adds [optional administrator MFA](PHASE_D_PRIVILEGED_MFA.md) locally: Settings enrollment/step-up and trusted JWT assurance checks for cases/holds, audited candidate exports and document signing. Activation requires D1/D2 controls. General access governance and SSO remain pending.

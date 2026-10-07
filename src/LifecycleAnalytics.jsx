@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { cloud, getSupabase } from './repository.js';
 import { Button, PanelHeading } from './ui.jsx';
+import { exportOutcomeMetrics, TIMING_LABELS } from './ecodOutcomeAnalytics.js';
+import { getRole } from './repository.js';
 
 export async function fetchLifecycleAnalytics(days) {
   const client = await getSupabase();
@@ -11,21 +13,34 @@ export async function fetchLifecycleAnalytics(days) {
         ? 'Apply the lifecycle_analytics migration to enable historical metrics.'
         : error.message,
     );
-  return data;
+  const { data: outcomes, error: outcomeError } = await client.rpc('api_ecod_outcome_analytics', {
+    p_days: days,
+  });
+  if (outcomeError && !['PGRST202', '42883'].includes(outcomeError.code))
+    throw new Error(outcomeError.message);
+  return { ...data, outcomes, outcomesUnavailable: !!outcomeError };
 }
 
-export function LifecycleAnalytics({ isCloud = cloud, fetchMetrics = fetchLifecycleAnalytics }) {
+export function LifecycleAnalytics({
+  isCloud = cloud,
+  fetchMetrics = fetchLifecycleAnalytics,
+  exportMetrics = exportOutcomeMetrics,
+  role = getRole(),
+}) {
   const [days, setDays] = useState(90);
   const [metrics, setMetrics] = useState(null);
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
   useEffect(() => {
     if (!isCloud) return;
     let active = true;
     setBusy(true);
     setMetrics(null);
     setError('');
+    setExportError('');
     Promise.resolve()
       .then(() => fetchMetrics(days))
       .then((result) => {
@@ -149,6 +164,105 @@ export function LifecycleAnalytics({ isCloud = cloud, fetchMetrics = fetchLifecy
                     ))}
                   </tbody>
                 </table>
+                {metrics.outcomesUnavailable && (
+                  <p role="status">
+                    Apply the ecod_outcome_analytics migration to enable placement, enrichment and
+                    timing metrics.
+                  </p>
+                )}
+                {metrics.outcomes && (
+                  <>
+                    <h3>Observed outcomes and hiring velocity</h3>
+                    <p>
+                      These cohorts start after outcome tracking began{' '}
+                      {new Date(metrics.outcomes.trackingSince).toLocaleDateString()}. Only
+                      completed observations contribute to timing averages; unobserved journeys may
+                      still be open, ended without that milestone, or missing a recorded stage.
+                    </p>
+                    <table>
+                      <caption>Historical timing in days</caption>
+                      <thead>
+                        <tr>
+                          <th>Journey</th>
+                          <th>Observed / tracked</th>
+                          <th>Unobserved</th>
+                          <th>Average</th>
+                          <th>Median</th>
+                          <th>90th percentile</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {metrics.outcomes.timings.map((r) => (
+                          <tr key={r.metric}>
+                            <td>{TIMING_LABELS[r.metric]}</td>
+                            <td>
+                              {r.completed} / {r.tracked}
+                            </td>
+                            <td>{r.unobserved}</td>
+                            <td>{r.averageDays ?? '—'}</td>
+                            <td>{r.medianDays ?? '—'}</td>
+                            <td>{r.p90Days ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <table>
+                      <caption>Source to active placement</caption>
+                      <thead>
+                        <tr>
+                          <th>Source at candidate entry</th>
+                          <th>Candidates</th>
+                          <th>Assessed</th>
+                          <th>Placed</th>
+                          <th>Observed placement rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {metrics.outcomes.sources.map((r) => (
+                          <tr key={r.source}>
+                            <td>{r.source || 'Unknown'}</td>
+                            <td>{r.total}</td>
+                            <td>{r.assessed}</td>
+                            <td>{r.placed}</td>
+                            <td>{r.placementPct == null ? '—' : `${r.placementPct}%`}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p>
+                      {metrics.outcomes.enrichment.completed} of {metrics.outcomes.enrichment.plans}{' '}
+                      tracked enrichment plans completed · {metrics.outcomes.enrichment.reassessed}{' '}
+                      subsequently reassessed · {metrics.outcomes.enrichment.readyAfterReassessment}{' '}
+                      reached Ready after reassessment.
+                    </p>
+                    <p className="muted">
+                      Reassessment must follow completion and match the plan's skill and demand
+                      scope. This sequence does not prove training caused improvement or that all
+                      skills passed validation. A placement counts only after an actual Active
+                      event; Planned or a Deployed pipeline label alone does not count. First
+                      shortlist means the first candidate linked to a demand.
+                    </p>
+                    {role !== 'viewer' && (
+                      <Button
+                        disabled={busy || exporting}
+                        onClick={async () => {
+                          setExporting(true);
+                          setExportError('');
+                          try {
+                            await exportMetrics(days);
+                          } catch (err) {
+                            setExportError(err.message || 'Historical export failed.');
+                          } finally {
+                            setExporting(false);
+                          }
+                        }}
+                      >
+                        {exporting ? 'Preparing historical CSV…' : 'Export historical metrics'}
+                      </Button>
+                    )}
+                    {exportError && <p role="alert">{exportError}</p>}
+                  </>
+                )}
                 <p className="muted">
                   Tracking began{' '}
                   {metrics.trackingSince

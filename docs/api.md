@@ -308,6 +308,12 @@ The queue table is deliberately excluded from normal repository TABLES and publi
 
 `api_intelligence_drafts(p_candidate=null)` returns up to 50 editor-visible draft summaries and review metadata. `api_review_intelligence(p_id,p_approve,p_content='')` accepts only a current draft; approvals require current source and edited content within 5000 characters. Approval/rejection records reviewer identity; original generated content stays protected in the database. It does not update candidate profiles. New provider/configuration/outbox tables are excluded from bulk workspace backup and sync: dedicated APIs and database-owner backups are required. See [security, signatures and deployment](PHASE4_5_INTEGRATIONS_INTELLIGENCE.md).
 
+## Historical ECOD outcome RPCs (7 October 2026)
+
+`api_ecod_outcome_analytics(p_days=90)` accepts only 30, 90 or 365 days and returns current-workspace aggregate `candidates`, `assessedCandidates`, `placedCandidates`, `sources`, `enrichment` and `timings`, plus server `asOf` and outcome `trackingSince`. Timing rows contain `metric`, `tracked`, `completed`, `unobserved`, `averageDays`, `medianDays` and `p90Days`; missing durations are null. Metrics use observed server events rather than editable business dates. Workspace members, including viewers, can read them.
+
+`api_prepare_ecod_analytics_export(p_days=90)` is editor-only and permits five preparations per actor/workspace per minute. It returns `{receiptId,preparedAt,workspaceId,actor,schemaVersion:1,metrics}` and stores the exact aggregate summary in the read-only `ecodAnalyticsExports` receipt table. Client CSV generation escapes formulas and includes server provenance; no candidate contacts, CV text or commercials are projected. New server-owned coverage, event and receipt data are excluded from the ordinary workspace JSON backup; full database backup is required. See [metric semantics and deployment](PHASE_A_OUTCOME_ANALYTICS.md).
+
 ## Operations RPCs (migration 039)
 
 The private scheduled `index-worker` uses service-only `worker_claim_index(p_limit=20)` and `worker_finish_index(p_workspace,p_candidate,p_lease,p_vector=null,p_failed=false)` to compute local vectors and atomically finish queued profile updates. Claims are leased and obsolete completions return false. Admin-only `api_index_health(p_retry_failed=false)` returns indexed/pending/processing/failed counts and at most 25 failed candidate summaries. The queue is excluded from regular workspace reads/backups; database-owner backups are required.
