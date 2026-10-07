@@ -4,6 +4,13 @@ import { getRole, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
 
+const SORTS = {
+  name: 'Name',
+  verified: 'Recently verified',
+  experience: 'Most experience',
+  notice: 'Shortest notice',
+};
+
 const SECTIONS = [
   ['profile', 'Profile'],
   ['notes', 'Notes'],
@@ -173,6 +180,74 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
     [pending, setPending] = useState(false),
     [revision, setRevision] = useState(0),
     [selected, setSelected] = useState(null);
+  const [views, setViews] = useState([]),
+    [viewId, setViewId] = useState(''),
+    [viewName, setViewName] = useState(''),
+    [viewError, setViewError] = useState(''),
+    [viewBusy, setViewBusy] = useState(false),
+    [viewsLoaded, setViewsLoaded] = useState(false);
+  const [viewsRevision, setViewsRevision] = useState(0);
+  const viewOperation = React.useRef(null),
+    mounted = React.useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    setViewsLoaded(false);
+    setViewError('');
+    Promise.resolve()
+      .then(() => rpc('api_repository_views'))
+      .then((value) => {
+        if (!Array.isArray(value?.views) || value.views.length > 50)
+          throw new Error('Saved views returned an invalid response.');
+        if (active) {
+          setViews(value.views);
+          setViewsLoaded(true);
+        }
+      })
+      .catch((err) => {
+        if (active) setViewError(err.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [rpc, viewsRevision]);
+  async function changeView(action) {
+    setViewBusy(true);
+    setViewError('');
+    try {
+      const signature = JSON.stringify({ name: viewName.trim(), filters: draft });
+      if (action === 'save' && viewOperation.current?.signature !== signature)
+        viewOperation.current = { signature, id: crypto.randomUUID() };
+      const value = await rpc(
+        'api_repository_views',
+        action === 'save'
+          ? {
+              p_action: 'save',
+              p_id: viewOperation.current.id,
+              p_name: viewName.trim(),
+              p_filters: { ...draft },
+            }
+          : { p_action: 'delete', p_id: viewId },
+      );
+      if (!Array.isArray(value?.views) || value.views.length > 50)
+        throw new Error('Saved views returned an invalid response.');
+      if (mounted.current) {
+        setViews(value.views);
+        setViewName('');
+        setViewId('');
+        viewOperation.current = null;
+      }
+    } catch (err) {
+      if (mounted.current) setViewError(err.message);
+    } finally {
+      if (mounted.current) setViewBusy(false);
+    }
+  }
   const cursor = cursors[cursors.length - 1];
   useEffect(() => {
     let active = true;
@@ -202,7 +277,13 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
         type={type}
         step={type === 'number' ? (key === 'maxNotice' ? '1' : 'any') : undefined}
         min={type === 'number' ? 0 : undefined}
-        max={key === 'maxNotice' ? 365 : key === 'minExperience' ? 60 : undefined}
+        max={
+          key === 'maxNotice'
+            ? 365
+            : ['minExperience', 'maxExperience'].includes(key)
+              ? 60
+              : undefined
+        }
         aria-label={label}
         value={draft[key] ?? ''}
         onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
@@ -250,7 +331,22 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
             {field('skill', 'Skill (exact)')}
             {field('employer', 'Employer')}
             {field('minExperience', 'Minimum experience', 'number')}
+            {field('maxExperience', 'Maximum experience', 'number')}
             {field('maxNotice', 'Maximum notice days', 'number')}
+            {field('tag', 'Tag (exact)')}
+            <Field label="Sort candidates">
+              <select
+                aria-label="Sort candidates"
+                value={draft.sort || 'name'}
+                onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
+              >
+                {Object.entries(SORTS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Engagement">
               <select
                 aria-label="Engagement"
@@ -295,16 +391,89 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
           </Button>
           <p>
             Search matches words and quoted phrases; use a minus sign to exclude words. For semantic
-            ranking, saved views, complete exports or matching, open More filters & bulk actions.
+            ranking, shared legacy views, complete exports or matching, open More filters & bulk
+            actions.
           </p>
         </div>
       </form>
+      <section className="panel" aria-label="Personal repository views">
+        <div className="settings-body">
+          <h3>My saved views</h3>
+          <p>
+            Personal to your account and this workspace. Save the filters currently entered above.
+          </p>
+          {viewError && <p role="alert">{viewError}</p>}
+          <Field label="Saved repository view">
+            <select
+              aria-label="Saved repository view"
+              value={viewId}
+              disabled={viewBusy || !viewsLoaded}
+              onChange={(e) => {
+                const view = views.find((v) => v.id === e.target.value);
+                setViewId(e.target.value);
+                setViewError('');
+                if (!view) return;
+                if (view.restricted) {
+                  setViewError(
+                    'This view requires administrator compensation access. Choose another view or delete it.',
+                  );
+                  return;
+                }
+                setDraft({ ...view.filters });
+                setFilters({ ...view.filters });
+                setCursors([null]);
+              }}
+            >
+              <option value="">Choose a view</option>
+              {views.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="New view name">
+            <input
+              aria-label="New view name"
+              disabled={viewBusy}
+              maxLength={80}
+              value={viewName}
+              onChange={(e) => setViewName(e.target.value)}
+            />
+          </Field>
+          <Button
+            disabled={viewBusy || !viewsLoaded || !viewName.trim() || views.length >= 50}
+            onClick={() => changeView('save')}
+          >
+            Save personal view
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={viewBusy || !viewId}
+            onClick={() => {
+              const view = views.find((v) => v.id === viewId);
+              if (view && window.confirm(`Delete your saved view “${view.name}”?`))
+                changeView('delete');
+            }}
+          >
+            Delete selected view
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={viewBusy}
+            onClick={() => setViewsRevision((n) => n + 1)}
+          >
+            Refresh saved views
+          </Button>
+        </div>
+      </section>
       {error && <p role="alert">{error}</p>}
       {pending && <p role="status">Loading candidates…</p>}
       {page && (
         <>
           <p>
-            Page {cursors.length} · {page.rows.length} candidates · sorted by name
+            Page {cursors.length} · {page.rows.length} candidates · {SORTS[filters.sort || 'name']}
           </p>
           {!page.rows.length && <p>No candidates match this search.</p>}
           <div className="cv-review-list">
@@ -339,6 +508,7 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
           rpc={rpc}
           onClose={() => setSelected(null)}
           onFull={() => onFull(selected)}
+          onUpdated={() => setRevision((n) => n + 1)}
         />
       )}
     </>
@@ -351,12 +521,61 @@ export function PagedCandidate360({
   onClose,
   onFull,
   openDocument = signedUrlFor,
+  onUpdated = () => {},
 }) {
   const [section, setSection] = useState('profile'),
     [offset, setOffset] = useState(0),
     [profile, setProfile] = useState(null),
     [page, setPage] = useState(null),
     [error, setError] = useState('');
+  const [edit, setEdit] = useState(null),
+    [editError, setEditError] = useState(''),
+    [editBusy, setEditBusy] = useState(false);
+  const alive = React.useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  async function loadQuickEdit() {
+    setEditBusy(true);
+    setEditError('');
+    try {
+      const value = await rpc('api_candidate_quick_context', { p_candidate: profile.id });
+      if (value?.candidateId !== profile.id || !value.token)
+        throw new Error('Quick edit returned an invalid response.');
+      if (alive.current) setEdit(value);
+    } catch (err) {
+      if (alive.current) setEditError(err.message);
+    } finally {
+      if (alive.current) setEditBusy(false);
+    }
+  }
+  async function saveQuickEdit(e) {
+    e.preventDefault();
+    setEditBusy(true);
+    setEditError('');
+    try {
+      const value = await rpc('api_candidate_quick_edit', {
+        p_candidate: edit.candidateId,
+        p_token: edit.token,
+        p_owner: edit.owner || '',
+        p_next_action: edit.nextAction || '',
+      });
+      if (value?.candidateId !== profile.id || !value.token)
+        throw new Error('Quick edit returned an invalid response.');
+      if (alive.current) {
+        setProfile((p) => ({ ...p, owner: value.owner, nextAction: value.nextAction }));
+        setEdit(null);
+        onUpdated();
+      }
+    } catch (err) {
+      if (alive.current) setEditError(err.message);
+    } finally {
+      if (alive.current) setEditBusy(false);
+    }
+  }
   useEffect(() => {
     let active = true;
     setError('');
@@ -429,6 +648,7 @@ export function PagedCandidate360({
                 'relevantExperience',
                 'notice',
                 'owner',
+                'nextAction',
                 'verified',
               ].map((key) => (
                 <React.Fragment key={key}>
@@ -439,6 +659,59 @@ export function PagedCandidate360({
             </dl>
             <h3>Skills</h3>
             <p>{(profile.skills || []).join(' · ') || 'No skills recorded'}</p>
+            {canWriteForRole(getRole()) && (
+              <>
+                {editError && <p role="alert">{editError}</p>}
+                {edit ? (
+                  <form onSubmit={saveQuickEdit} aria-label="Candidate quick edit">
+                    <Field label="Candidate owner">
+                      <input
+                        aria-label="Candidate owner"
+                        maxLength={120}
+                        disabled={editBusy}
+                        value={edit.owner || ''}
+                        onChange={(e) => setEdit({ ...edit, owner: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Next action">
+                      <textarea
+                        aria-label="Next action"
+                        maxLength={1000}
+                        disabled={editBusy}
+                        value={edit.nextAction || ''}
+                        onChange={(e) => setEdit({ ...edit, nextAction: e.target.value })}
+                      />
+                    </Field>
+                    <Button type="submit" disabled={editBusy}>
+                      Save quick edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={editBusy}
+                      onClick={loadQuickEdit}
+                    >
+                      Reload quick-edit fields
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={editBusy}
+                      onClick={() => {
+                        setEdit(null);
+                        setEditError('');
+                      }}
+                    >
+                      Cancel quick edit
+                    </Button>
+                  </form>
+                ) : (
+                  <Button disabled={editBusy} onClick={loadQuickEdit}>
+                    Edit owner & next action
+                  </Button>
+                )}
+              </>
+            )}
           </>
         )}
         {section !== 'profile' && !page && !error && (

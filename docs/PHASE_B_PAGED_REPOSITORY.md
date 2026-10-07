@@ -1,5 +1,7 @@
 # Phase B3 — Paged repository reads
 
+**7 October 2026 continuation:** [personal saved views, richer filters/sorts and owner/next-action quick editing](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md) remove the full-snapshot fallback for those specific actions. The original limitations below still apply to shared legacy views, broad profile editing, matching, exports and other workflows.
+
 Implemented locally on 6 October 2026. This is an opt-in read mode for cloud startup, candidate browsing and Candidate 360. It does not migrate every workflow to bounded reads. Full matching, semantic ranking, saved views, bulk actions, reports, exports and editing retain their existing complete-snapshot behavior.
 
 ## What changes

@@ -1,5 +1,7 @@
 # Deploy Anthroprime on Netlify
 
+Existing-stack Phase 1 adds [personal repository views and bounded owner/next-action edits](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md). Apply all migrations through `20261007080659_repository_views_and_quick_edit.sql` before enabling its UI. It adds no function, service or credential; the existing paged workspace flag remains authoritative for routing. Follow the newer migration endpoint rather than stopping at E2 below.
+
 E2 [internal freshness reviews](PHASE_E_FRESHNESS_REVIEWS.md) adds the hourly `freshness-review-worker` using existing server Supabase credentials. Apply migrations through `20261007072845_internal_freshness_reviews.sql` before activation; the latest offline build packages 15 functions. Workspaces remain disabled by default.
 
 D7 [erasure scope review](PHASE_D_ERASURE_SCOPE.md) adds database/frontend governance with no new function or credentials. Its original build packaged 14 functions; its migration is `20261007071142_reviewed_erasure_scope.sql`.
@@ -21,18 +23,18 @@ The Vite app, authenticated APIs and scheduled JavaScript jobs deploy together o
 5. Create a private R2 bucket and configure CORS for your exact app origin as described below. Deploy the source through Git so Netlify builds both frontend and functions.
 6. Verify sign-in, a candidate's Anthro-ID, save/reload, candidate upload/open, client agreement admin restrictions and viewer upload refusal. Check each scheduled function's logs and next-run time. Run hosted Supabase advisors and permission checks before enabling optional features.
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL` | Builds | Public project URL |
-| `VITE_SUPABASE_ANON_KEY` | Builds | Public anon/publishable key; never service role |
-| `SUPABASE_URL` | Functions | Same project's URL |
-| `SUPABASE_ANON_KEY` | Functions | Same project's public key for authenticated APIs |
-| `SUPABASE_SERVICE_ROLE_KEY` | Functions | Private scheduled job access and optional audited document signing |
-| `R2_ACCOUNT_ID` | Functions | Bucket account |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Functions | Private credentials restricted to the bucket |
-| `R2_BUCKET_NAME` | Functions | Private originals bucket; defaults to `anthroprime-documents` |
-| `VIRUSTOTAL_API_KEY`, `VIRUSTOTAL_USAGE_TIER` | Functions, optional | Hash reputation only; set tier `commercial` only with suitable account permission |
-| `OPENAI_API_KEY`, `AI_EMBEDDING_MODEL`, `AI_DRAFT_MODEL` | Functions, optional | Existing opt-in intelligence; configure only when used |
+| Variable                                                 | Scope               | Purpose                                                                           |
+| -------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                                      | Builds              | Public project URL                                                                |
+| `VITE_SUPABASE_ANON_KEY`                                 | Builds              | Public anon/publishable key; never service role                                   |
+| `SUPABASE_URL`                                           | Functions           | Same project's URL                                                                |
+| `SUPABASE_ANON_KEY`                                      | Functions           | Same project's public key for authenticated APIs                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`                              | Functions           | Private scheduled job access and optional audited document signing                |
+| `R2_ACCOUNT_ID`                                          | Functions           | Bucket account                                                                    |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`               | Functions           | Private credentials restricted to the bucket                                      |
+| `R2_BUCKET_NAME`                                         | Functions           | Private originals bucket; defaults to `anthroprime-documents`                     |
+| `VIRUSTOTAL_API_KEY`, `VIRUSTOTAL_USAGE_TIER`            | Functions, optional | Hash reputation only; set tier `commercial` only with suitable account permission |
+| `OPENAI_API_KEY`, `AI_EMBEDDING_MODEL`, `AI_DRAFT_MODEL` | Functions, optional | Existing opt-in intelligence; configure only when used                            |
 
 Changing `VITE_` variables requires a rebuild. Never put R2, service-role, VirusTotal or AI secrets in a `VITE_` variable. The example environment file contains placeholders only. Demo deployments leave both browser Supabase variables unset; server jobs need credentials only when their cloud features are used, and will log configuration failures without them.
 

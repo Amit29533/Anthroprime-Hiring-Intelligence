@@ -15,6 +15,7 @@ test('server candidate pages reuse cursors and reset them on filter changes with
   await mount(Candidates, {
     onFull: (...args) => onFull.push(args),
     rpc: async (name, args) => {
+      if (name === 'api_repository_views') return { views: [] };
       calls.push([name, args]);
       return {
         rows: [

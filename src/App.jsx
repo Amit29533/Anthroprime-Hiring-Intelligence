@@ -708,7 +708,7 @@ export default function App() {
     content =
       page === 'Candidates' ? (
         <PagedCandidates
-          key={JSON.stringify(candidateFilter)}
+          key={`${activeWorkspace?.id || ''}:${JSON.stringify(candidateFilter)}`}
           initialFilter={candidateFilter}
           onFull={async (id, action) => {
             if (!(await fullWorkspace())) return;

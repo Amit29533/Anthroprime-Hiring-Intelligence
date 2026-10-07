@@ -1,5 +1,7 @@
 # Roadmap features: current stack versus additional dependencies
 
+Implementation has started under [five current-stack build phases](CURRENT_STACK_BUILD_PHASES.md). Track actual completed slices there.
+
 Date: 7 October 2026. Companion to the [five-stage roadmap](FIVE_STAGE_PRODUCT_ROADMAP_2026_10_07.md).
 
 **Can implement now** means development can proceed using this project's existing architecture: React/Vite on Netlify, Netlify functions, Supabase for database/auth and private R2/object storage where files are involved. It does not mean Netlify alone supplies the database, that every feature already exists, that account configuration has been verified, or that production activation is complete. All cloud features require existing credentials, migrations and hosted permission tests.
