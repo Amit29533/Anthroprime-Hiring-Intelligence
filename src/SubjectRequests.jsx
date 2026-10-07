@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cloud, getSupabase } from './repository.js';
 import { Button, Field, PanelHeading } from './ui.jsx';
+import { SubjectAccessReview } from './SubjectAccessReview.jsx';
 async function requestRpc(name, args) {
   const client = await getSupabase();
   const { data, error } = await client.rpc(name, args);
@@ -305,6 +306,15 @@ export function SubjectRequests({
               {kinds[detail.case.kind]} request · {detail.case.status}
             </h3>
             <p>{detail.case.summary}</p>
+            {detail.case.kind === 'access' && (
+              <SubjectAccessReview
+                caseRecord={detail.case}
+                rpc={rpc}
+                busy={busy}
+                onBusyChange={setBusy}
+                onChanged={() => setRevision((n) => n + 1)}
+              />
+            )}
             <p>
               Case {detail.case.id} · version {detail.case.version} · {detail.case.anthroId}
             </p>

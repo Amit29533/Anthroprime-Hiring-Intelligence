@@ -296,6 +296,19 @@ Settings definitions inherit admin-only writes; values inherit each record's wor
 
 The queue table is deliberately excluded from normal repository TABLES and public/incremental record feeds; admin operations use the dedicated API. Existing tasks/notes/profile effects enter normal history and sync; job lifecycle audit summaries exclude action payloads. See [deployment and failure behavior](PHASE3_SERVER_EXECUTION.md).
 
+## Reviewed subject access packages (D6)
+
+Administrator/MFA-gated RPCs for active verified access cases:
+
+- `api_start_subject_access_review(p_operation,p_id,p_version,p_note)` captures a fresh bounded snapshot and clears earlier scratch rows.
+- `api_subject_access_page(p_id,p_offset=0)` returns 25 projected rows with decisions, latest review metadata and the last five package receipts. Expired, closed, superseded or differently verified copies return no rows.
+- `api_review_subject_access_rows(p_operation,p_id,p_version,p_review,p_decisions,p_note)` accepts 1–25 explicit `{category,id,decision,data?}` entries. Decisions are include/redact/withhold. Redaction only removes fields or replaces existing text.
+- `api_prepare_subject_access_package(p_operation,p_id,p_version,p_review,p_note)` requires all rows reviewed, unchanged source hashes and an unexpired copy. Returns `{id,version,status,reviewId,packageId,sha256,content}`; content is canonical JSON text. Browser verifies its hash and scope before download. Five packages per administrator/workspace/24 hours; unchanged retries replay exact bytes.
+- `api_record_subject_access_delivery(p_operation,p_id,p_version,p_package,p_note)` records an operator's delivery reference without sending or closing the case.
+- Service-only `worker_purge_subject_access_reviews(p_limit=20)` purges expired scratch rows, preserving sources and receipts. Netlify `subject-access-cleanup` calls it hourly.
+
+All mutations need a 10–2,000-character review reference and actor-bound operation UUID. Cases use optimistic versions plus row locks. No browser table grants exist for copied originals, reviewed rows or package metadata. Scope exclusions and activation checks: [D6 deployment](PHASE_D_REVIEWED_ACCESS_PACKAGES.md).
+
 ## Phase 4/5 RPCs and functions (036/037, optional 038)
 
 `integration-candidate` is a POST-only editor endpoint with bearer auth, bounded allowlisted candidate JSON, an `Idempotency-Key` header and `version` on updates. `api_integrate_candidate` returns candidateId/version/replayed atomically with its receipt; `api_external_mappings(p_source='')` returns the most recent 100 mappings. UI edits advance mapping versions; conflicts return HTTP 409.
