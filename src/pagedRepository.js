@@ -9,15 +9,17 @@ export async function repositoryRead(name, args = {}) {
       name === 'api_repository_views' && error.code === '23505'
         ? 'A personal view with this name already exists. Choose another name.'
         : ['42883', 'PGRST202'].includes(error.code)
-          ? ['api_candidate_contacts', 'api_change_candidate_contact'].includes(name)
-            ? 'Apply the candidate_contacts_verification migration to enable contact review.'
-            : [
-                  'api_repository_views',
-                  'api_candidate_quick_context',
-                  'api_candidate_quick_edit',
-                ].includes(name)
-              ? 'Apply the repository_views_and_quick_edit migration to enable this action.'
-              : 'Apply the paged_repository migration to enable this workspace view.'
+          ? ['api_candidate_readiness', 'api_decide_candidate_readiness'].includes(name)
+            ? 'Apply the candidate_readiness_journal migration to enable readiness review.'
+            : ['api_candidate_contacts', 'api_change_candidate_contact'].includes(name)
+              ? 'Apply the candidate_contacts_verification migration to enable contact review.'
+              : [
+                    'api_repository_views',
+                    'api_candidate_quick_context',
+                    'api_candidate_quick_edit',
+                  ].includes(name)
+                ? 'Apply the repository_views_and_quick_edit migration to enable this action.'
+                : 'Apply the paged_repository migration to enable this workspace view.'
           : error.message,
     );
   if (!data || typeof data !== 'object' || Array.isArray(data))

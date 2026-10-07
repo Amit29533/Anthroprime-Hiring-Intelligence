@@ -1,5 +1,6 @@
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
+import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { SubjectRequests } from './SubjectRequests.jsx';
 import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
@@ -1212,6 +1213,7 @@ export function CandidateProfile({
           {[
             'Overview',
             'Contacts',
+            'Readiness review',
             'Skills & assessments',
             'Employment',
             'Documents',
@@ -1229,6 +1231,7 @@ export function CandidateProfile({
         </div>
         <div className="profile-body">
           {tab === 'Contacts' && <CandidateContacts key={c.id} candidateId={c.id} />}
+          {tab === 'Readiness review' && <CandidateReadiness key={c.id} candidateId={c.id} />}
           {tab === 'Overview' && (
             <>
               <div className="profile-section">

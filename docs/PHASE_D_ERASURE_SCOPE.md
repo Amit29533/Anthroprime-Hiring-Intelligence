@@ -1,5 +1,7 @@
 # Phase D7 — Erasure impact and fulfillment review
 
+The [Phase N3.1 readiness slice](PHASE_N3_READINESS_JOURNAL.md) adds the readiness journal as category 31, including retired merged identities. Recapture prior checklists and reconcile evidence after migration because the source fingerprint changes. The existing scope limits and manual fulfillment boundaries remain applicable.
+
 The [Phase N2.1 contact slice](PHASE_N2_CANDIDATE_CONTACTS.md) extends the inventory from 27 to 30 categories with contact records, verification events and actor-bound operation receipts, including merged identity families. Recapture existing checklists after its migration because the source fingerprint changes; reconcile the evidence before closure. This adds inventory coverage, not erasure execution.
 
 This phase adds an administrator erasure-impact inventory and a seven-area evidence checklist. It prepares cases for reviewed manual fulfillment. It performs no erasure, anonymization, file deletion, provider request or message delivery. Approved retention policy and complete cascade execution remain separate work.
