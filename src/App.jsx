@@ -800,6 +800,7 @@ export default function App() {
           onBrowse={() => navigate('Candidates')}
           onFull={fullWorkspace}
           onOpenWorklist={openPerson}
+          onOpenClient={openClient}
           onSettings={() => navigate('Settings')}
         />
       );

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cloud, getRole, canWriteForRole } from './repository.js';
 import { intelligenceRpc } from './intelligence.js';
+import { FeedbackReview } from './FeedbackLoops.jsx';
 
 export function Snapshot({ pack }) {
   const p = pack.content;
@@ -98,6 +99,7 @@ function Review({ clientId, rpc, isCloud, role }) {
   return (
     <section className="panel intelligence-panel">
       <h2>Client collaboration</h2>
+      {isCloud && <FeedbackReview clientId={clientId} rpc={rpc} role={role} />}
       <p>
         Prepare a shortlist version, review its contents, then approve access. Candidate, consent,
         demand or offer changes require a fresh version.

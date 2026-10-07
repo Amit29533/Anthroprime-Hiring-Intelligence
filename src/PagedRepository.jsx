@@ -11,6 +11,7 @@ import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
 import { CandidateCommunications } from './CandidateCommunications.jsx';
+import { FeedbackReview, FeedbackQueue } from './FeedbackLoops.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -23,6 +24,7 @@ const SECTIONS = [
   ['profile', 'Profile'],
   ['contacts', 'Contacts'],
   ['communications', 'Communication tests'],
+  ['feedbackReview', 'Feedback & self-updates'],
   ['readiness', 'Readiness review'],
   ['scorecards', 'Scorecards'],
   ['notes', 'Notes'],
@@ -119,6 +121,7 @@ export function PagedOverview({
   onBrowse,
   onFull,
   onOpenWorklist,
+  onOpenClient,
   onSettings,
 }) {
   const [stats, setStats] = useState(null),
@@ -184,6 +187,11 @@ export function PagedOverview({
       {onOpenWorklist && (
         <>
           <CandidateCommunications key={`communications-${getWorkspaceId()}`} />
+          <FeedbackQueue
+            key={`feedback-${getWorkspaceId()}`}
+            onOpen={onOpenWorklist}
+            onOpenClient={onOpenClient}
+          />
           <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
         </>
       )}
@@ -616,6 +624,7 @@ export function PagedCandidate360({
       [
         'contacts',
         'communications',
+        'feedbackReview',
         'readiness',
         'scorecards',
         'availabilityHistory',
@@ -678,6 +687,7 @@ export function PagedCandidate360({
         {section === 'communications' && (
           <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
         )}
+        {section === 'feedbackReview' && <FeedbackReview candidateId={candidateId} rpc={rpc} />}
         {section === 'contacts' && (
           <CandidateContacts key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
         )}
@@ -804,6 +814,7 @@ export function PagedCandidate360({
           'profile',
           'contacts',
           'communications',
+          'feedbackReview',
           'readiness',
           'scorecards',
           'availabilityHistory',

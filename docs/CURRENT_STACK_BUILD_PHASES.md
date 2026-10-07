@@ -98,6 +98,10 @@ Stage 3 verification: 852 full-suite Node tests, three final communication UI te
 - Experience: show due work, failures and recovery actions clearly; give candidates simple update/preferences forms and administrators honest completion/exclusion states.
 - Exit: task replay/cancellation, restriction/suppression, failure recovery, privacy and representative volume checks pass. Do not describe dry runs as actual erasure or an email outbox as delivered communication.
 
+Continuation [Stage 4 candidate/account feedback loops](STAGE_4_COMPLETION_CHECKLIST.md) now implements explicit candidate Auth grants, reviewed profile/alternate-contact proposals, immediate purpose preferences, scoped manual freshness/redeployment/survey links, account surveys, response triage and bounded work queues. Cloud portal direct preference writes/email matching are superseded. This closes continuation milestone 4; SLA/operational/governance acceptance remains Stage 5. Local verification and hosted activation are recorded in its checklist.
+
+Stage 4 verification: 870 full-suite Node tests, ten final focused database scenarios, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (18 functions; main entry 67.7 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No live send, push or deployment.
+
 ## Dependencies that remain outside this build scope
 
 Live email/mailbox/calendar, external model inference, partner boards/LinkedIn, SMS/WhatsApp, e-signing, organizational SSO, new private scan/OCR hosting and off-site backup infrastructure are deferred to separately configured integrations. Existing processing flags and production safeguards remain in place. No phase authorizes bypassing quarantine or using real candidate data without hosted safety/recovery acceptance.

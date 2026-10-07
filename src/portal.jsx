@@ -1,7 +1,7 @@
 // Candidate portal (/portal.html) — cloud mode signs in with Supabase Auth and reads the
-// curated api_portal_overview RPC; demo mode opens the same view from the local workspace
-// by email. Self-service is limited to availability preferences (see portal.js).
-import React, { useState, useEffect } from 'react';
+// curated RPCs through explicit account grants; demo mode opens a fictional profile by email.
+// Cloud profile changes use reviewed proposals; communication opt-outs apply immediately.
+import React, { useState, useEffect, useRef } from 'react';
 import { anthroIdFor } from './anthroId.js';
 import { createRoot } from 'react-dom/client';
 import { cloud, getSupabase, loadData, saveRows } from './repository.js';
@@ -13,6 +13,7 @@ import {
   bookSlotRows,
 } from './portal.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
+import { FeedbackPortal } from './FeedbackLoops.jsx';
 import { TalentScene, MotionToggle, PublicBrand } from './Visuals.jsx';
 import './workspace.css';
 import './dark.css';
@@ -66,72 +67,77 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
           </div>
         )}
       </section>
-      <section className="careers-status portal-card">
-        <h2>Your availability</h2>
-        <p>Update your preferences any time — recruiters see the change immediately.</p>
-        <div className="form-grid">
-          <label>
-            Notice period (days)
-            <input
-              type="number"
-              min="0"
-              value={form.notice ?? ''}
-              onChange={(e) => setForm({ ...form, notice: e.target.value })}
-            />
-          </label>
-          <label>
-            Earliest start
-            <input
-              type="date"
-              value={form.earliestStart || ''}
-              onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
-            />
-          </label>
-          <label>
-            Status
-            <select
-              value={form.activeStatus}
-              onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
-            >
-              <option>Active</option>
-              <option>Passive</option>
-            </select>
-          </label>
-          <label>
-            Work mode
-            <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
-              <option>Flexible</option>
-              <option>Remote</option>
-              <option>Hybrid</option>
-              <option>Onsite</option>
-            </select>
-          </label>
-          <label>
-            Engagement preference
-            <input
-              value={form.engagement}
-              onChange={(e) => setForm({ ...form, engagement: e.target.value })}
-              placeholder="Permanent / Contract / C2H…"
-            />
-          </label>
-          <label>
-            Preferred locations
-            <input
-              value={form.preferredLocations}
-              onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
-              placeholder="Bengaluru, Remote…"
-            />
-          </label>
-        </div>
-        <button className="apply-btn" disabled={busy} onClick={() => onSave(form)}>
-          {busy ? 'Saving…' : 'Save preferences'}
-        </button>
-        {msg && (
-          <p className="careers-loading" style={{ marginTop: 8 }}>
-            {msg}
-          </p>
-        )}
-      </section>
+      {!cloud && (
+        <section className="careers-status portal-card">
+          <h2>Your availability</h2>
+          <p>Update your preferences any time — recruiters see the change immediately.</p>
+          <div className="form-grid">
+            <label>
+              Notice period (days)
+              <input
+                type="number"
+                min="0"
+                value={form.notice ?? ''}
+                onChange={(e) => setForm({ ...form, notice: e.target.value })}
+              />
+            </label>
+            <label>
+              Earliest start
+              <input
+                type="date"
+                value={form.earliestStart || ''}
+                onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
+              />
+            </label>
+            <label>
+              Status
+              <select
+                value={form.activeStatus}
+                onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
+              >
+                <option>Active</option>
+                <option>Passive</option>
+              </select>
+            </label>
+            <label>
+              Work mode
+              <select
+                value={form.mode}
+                onChange={(e) => setForm({ ...form, mode: e.target.value })}
+              >
+                <option>Flexible</option>
+                <option>Remote</option>
+                <option>Hybrid</option>
+                <option>Onsite</option>
+              </select>
+            </label>
+            <label>
+              Engagement preference
+              <input
+                value={form.engagement}
+                onChange={(e) => setForm({ ...form, engagement: e.target.value })}
+                placeholder="Permanent / Contract / C2H…"
+              />
+            </label>
+            <label>
+              Preferred locations
+              <input
+                value={form.preferredLocations}
+                onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
+                placeholder="Bengaluru, Remote…"
+              />
+            </label>
+          </div>
+          <button className="apply-btn" disabled={busy} onClick={() => onSave(form)}>
+            {busy ? 'Saving…' : 'Save preferences'}
+          </button>
+          {msg && (
+            <p className="careers-loading" style={{ marginTop: 8 }}>
+              {msg}
+            </p>
+          )}
+        </section>
+      )}
       <section className="careers-status portal-card">
         <h2>Your applications</h2>
         {view.applications.length || view.submissions.length ? (
@@ -293,6 +299,10 @@ export function normalizePortalPayload(form = {}) {
 export function PortalApp() {
   const [theme, setTheme] = useTheme();
   const [cloudView, setCloudView] = useState(null);
+  const [signedIn, setSignedIn] = useState(false);
+  const [portalUser, setPortalUser] = useState('');
+  const authGeneration = useRef(0),
+    authUser = useRef('');
   // Demo mode: the workspace is loaded asynchronously (loadData is a promise — wrapping it in
   // normalizeData used to hand the portal an empty repository, so no email could ever match).
   const [demoData, setDemoData] = useState(null);
@@ -319,12 +329,22 @@ export function PortalApp() {
   }, []);
   useEffect(() => {
     if (!cloud) return;
+    const generationRef = authGeneration;
     let active = true;
     let authSubscription;
     getSupabase()
       .then(async (supabase) => {
         if (!active) return;
         const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (!active) return;
+          const userId = session?.user?.id || '';
+          if (authUser.current !== userId) {
+            authUser.current = userId;
+            authGeneration.current++;
+            setCloudView(null);
+            setPortalUser(userId);
+          }
+          setSignedIn(!!session);
           if (session) setTimeout(() => active && refresh(), 0);
           else setCloudView(null);
         });
@@ -332,6 +352,11 @@ export function PortalApp() {
         const { data, error } = await supabase.auth.getSession();
         if (!active) return;
         if (error) setMsg(error.message);
+        const userId = data.session?.user?.id || '';
+        if (authUser.current !== userId) authGeneration.current++;
+        authUser.current = userId;
+        setPortalUser(userId);
+        setSignedIn(!!data.session);
         if (data.session) await refresh();
       })
       .catch((error) => {
@@ -339,18 +364,39 @@ export function PortalApp() {
       });
     return () => {
       active = false;
+      generationRef.current++;
       authSubscription?.unsubscribe();
     };
   }, []);
   async function refresh() {
+    const generation = authGeneration.current;
+    setCloudView(null);
     const supabase = await getSupabase();
     const { data, error } = await supabase.rpc('api_portal_overview');
+    if (generation !== authGeneration.current) return;
     if (error) setMsg(error.message);
     else if (!data) setMsg('The portal could not return your record.');
     else if (data.error) setMsg(data.error);
     else {
       setCloudView(data);
       setMsg('');
+    }
+  }
+  async function signOut() {
+    setBusy(true);
+    authGeneration.current++;
+    setCloudView(null);
+    setSignedIn(false);
+    setPortalUser('');
+    try {
+      const supabase = await getSupabase();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setMsg('Signed out.');
+    } catch (error) {
+      setMsg(error.message || 'Could not finish signing out.');
+    } finally {
+      setBusy(false);
     }
   }
   const demoCandidate = demoData ? demoData.candidates.find((c) => c.id === demoId) || null : null;
@@ -377,8 +423,11 @@ export function PortalApp() {
       if (cloud) {
         const supabase = await getSupabase();
         if (revokeId) {
-          const { error } = await supabase.rpc('api_portal_revoke_consent', { p_id: revokeId });
+          const { data: result, error } = await supabase.rpc('api_portal_revoke_consent', {
+            p_id: revokeId,
+          });
           if (error) throw error;
+          if (result?.error) throw new Error(result.error);
         } else {
           const { error } = await supabase.rpc('api_portal_update', { payload });
           if (error) throw error;
@@ -446,10 +495,19 @@ export function PortalApp() {
         <p>
           {view
             ? 'Everything below is your own record — applications, interviews, offers and consents.'
-            : 'Sign in with the email on your profile to see your applications, interviews and offers, and keep your availability up to date.'}
+            : 'Sign in with your granted account to see your applications, review your profile, submit updates and respond to invitations.'}
         </p>
       </header>
-      {!view && (
+      {cloud && signedIn && (
+        <section className="panel portal-card">
+          <p>You are signed in. Portal actions recheck your current account access.</p>
+          <button type="button" disabled={busy} onClick={signOut}>
+            Sign out of candidate portal
+          </button>
+          {msg && <p role="status">{msg}</p>}
+        </section>
+      )}
+      {!view && !(cloud && signedIn) && (
         <main className="careers-main">
           <section className="careers-status portal-card">
             {cloud ? (
@@ -495,8 +553,8 @@ export function PortalApp() {
                   </button>
                 </form>
                 <p className="careers-loading">
-                  New here? Create an account with the email on your profile and this portal links
-                  to it automatically.
+                  Ask your recruiter to grant your registered account access. A matching email alone
+                  does not link your profile.
                 </p>
                 {msg && <p className="form-error">{msg}</p>}
               </>
@@ -523,6 +581,7 @@ export function PortalApp() {
           </section>
         </main>
       )}
+      {cloud && signedIn && <FeedbackPortal key={portalUser} />}
       {view && (
         <Overview view={view} onSave={save} busy={busy} msg={msg} onBook={book} booking={booking} />
       )}

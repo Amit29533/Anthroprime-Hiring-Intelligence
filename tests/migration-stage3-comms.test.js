@@ -227,7 +227,7 @@ test('queued previews fail closed on consent, contacts, preferences, holds, acce
   assert.equal(inv, null, 'private inventory helper remains ungranted');
   await db.exec('reset role');
   const inventory = await h.rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-  assert.equal(inventory.counts.length, 52);
+  assert.equal(inventory.counts.length, 57);
   assert.equal(inventory.counts.find((x) => x.category === 'communicationIntents').count, 5);
 });
 

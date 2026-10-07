@@ -52,6 +52,8 @@ Final local verification: **803 Node regression tests and four OCR tests passed*
 
 ## Next build order
 
+Continuation milestones 1–4 are now implemented locally: [facts/access](STAGE_1_COMPLETION_CHECKLIST.md), [demand journey](STAGE_2_COMPLETION_CHECKLIST.md), [communication tests](STAGE_3_COMPLETION_CHECKLIST.md) and [candidate/account feedback](STAGE_4_COMPLETION_CHECKLIST.md). The audit findings above describe the original baseline; the linked checklists record the subsequent implementation and remaining hosted gates. Milestone 5 is the next build stage. No production activation or original-DOCX completion certification is implied.
+
 1. **Finish safe factual writes and permissions (Phases 1–2):** the [candidate-scoped factual editing slice](PHASE_N1_CANDIDATE_PROFILE_EDIT.md) covers eight facts and existing profile history; [sourced availability observations](PHASE_N2_SOURCED_AVAILABILITY.md) add dated availability assertions and recording provenance. Richer verified employment/compensation facts, duplicate review and an explicit field/assignment permission matrix remain; project every new API/report through those boundaries.
 2. **Close the demand-specific journey (Phase 3):** typed constraints, unknown states, assessor assignments/kits/debrief, demand-scoped validator journal, reassessment and expiry-aware matching/submission/report consumers. Use deterministic rules and existing retrieval, with human decisions retained.
 3. **Build communication test workflows (Phase 5):** templates → explicit intents → consent/preferences/hold checks → deterministic test transport → receipts, cancellation and retries. Never mark a test receipt as live delivery.

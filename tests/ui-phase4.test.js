@@ -30,6 +30,17 @@ const view = {
   feedback: [],
   more: false,
 };
+const feedbackView = {
+  fields: null,
+  grants: [],
+  proposals: [],
+  prompts: [],
+  responses: [],
+  preferences: [],
+  recipients: [],
+  demands: [],
+  more: false,
+};
 test('recruiter prepares a version, administrator reviews snapshot and failed approvals retain intent', async () => {
   const writes = [];
   let fail = true;
@@ -39,6 +50,7 @@ test('recruiter prepares a version, administrator reviews snapshot and failed ap
     role: 'admin',
     rpc: async (name, args) => {
       if (name === 'api_client_review') return view;
+      if (name === 'api_feedback_staff') return feedbackView;
       writes.push(args);
       if (fail) {
         fail = false;
@@ -65,20 +77,23 @@ test('viewers see feedback and aging without share mutation or client provisioni
     clientId: 'client',
     isCloud: true,
     role: 'viewer',
-    rpc: async () => ({
-      ...view,
-      packs: [{ ...pack, state: 'Approved', feedbackAgeDays: 8 }],
-      feedback: [
-        {
-          id: 'feedback',
-          pack_id: 'pack',
-          kind: 'interview',
-          comment: 'Please arrange an interview',
-          proposed_at: '2026-11-01T10:00:00Z',
-          at: '2026-10-07T10:00:00Z',
-        },
-      ],
-    }),
+    rpc: async (name) =>
+      name === 'api_feedback_staff'
+        ? feedbackView
+        : {
+            ...view,
+            packs: [{ ...pack, state: 'Approved', feedbackAgeDays: 8 }],
+            feedback: [
+              {
+                id: 'feedback',
+                pack_id: 'pack',
+                kind: 'interview',
+                comment: 'Please arrange an interview',
+                proposed_at: '2026-11-01T10:00:00Z',
+                at: '2026-10-07T10:00:00Z',
+              },
+            ],
+          },
   });
   await settle();
   assert.ok(screen.getByText(/Awaiting feedback for 8 days/));
@@ -103,6 +118,7 @@ test('client decisions retry the same operation and a client switch clears prior
           more: false,
           demandsMore: false,
         };
+      if (name === 'api_feedback_portal') return feedbackView;
       writes.push(args);
       if (fail) {
         fail = false;

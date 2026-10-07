@@ -9,51 +9,55 @@ export async function repositoryRead(name, args = {}) {
       name === 'api_repository_views' && error.code === '23505'
         ? 'A personal view with this name already exists. Choose another name.'
         : ['42883', 'PGRST202'].includes(error.code)
-          ? name === 'api_test_communications'
-            ? 'Apply all Stage 3 communication migrations before using this workflow.'
-            : [
-                  'api_demand_journey',
-                  'api_assigned_demand_journey',
-                  'api_demand_readiness_report',
-                  'api_export_demand_readiness_report',
-                ].includes(name)
-              ? 'Apply all Stage 2 demand journey migrations before using this workflow.'
+          ? ['api_feedback_staff', 'api_feedback_portal', 'api_feedback_queue'].includes(name)
+            ? 'Apply all Stage 4 feedback migrations before using this workflow.'
+            : name === 'api_test_communications'
+              ? 'Apply all Stage 3 communication migrations before using this workflow.'
               : [
-                    'api_candidate_facts',
-                    'api_record_candidate_fact',
-                    'api_duplicate_queue',
-                    'api_duplicate_context',
-                    'api_duplicate_decision',
-                    'api_assignments_admin',
-                    'api_assigned_work',
-                    'api_assigned_assessment',
+                    'api_demand_journey',
+                    'api_assigned_demand_journey',
+                    'api_demand_readiness_report',
+                    'api_export_demand_readiness_report',
                   ].includes(name)
-                ? 'Apply all Stage 1 migrations to enable sourced facts, duplicate review and scoped assignments.'
-                : ['api_candidate_availability', 'api_record_candidate_availability'].includes(name)
-                  ? 'Apply the sourced_candidate_availability migration to enable availability history.'
-                  : ['api_candidate_profile_context', 'api_candidate_profile_edit'].includes(name)
-                    ? 'Apply the candidate_profile_edit migration to enable profile editing.'
-                    : ['api_repository_quality', 'api_anthro_id_capacity'].includes(name)
-                      ? 'Apply all migrations through 20261007120440_repository_quality_and_identity_capacity.sql to enable repository quality and identity capacity.'
-                      : ['api_candidate_scorecards', 'api_record_candidate_scorecard'].includes(
-                            name,
-                          )
-                        ? 'Apply the candidate_scorecards migration to enable scorecards.'
-                        : ['api_candidate_readiness', 'api_decide_candidate_readiness'].includes(
+                ? 'Apply all Stage 2 demand journey migrations before using this workflow.'
+                : [
+                      'api_candidate_facts',
+                      'api_record_candidate_fact',
+                      'api_duplicate_queue',
+                      'api_duplicate_context',
+                      'api_duplicate_decision',
+                      'api_assignments_admin',
+                      'api_assigned_work',
+                      'api_assigned_assessment',
+                    ].includes(name)
+                  ? 'Apply all Stage 1 migrations to enable sourced facts, duplicate review and scoped assignments.'
+                  : ['api_candidate_availability', 'api_record_candidate_availability'].includes(
+                        name,
+                      )
+                    ? 'Apply the sourced_candidate_availability migration to enable availability history.'
+                    : ['api_candidate_profile_context', 'api_candidate_profile_edit'].includes(name)
+                      ? 'Apply the candidate_profile_edit migration to enable profile editing.'
+                      : ['api_repository_quality', 'api_anthro_id_capacity'].includes(name)
+                        ? 'Apply all migrations through 20261007120440_repository_quality_and_identity_capacity.sql to enable repository quality and identity capacity.'
+                        : ['api_candidate_scorecards', 'api_record_candidate_scorecard'].includes(
                               name,
                             )
-                          ? 'Apply the candidate_readiness_journal migration to enable readiness review.'
-                          : ['api_candidate_contacts', 'api_change_candidate_contact'].includes(
+                          ? 'Apply the candidate_scorecards migration to enable scorecards.'
+                          : ['api_candidate_readiness', 'api_decide_candidate_readiness'].includes(
                                 name,
                               )
-                            ? 'Apply the candidate_contacts_verification migration to enable contact review.'
-                            : [
-                                  'api_repository_views',
-                                  'api_candidate_quick_context',
-                                  'api_candidate_quick_edit',
-                                ].includes(name)
-                              ? 'Apply the repository_views_and_quick_edit migration to enable this action.'
-                              : 'Apply the paged_repository migration to enable this workspace view.'
+                            ? 'Apply the candidate_readiness_journal migration to enable readiness review.'
+                            : ['api_candidate_contacts', 'api_change_candidate_contact'].includes(
+                                  name,
+                                )
+                              ? 'Apply the candidate_contacts_verification migration to enable contact review.'
+                              : [
+                                    'api_repository_views',
+                                    'api_candidate_quick_context',
+                                    'api_candidate_quick_edit',
+                                  ].includes(name)
+                                ? 'Apply the repository_views_and_quick_edit migration to enable this action.'
+                                : 'Apply the paged_repository migration to enable this workspace view.'
           : error.message,
     );
   if (!data || typeof data !== 'object' || Array.isArray(data))

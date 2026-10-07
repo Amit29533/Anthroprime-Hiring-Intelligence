@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { intelligenceRpc } from './intelligence.js';
 import { Snapshot } from './ClientCollaboration.jsx';
+import { FeedbackPortal, useRequestedInvitation } from './FeedbackLoops.jsx';
 
 function Feedback({ pack, rpc }) {
   const [kind, setKind] = useState('comment'),
@@ -97,6 +98,7 @@ function Feedback({ pack, rpc }) {
   );
 }
 export function ClientPortalView({ rpc = intelligenceRpc }) {
+  const requestedInvitation = useRequestedInvitation();
   const [clients, setClients] = useState([]),
     [client, setClient] = useState(''),
     [view, setView] = useState(null),
@@ -120,6 +122,24 @@ export function ClientPortalView({ rpc = intelligenceRpc }) {
       alive = false;
     };
   }, [rpc]);
+  useEffect(() => {
+    if (!requestedInvitation || !clients.length) return;
+    let alive = true;
+    rpc('api_feedback_portal', { p_action: 'open', p_id: requestedInvitation })
+      .then((link) => {
+        if (alive && clients.some((c) => c.id === link.clientId)) {
+          setClient(link.clientId);
+          setOffset(0);
+          setDemandsOffset(0);
+        }
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [rpc, requestedInvitation, clients]);
   useEffect(() => {
     setView(null);
     if (!client) return;
@@ -174,6 +194,7 @@ export function ClientPortalView({ rpc = intelligenceRpc }) {
       {!clients.length && !error && <p>No active client access is available.</p>}
       {view && (
         <div key={client}>
+          <FeedbackPortal clientId={client} rpc={rpc} />
           <h2>Approved demand progress</h2>
           {view.demands.map((d) => (
             <p key={d.id}>
