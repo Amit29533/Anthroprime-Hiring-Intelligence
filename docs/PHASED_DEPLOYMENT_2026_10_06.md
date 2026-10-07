@@ -1,5 +1,7 @@
 # ECOD gap closure and phased deployment
 
+Phase D7 adds [erasure scope and evidence review](PHASE_D_ERASURE_SCOPE.md), with retired-identity counts, linked history inventory, seven manual coverage areas and guarded closure for opted-in cases. Automatic erasure still requires approved retention policy and cascade/provider cleanup work.
+
 Phase D6 adds [reviewed access packages](PHASE_D_REVIEWED_ACCESS_PACKAGES.md): verified administrator cases collect bounded snapshots, require explicit row decisions, prepare checksummed JSON and record manual delivery evidence. Seven-day expiry and an hourly scratch-copy cleanup worker protect review copies. Complete access fulfillment, original-file disclosure, erasure and external delivery remain pending; hosted acceptance is required.
 
 Phase A2 adds [observed outcomes and hiring velocity](PHASE_A_OUTCOME_ANALYTICS.md): assessment/enrichment/demand/placement events, source-to-active-placement cohorts, first-shortlist/submission/placement/reassessment timing and audited aggregate CSVs. Dedicated validated-readiness and custom report-builder history fields remain pending; the six remaining feature groups are not complete.
