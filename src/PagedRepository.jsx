@@ -9,6 +9,7 @@ import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { RecruiterWorklist } from './RecruiterWorklist.jsx';
 import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
+import { CandidateAvailability } from './CandidateAvailability.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -595,7 +596,8 @@ export function PagedCandidate360({
     let active = true;
     setError('');
     setPage(null);
-    if (['contacts', 'readiness', 'scorecards'].includes(section)) return undefined;
+    if (['contacts', 'readiness', 'scorecards', 'availabilityHistory'].includes(section))
+      return undefined;
     Promise.resolve()
       .then(() =>
         rpc('api_candidate_section', {
@@ -653,6 +655,18 @@ export function PagedCandidate360({
         )}
         {section === 'scorecards' && (
           <CandidateScorecards key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
+        )}
+        {section === 'availabilityHistory' && (
+          <CandidateAvailability
+            key={candidateId}
+            candidateId={candidateId}
+            rpc={rpc}
+            enabled
+            onUpdated={(fields) => {
+              setProfile((p) => (p ? { ...p, ...fields } : p));
+              onUpdated();
+            }}
+          />
         )}
         {section === 'profile' && !profile && !error && (
           <p role="status">Loading candidate profile…</p>
@@ -748,7 +762,9 @@ export function PagedCandidate360({
             )}
           </>
         )}
-        {!['profile', 'contacts', 'readiness', 'scorecards'].includes(section) &&
+        {!['profile', 'contacts', 'readiness', 'scorecards', 'availabilityHistory'].includes(
+          section,
+        ) &&
           !page &&
           !error && <p role="status">Loading candidate section…</p>}
         {page && page.sectionKey === section && (

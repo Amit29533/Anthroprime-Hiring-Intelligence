@@ -1,5 +1,6 @@
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
+import { CandidateAvailability } from './CandidateAvailability.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { SubjectRequests } from './SubjectRequests.jsx';
@@ -1214,6 +1215,7 @@ export function CandidateProfile({
           {[
             'Overview',
             'Contacts',
+            'Availability',
             'Readiness review',
             'Scorecards',
             'Skills & assessments',
@@ -1233,6 +1235,9 @@ export function CandidateProfile({
         </div>
         <div className="profile-body">
           {tab === 'Contacts' && <CandidateContacts key={c.id} candidateId={c.id} />}
+          {tab === 'Availability' && (
+            <CandidateAvailability key={c.id} candidateId={c.id} onUpdated={() => onReload?.()} />
+          )}
           {tab === 'Readiness review' && <CandidateReadiness key={c.id} candidateId={c.id} />}
           {tab === 'Scorecards' && <CandidateScorecards key={c.id} candidateId={c.id} />}
           {tab === 'Overview' && (

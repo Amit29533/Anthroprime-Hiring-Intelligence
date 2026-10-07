@@ -31,6 +31,8 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 - Next slices: broader verified facts, data-quality queues and narrower role/field scopes below. Preferred contacts currently preserve primary profile/portal identity and recruiting consent.
 
 - Continuation: six bounded quality queues now review primary contact gaps, unknown notice, old/future profile dates and actual current weighted skill evidence, with exact overlapping counts and candidate navigation. Broader duplicate/correction dispositions and verified fact/field-scope work remain pending.
+- Continuation: [sourced availability observations](PHASE_N2_SOURCED_AVAILABILITY.md) now record notice, earliest start, activity and work mode with source/date and server recording provenance, transactional current-profile updates, stale/chronology guards, durable retries and merged history in both cloud profile layouts. Apply migrations through `20261007125420_sourced_candidate_availability.sql`; refresh D6 packages and D7 inventories. Observation recording does not assert independent verification or change readiness.
+- Sourced availability verification: 811 Node regression tests, four OCR tests and final expanded migration/UI checks passed, with lint, formatting, documentation links and offline Netlify packaging. Work is local only; hosted/advisor acceptance remains pending.
 
 - Multiple normalized contacts/preferred contact; date-rich employment; compensation currency/basis/components; availability/source/verification; latest applicable verified values and preserved superseded claims.
 - Duplicate suggestions and review queues, incomplete/stale fact findings, taxonomy correction and import error resolution.
