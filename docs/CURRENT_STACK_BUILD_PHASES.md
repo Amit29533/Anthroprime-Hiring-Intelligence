@@ -79,6 +79,10 @@ The [Stage 2 demand journey](STAGE_2_COMPLETION_CHECKLIST.md) now implements typ
 
 ## Phase 5 — Internal automation and governance operations
 
+[Stage 3 communication test workflows](STAGE_3_COMPLETION_CHECKLIST.md) now provide versioned templates, reviewed intents, scoped context, consent/preferences/hold suppression, scheduling, atomic test receipts and cancellation/recovery. This closes continuation milestone 3; live email and candidate self-service remain separate. Earlier slice statuses below describe their historical scope.
+
+Stage 3 verification: 852 full-suite Node tests, three final communication UI tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (18 functions; main entry 67.6 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No live send, push or deployment.
+
 **Status: in progress; recruiter worklist foundation implemented locally. Depends on prior workflow events and access controls.**
 
 - Implemented first slice: [bounded recruiter worklist](PHASE_N5_RECRUITER_WORKLIST.md) on the cloud repository overview, exact queue/overdue totals, personal display preferences, conflict-aware task completion/reopening and internal client-feedback handling with durable acknowledgement retries. Follow-up/interview updates use their existing candidate workflows. Display preferences do not change reminder workers.

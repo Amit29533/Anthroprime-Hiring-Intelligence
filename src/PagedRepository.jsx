@@ -10,6 +10,7 @@ import { RecruiterWorklist } from './RecruiterWorklist.jsx';
 import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
+import { CandidateCommunications } from './CandidateCommunications.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -21,6 +22,7 @@ const SORTS = {
 const SECTIONS = [
   ['profile', 'Profile'],
   ['contacts', 'Contacts'],
+  ['communications', 'Communication tests'],
   ['readiness', 'Readiness review'],
   ['scorecards', 'Scorecards'],
   ['notes', 'Notes'],
@@ -180,7 +182,10 @@ export function PagedOverview({
         Refresh totals
       </Button>
       {onOpenWorklist && (
-        <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+        <>
+          <CandidateCommunications key={`communications-${getWorkspaceId()}`} />
+          <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+        </>
       )}
       {onOpenWorklist && (
         <RepositoryQuality
@@ -610,6 +615,7 @@ export function PagedCandidate360({
     if (
       [
         'contacts',
+        'communications',
         'readiness',
         'scorecards',
         'availabilityHistory',
@@ -669,6 +675,9 @@ export function PagedCandidate360({
           )}
         </div>
         {error && <p role="alert">{error}</p>}
+        {section === 'communications' && (
+          <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
+        )}
         {section === 'contacts' && (
           <CandidateContacts key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
         )}
@@ -794,6 +803,7 @@ export function PagedCandidate360({
         {![
           'profile',
           'contacts',
+          'communications',
           'readiness',
           'scorecards',
           'availabilityHistory',

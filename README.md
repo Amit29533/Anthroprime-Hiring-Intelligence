@@ -1,6 +1,6 @@
 # ECOD Talent Intelligence
 
-Latest milestone: [Stage 2 demand-specific ECOD journey](docs/STAGE_2_COMPLETION_CHECKLIST.md), following [Stage 1 facts and access](docs/STAGE_1_COMPLETION_CHECKLIST.md). Apply the complete migration chain through `20261007165705_stage2_privacy_scope.sql` before activating this frontend. No new service or credential; local implementation and hosted acceptance are recorded separately.
+Latest milestone: [Stage 3 communication test workflows](docs/STAGE_3_COMPLETION_CHECKLIST.md), following [Stage 2 demand journey](docs/STAGE_2_COMPLETION_CHECKLIST.md) and [Stage 1 facts/access](docs/STAGE_1_COMPLETION_CHECKLIST.md). Apply the complete migration chain through `20261007174756_stage3_communication_privacy.sql` before activating this frontend. No live email/provider or new service; local implementation and hosted acceptance are recorded separately.
 
 Earlier continuation: [five-phase code audit](docs/FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md), bounded repository quality queues and admin Anthro-ID capacity warnings. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql` before activating the new panels. Phases 1–3 and 5 remain in progress; hosted activation is pending. The unsupported legacy cloud anonymization action is disabled.
 
