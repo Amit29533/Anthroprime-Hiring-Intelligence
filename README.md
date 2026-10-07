@@ -1,5 +1,7 @@
 # ECOD Talent Intelligence
 
+Current build plan: [five phases on the existing stack](docs/CURRENT_STACK_BUILD_PHASES.md). Phase 5 has started with a [bounded recruiter worklist](docs/PHASE_N5_RECRUITER_WORKLIST.md), personal display settings and retry-safe internal task/feedback handling. Apply migrations through `20261007114511_recruiter_worklist.sql` before activating it. Changes are local only; remaining Phase 5 slices and hosted acceptance are still pending.
+
 Latest local addition: [LinkedIn candidate import](docs/LINKEDIN_CANDIDATE_IMPORT.md), with URL/handle/numeric-ID lookup through an optional server-side enrichment provider, key-free pasted-profile extraction and editable review before normal Anthro-ID assignment. Provider configuration and hosted activation remain pending.
 
 Latest local slice: [Phase D3 data-subject request review](docs/PHASE_D_SUBJECT_REQUESTS.md), with admin case intake, verification/review states, assignment, review dates and server-owned history. It tracks manual decisions; it does not execute erasure or processing restriction.

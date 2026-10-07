@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
-import { getRole, canWriteForRole } from './repository.js';
+import { getRole, getWorkspaceId, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
 import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
+import { RecruiterWorklist } from './RecruiterWorklist.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -108,7 +109,7 @@ function fieldLabel(key) {
   return label[0].toUpperCase() + label.slice(1);
 }
 
-export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull }) {
+export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull, onOpenWorklist }) {
   const [stats, setStats] = useState(null),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0);
@@ -169,6 +170,7 @@ export function PagedOverview({ rpc = repositoryRead, onBrowse, onFull }) {
       <Button variant="secondary" onClick={() => setRevision((n) => n + 1)}>
         Refresh totals
       </Button>
+      {onOpenWorklist && <RecruiterWorklist key={getWorkspaceId()} onOpen={onOpenWorklist} />}
     </>
   );
 }

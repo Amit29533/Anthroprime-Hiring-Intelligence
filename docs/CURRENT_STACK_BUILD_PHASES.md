@@ -62,7 +62,12 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 
 ## Phase 5 — Internal automation and governance operations
 
-**Status: planned. Depends on prior workflow events and access controls.**
+**Status: in progress; recruiter worklist foundation implemented locally. Depends on prior workflow events and access controls.**
+
+- Implemented first slice: [bounded recruiter worklist](PHASE_N5_RECRUITER_WORKLIST.md) on the cloud repository overview, exact queue/overdue totals, personal display preferences, conflict-aware task completion/reopening and internal client-feedback handling with durable acknowledgement retries. Follow-up/interview updates use their existing candidate workflows. Display preferences do not change reminder workers.
+- Verification: all 799 Node tests and four OCR tests passed, together with lint, changed-file formatting, documentation links, offline Netlify packaging of 17 functions and the final frontend build (65.4 KiB main entry). Local Supabase advisors could not connect to `127.0.0.1:54322`.
+- Activation: apply all migrations through `20261007114511_recruiter_worklist.sql`; recapture D7 inventories (now 38 categories) and regenerate D6 packages after the receipt exclusion notice changes. Hosted permission/advisor/concurrency/volume acceptance remains pending. No new service, transport, destructive privacy execution, deployment or GitHub push.
+- Remaining slices: SLA/notification policies and candidate loops; test-only communication intents/suppression; further operational recovery; retention/subject-request coverage and erasure dry-run controls below.
 
 - Consolidated recruiter worklist, SLA/deadline/internal reminders, notification preferences, candidate self-update/review, redeployment prompts and portal feedback surveys.
 - Message templates/previews, durable communication intents, segmentation and suppression logic using a test transport only. External sends remain disabled.

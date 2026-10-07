@@ -9,9 +9,11 @@ export async function intelligenceRpc(name, args = {}) {
   if (error)
     throw new Error(
       ['PGRST202', '42883'].includes(error.code)
-        ? /^api_(client_|machine_|approved_job_|reconcile_)/.test(name)
-          ? 'Apply all migrations through 20261007095813_phase4_privacy_scope.sql to enable Phase 4 client collaboration and APIs.'
-          : 'Apply migrations 036, 037 and 039 to enable integrations, intelligence and index maintenance.'
+        ? /^api_(recruiter_worklist|worklist_)/.test(name)
+          ? 'Apply all migrations through 20261007114511_recruiter_worklist.sql to enable the recruiter worklist.'
+          : /^api_(client_|machine_|approved_job_|reconcile_)/.test(name)
+            ? 'Apply all migrations through 20261007095813_phase4_privacy_scope.sql to enable Phase 4 client collaboration and APIs.'
+            : 'Apply migrations 036, 037 and 039 to enable integrations, intelligence and index maintenance.'
         : error.message,
     );
   return data;

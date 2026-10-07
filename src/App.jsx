@@ -718,7 +718,11 @@ export default function App() {
           }}
         />
       ) : (
-        <PagedOverview onBrowse={() => navigate('Candidates')} onFull={fullWorkspace} />
+        <PagedOverview
+          onBrowse={() => navigate('Candidates')}
+          onFull={fullWorkspace}
+          onOpenWorklist={openPerson}
+        />
       );
   else if (page === 'Overview')
     content = (
