@@ -1,5 +1,7 @@
 # Phase N3.1 — Assessment-backed readiness review
 
+The [N3.2 scorecard continuation](PHASE_N3_CANDIDATE_SCORECARDS.md) now records server authorship/time/sequence for new assessments and uses sequence to order same-day general evidence. The legacy same-day ambiguity below applies when the newest date has no reliable recording provenance. Reassessments can be recorded in the new Scorecards tab. Independent assessor assignment, blind debrief and demand validation remain pending.
+
 The first Phase 3 slice adds a separate, evidence-backed general readiness review, administrator decisions, expiry, source-change detection and preserved decision history. It uses the existing Netlify/React/Supabase stack without a new service, function or credential. Phase 3 remains in progress; Phase 1 and Phase 2 also retain their documented unfinished slices.
 
 ## Candidate experience

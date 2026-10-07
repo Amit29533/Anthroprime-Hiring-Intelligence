@@ -31,12 +31,14 @@ Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and 
 
 ## Phase 3 — Complete ECOD evaluation and readiness
 
-**Status: in progress; first general readiness review slice implemented locally. Depends on verified facts and role boundaries.**
+**Status: in progress; general readiness review and rubric scorecard slices implemented locally. Depends on verified facts and role boundaries.**
 
 - Implemented first slice: administrator readiness decisions separate from profile status, passing general assessment/enrichment checks, evidence expiry, source/head conflict checks, actor-bound acknowledgement retries and merge-preserved history in both profile layouts. See [slice contract](PHASE_N3_READINESS_JOURNAL.md). Existing roles apply; narrower Phase 2 assessor scopes remain pending.
 - Privacy integration: D7 includes the readiness journal as its 31st category; recapture older checklists. D6 explicitly excludes decision history and requires separate approved review; regenerate prepared packages after the scope-notice change.
 - Verification: all 779 Node tests, final expanded migration/UI checks, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. No new service, deployment or push; hosted permission/advisor/concurrency acceptance remains pending.
 - Next slices: typed demand constraints, independent scorecards/debrief, assessor assignments, demand-specific validation and validated readiness consumers/analytics below. This panel does not yet change matching, submissions or existing analytics.
+
+- N3.2 continuation: [sealed candidate rubric scorecards](PHASE_N3_CANDIDATE_SCORECARDS.md) in both profile layouts, server-computed weights, frozen rubric versions, server recording provenance, replay-safe submission, UPSERT/merge preservation and same-day readiness chronology. Existing member roles apply; blind review and assigned assessor scopes remain pending. All 783 Node tests, final expanded database/UI checks, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. Work remains local only. Re-review existing readiness decisions and refresh privacy artifacts after migration because source fingerprints change.
 
 - Typed demand requirements and hard-constraint/unknown states; manual/deterministic CV entity grouping and JD review forms; permission-aware deterministic/full-text/existing private-vector retrieval.
 - Versioned interview kits, independent scorecards, assessor assignments, evidence/debrief; gap plans, enrichment, reassessment, validator decisions and an append-only readiness journal with expiry.

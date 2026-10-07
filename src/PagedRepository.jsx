@@ -5,6 +5,7 @@ import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
 import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
+import { CandidateScorecards } from './CandidateScorecards.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -17,6 +18,7 @@ const SECTIONS = [
   ['profile', 'Profile'],
   ['contacts', 'Contacts'],
   ['readiness', 'Readiness review'],
+  ['scorecards', 'Scorecards'],
   ['notes', 'Notes'],
   ['documents', 'Documents'],
   ['employmentHistory', 'Employment'],
@@ -584,7 +586,7 @@ export function PagedCandidate360({
     let active = true;
     setError('');
     setPage(null);
-    if (['contacts', 'readiness'].includes(section)) return undefined;
+    if (['contacts', 'readiness', 'scorecards'].includes(section)) return undefined;
     Promise.resolve()
       .then(() =>
         rpc('api_candidate_section', {
@@ -639,6 +641,9 @@ export function PagedCandidate360({
         )}
         {section === 'readiness' && (
           <CandidateReadiness key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
+        )}
+        {section === 'scorecards' && (
+          <CandidateScorecards key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
         )}
         {section === 'profile' && !profile && !error && (
           <p role="status">Loading candidate profile…</p>
@@ -725,9 +730,9 @@ export function PagedCandidate360({
             )}
           </>
         )}
-        {!['profile', 'contacts', 'readiness'].includes(section) && !page && !error && (
-          <p role="status">Loading candidate section…</p>
-        )}
+        {!['profile', 'contacts', 'readiness', 'scorecards'].includes(section) &&
+          !page &&
+          !error && <p role="status">Loading candidate section…</p>}
         {page && page.sectionKey === section && (
           <>
             {!page.rows.length && <p>No records in this section.</p>}

@@ -155,7 +155,11 @@ test('readiness decisions require current evidence and administrator authority, 
   page = await read();
   assert.equal(page.eligible, false);
   assert.ok(page.blockers.some((s) => s.includes('80/100')));
-  assert.ok(page.blockers.some((s) => s.includes('share the latest date')));
+  assert.equal(
+    page.assessment.id,
+    id(303),
+    'server order identifies the later same-day assessment',
+  );
   await assessment(304, 100, 1);
   page = await read();
   assert.ok(page.blockers.some((s) => s.includes('future')));

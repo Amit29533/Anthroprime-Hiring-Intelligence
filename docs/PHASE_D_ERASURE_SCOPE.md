@@ -1,5 +1,7 @@
 # Phase D7 — Erasure impact and fulfillment review
 
+The [N3.2 scorecard continuation](PHASE_N3_CANDIDATE_SCORECARDS.md) uses the existing assessments category, keeping the registry at 31 categories. Recording fields and frozen evidence participate in source hashes. Recapture older checklists and reconcile evidence after migration; no erasure is performed.
+
 The [Phase N3.1 readiness slice](PHASE_N3_READINESS_JOURNAL.md) adds the readiness journal as category 31, including retired merged identities. Recapture prior checklists and reconcile evidence after migration because the source fingerprint changes. The existing scope limits and manual fulfillment boundaries remain applicable.
 
 The [Phase N2.1 contact slice](PHASE_N2_CANDIDATE_CONTACTS.md) extends the inventory from 27 to 30 categories with contact records, verification events and actor-bound operation receipts, including merged identity families. Recapture existing checklists after its migration because the source fingerprint changes; reconcile the evidence before closure. This adds inventory coverage, not erasure execution.

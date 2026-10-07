@@ -1,5 +1,7 @@
 # Phase D6 — Reviewed access packages
 
+The [N3.2 scorecard continuation](PHASE_N3_CANDIDATE_SCORECARDS.md) explicitly excludes rubric snapshots and recording provenance from the existing 18-category package while retaining its reviewed assessment score/evidence projection. Arrange separate approved disclosure review for excluded fields. Regenerate old review snapshots/packages because source hashes and scope-notice bytes change.
+
 The [Phase N3.1 readiness slice](PHASE_N3_READINESS_JOURNAL.md) explicitly excludes readiness decision history from the 18-category package. Arrange separate approved disclosure review and regenerate previously prepared packages after migration because the scope-notice bytes/checksums change.
 
 The [Phase N2.1 contact slice](PHASE_N2_CANDIDATE_CONTACTS.md) adds alternate-contact records and private verification/operation history. The 18-category access package excludes them explicitly; arrange separate approved disclosure review. Regenerate previously prepared packages after that migration because the revised scope notice changes their bytes/checksums. Do not treat earlier copies as current complete fulfillment.
