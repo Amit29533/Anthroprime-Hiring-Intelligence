@@ -150,11 +150,8 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   assert.equal(screen.queryByRole('button', { name: 'More filters & bulk actions' }), null);
   fireEvent.click(screen.getByRole('button', { name: /Workspace settings/ }));
   await settle(10);
-  assert.ok(screen.getByText(/Cloud profile anonymization is unavailable/));
-  const scrub = screen.getByRole('button', { name: 'Anonymize' });
-  assert.equal(scrub.disabled, true);
-  const before = calls.filter((p) => p === '/rest/v1/candidates').length;
-  fireEvent.click(scrub);
-  await settle();
-  assert.equal(calls.filter((p) => p === '/rest/v1/candidates').length, before);
+  assert.ok(screen.getByText(/Configure cloud retention review in Operations and governance/));
+  assert.ok(screen.getByRole('heading', { name: 'Operations and governance' }));
+  assert.equal(screen.queryByRole('button', { name: 'Anonymize' }), null);
+  assert.ok(calls.includes('/rest/v1/rpc/api_operations'));
 });

@@ -54,6 +54,7 @@ test('MFA gates privileged RPCs and policy downgrades using trusted claims, pres
   await act(1, { user_metadata: { aal: 'aal2' } });
   assert.equal((await rpc('api_privileged_mfa_status')).enabled, true);
   for (const [name, args] of [
+    ['api_operations', []],
     ['api_create_subject_request', create],
     ['api_subject_request_detail', [id(200)]],
     ['api_update_subject_request', [id(201), id(200), 1, 'verify', 'Verified contact reference']],
@@ -69,6 +70,7 @@ test('MFA gates privileged RPCs and policy downgrades using trusted claims, pres
   assert.equal((await rpc('api_prepare_candidate_export', [[id(50)]])).allowed, true);
   await assert.rejects(rpc('api_set_privileged_mfa', [false]), /Administrator/);
   await act(1, { aal: 'aal2' });
+  assert.equal((await rpc('api_operations')).health.destructiveExecution, false);
   assert.equal((await rpc('api_subject_request_detail', [id(200)])).case.id, id(200));
   assert.equal((await rpc('api_prepare_candidate_export', [[id(50)]])).allowed, true);
   await assert.rejects(

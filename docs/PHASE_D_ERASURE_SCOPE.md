@@ -1,5 +1,8 @@
 # Phase D7 — Erasure impact and fulfillment review
 
+Continuation [Stage 5 operations/governance](STAGE_5_COMPLETION_CHECKLIST.md) brings the reviewed registry to 60 categories, adding candidate-linked operations jobs/items/receipts. Recapture old checklists after the complete migration chain. Its resumable dry-run jobs compare the 57 source categories separately from their own changing review metadata; that exclusion is explicit and does not replace this formal scope or seven-area evidence review. No destructive executor is added.
+
+
 The [N3.2 scorecard continuation](PHASE_N3_CANDIDATE_SCORECARDS.md) uses the existing assessments category, keeping the registry at 31 categories. Recording fields and frozen evidence participate in source hashes. Recapture older checklists and reconcile evidence after migration; no erasure is performed.
 
 The [Phase N3.1 readiness slice](PHASE_N3_READINESS_JOURNAL.md) adds the readiness journal as category 31, including retired merged identities. Recapture prior checklists and reconcile evidence after migration because the source fingerprint changes. The existing scope limits and manual fulfillment boundaries remain applicable.

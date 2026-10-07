@@ -285,11 +285,11 @@ test('expiry, invalidated sources, merge preservation, reports, privacy and subm
   assert.equal(report.cohorts.sealedScorecards, 1);
   await db.exec('reset role');
   const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-  assert.equal(inv.counts.length, 57);
+  assert.equal(inv.counts.length, 60);
   assert.equal(inv.counts.find((r) => r.category === 'journeyClaims').count, 2);
   assert.equal(inv.counts.find((r) => r.category === 'journeyDecisions').count, 1);
   await db.query(
-    'update ecod_journey_private.decisions set valid_until=current_date-1 where id=$1',
+    'update ecod_journey_private.decisions set valid_until=(clock_timestamp() at time zone $$UTC$$)::date-1 where id=$1',
     [id(303)],
   );
   await act(2);
@@ -388,7 +388,7 @@ test('client-approved demand readiness is withdrawn when validation expires with
   assert.ok(!JSON.stringify(portal.packs).includes('Independent validator reviewed evidence'));
   await db.exec('reset role');
   await db.exec(
-    `update ecod_journey_private.decisions set valid_until=current_date-1 where id='${id(513)}';`,
+    `update ecod_journey_private.decisions set valid_until=(clock_timestamp() at time zone $$UTC$$)::date-1 where id='${id(513)}';`,
   );
   await act(6);
   portal = await rpc('api_client_portal', [id(550), 0, 0]);
@@ -468,12 +468,12 @@ test('criterion floors and dated language, certification and skill evidence dist
   await db.exec('reset role');
   await db.exec(`insert into skills(id,workspace_id,name)values('${id(604)}','${id(11)}','SQL');
     insert into "personSkills"(id,workspace_id,"candidateId","skillId")values('${id(605)}','${id(11)}','${id(21)}','${id(604)}');
-    insert into "skillEvidence"(id,workspace_id,"personSkillId","evidenceType",date,proficiency,years,"lastUsed")values('${id(606)}','${id(11)}','${id(605)}','Recruiter-verified',now()-interval '1 day','Advanced',5,current_date),('${id(607)}','${id(11)}','${id(605)}','Self-declared',now(),'Expert',10,current_date);`);
+    insert into "skillEvidence"(id,workspace_id,"personSkillId","evidenceType",date,proficiency,years,"lastUsed")values('${id(606)}','${id(11)}','${id(605)}','Recruiter-verified',now()-interval '1 day','Advanced',5,(clock_timestamp() at time zone $$UTC$$)::date),('${id(607)}','${id(11)}','${id(605)}','Self-declared',now(),'Expert',10,(clock_timestamp() at time zone $$UTC$$)::date);`);
   await act(2);
   assert.equal((await context()).checks.find((r) => r.id === 'sql').status, 'satisfied');
   await db.exec('reset role');
   await db.exec(
-    `insert into "skillEvidence"(id,workspace_id,"personSkillId","evidenceType",date,proficiency,years,"lastUsed")values('${id(608)}','${id(11)}','${id(605)}','Recruiter-verified',now(),'Working',1,current_date);`,
+    `insert into "skillEvidence"(id,workspace_id,"personSkillId","evidenceType",date,proficiency,years,"lastUsed")values('${id(608)}','${id(11)}','${id(605)}','Recruiter-verified',now(),'Working',1,(clock_timestamp() at time zone $$UTC$$)::date);`,
   );
   await act(2);
   assert.equal(

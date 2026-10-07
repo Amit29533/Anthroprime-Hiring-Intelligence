@@ -9,6 +9,15 @@ test('a backup cannot silently discard a table listed in its manifest', () => {
   assert.throws(() => parseBackup(JSON.stringify(bundle)), /missing the candidates table/);
 });
 
+test('portable backups disclose partial cloud coverage and excluded recovery dependencies', () => {
+  const bundle = backupBundle(emptyData());
+  assert.equal(bundle.snapshotScope.completeDisasterRecovery, false);
+  assert.match(bundle.snapshotScope.description, /currently loaded.*partial/);
+  assert.ok(bundle.snapshotScope.excluded.some((s) => /Private governance/.test(s)));
+  assert.ok(bundle.snapshotScope.excluded.some((s) => /sequences/.test(s)));
+  assert.ok(parseBackup(JSON.stringify(bundle)).rows);
+});
+
 test('backup parsing rejects unsupported versions and truncated table counts', () => {
   const bundle = backupBundle(emptyData());
   assert.throws(() => parseBackup(JSON.stringify({ ...bundle, version: 2 })), /version/);

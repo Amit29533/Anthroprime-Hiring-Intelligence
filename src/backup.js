@@ -1,5 +1,6 @@
-// Workspace backup (§12 / M5 groundwork): a single JSON bundle of every workspace table.
-// Export is complete; restore merges rows table-by-table through the normal save path
+// Application portability snapshot: only application rows present in memory.
+// Private schemas, Auth, object bytes and unloaded cloud rows are not included.
+// Restore merges rows table-by-table through the normal save path
 // (row-level deletes are not applied — the audit table is append-only by design).
 // Encrypted server-side backups with RPO/RTO targets remain an operations concern.
 import { TABLES, normalizeData } from './schema.js';
@@ -12,6 +13,18 @@ export function backupBundle(data) {
     exportedAt: new Date().toISOString(),
     tableList: TABLES,
     counts: {},
+    snapshotScope: {
+      completeDisasterRecovery: false,
+      description:
+        'Application rows currently loaded for the caller; cloud coverage may be partial.',
+      excluded: [
+        'Unloaded cloud rows and protected columns',
+        'Private governance, readiness, communication and operations schemas',
+        'Auth accounts and credentials',
+        'Original file bytes and external copies',
+        'Database sequences, functions, policies and privileges',
+      ],
+    },
   };
   for (const t of TABLES) {
     bundle[t] = t === 'candidates' ? allCandidateRows(data) : (data && data[t]) || [];

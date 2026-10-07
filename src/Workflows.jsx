@@ -12,6 +12,7 @@ import { FreshnessReviews } from './FreshnessReviews.jsx';
 import { SavedImports } from './SavedImports.jsx';
 import { CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
+import { OperationsConsole } from './OperationsConsole.jsx';
 import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
 import MachineCredentials from './MachineCredentials.jsx';
 import { IntelligenceSettings, IndexHealthPanel } from './HostedIntelligence.jsx';
@@ -1544,6 +1545,9 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
           />
         )}
         <MfaPanel key={`mfa-${getWorkspaceId()}`} />
+        {getRole() === 'admin' && (
+          <OperationsConsole key={`operations-${getWorkspaceId()}`} onHoldChange={onReload} />
+        )}
         {getRole() === 'admin' && <ExecutionJobsPanel />}
         {getRole() === 'admin' && <InterviewReminders key={`reminders-${getWorkspaceId()}`} />}
         {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
@@ -1618,7 +1622,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
                       entityType: 'workspace',
                       entityId: null,
                       action: 'exported',
-                      detail: 'Full workspace backup (JSON)',
+                      detail: 'Loaded application rows snapshot (JSON); partial cloud coverage',
                     });
                 }}
               >
@@ -1668,9 +1672,12 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
               )}
             </div>
             <p className="supporting-text">
-              The backup is a complete JSON snapshot of every workspace table. Restore merges rows
-              by id through the normal save path — deletions are never applied. Encrypted
-              server-side backups with tested restore (RPO/RTO) remain an operations responsibility.
+              This portability snapshot contains application rows currently loaded for your account.
+              Cloud coverage may be partial. It excludes private governance and operations records,
+              Auth, original file bytes, protected columns and database configuration. Restore
+              merges rows by id through the normal save path — deletions are never applied.
+              Encrypted server-side backups with tested restore (RPO/RTO) remain an operations
+              responsibility.
             </p>
             <div className="since-export">
               <Field label="Incremental change export (API groundwork)">
@@ -2117,74 +2124,84 @@ function AdminPanel({ data, onSave, notify, audit }) {
       >
         Save stage labels
       </Button>
-      <h3 className="history-heading">Retention policy</h3>
-      <div className="retention-row">
-        <Field label="Review profiles unverified for (months)">
-          <input
-            type="number"
-            min="1"
-            max="120"
-            value={months}
-            onChange={(e) => setMonths(Number(e.target.value))}
-          />
-        </Field>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() => saveSettings({ retentionMonths: months })}
-        >
-          Save policy
-        </Button>
-        <span className="retention-count">
-          {due.length} profile{due.length === 1 ? '' : 's'} due for review
-        </span>
-      </div>
+      {!cloud && (
+        <>
+          <h3 className="history-heading">Retention policy</h3>
+          <div className="retention-row">
+            <Field label="Review profiles unverified for (months)">
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={months}
+                onChange={(e) => setMonths(Number(e.target.value))}
+              />
+            </Field>
+            <Button
+              className="small"
+              disabled={busy}
+              onClick={() => saveSettings({ retentionMonths: months })}
+            >
+              Save policy
+            </Button>
+            <span className="retention-count">
+              {due.length} profile{due.length === 1 ? '' : 's'} due for review
+            </span>
+          </div>
+          {cloud && (
+            <p className="supporting-text">
+              Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked
+              files, history or verified privacy fulfillment. Use subject-request and erasure review
+              to record scope and decisions. Destructive execution remains pending.
+            </p>
+          )}
+          {!!due.length && (
+            <div className="retention-list">
+              {due.slice(0, 10).map((c) => (
+                <div key={c.id} className="quality-row">
+                  <span>
+                    <strong>{c.name}</strong>
+                    <small className="anthro-id">{anthroIdFor(c)}</small>
+                    <small className="block">Last verified {c.verified}</small>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    className="small"
+                    disabled={busy || cloud}
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
+                        )
+                      )
+                        return;
+                      setBusy(true);
+                      if (await onSave('candidates', [anonymizeCandidate(c)])) {
+                        audit &&
+                          audit({
+                            entityType: 'candidate',
+                            entityId: c.id,
+                            action: 'anonymized',
+                            detail: c.name,
+                          });
+                        notify('Profile anonymized.');
+                      }
+                      setBusy(false);
+                    }}
+                  >
+                    Anonymize
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
       {cloud && (
         <p className="supporting-text">
-          Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked files,
-          history or verified privacy fulfillment. Use subject-request and erasure review to record
-          scope and decisions. Destructive execution remains pending.
+          Configure cloud retention review in Operations and governance above. Selected jobs use its
+          versioned policy reference; profile and file deletion remain disabled.
         </p>
-      )}
-      {!!due.length && (
-        <div className="retention-list">
-          {due.slice(0, 10).map((c) => (
-            <div key={c.id} className="quality-row">
-              <span>
-                <strong>{c.name}</strong>
-                <small className="anthro-id">{anthroIdFor(c)}</small>
-                <small className="block">Last verified {c.verified}</small>
-              </span>
-              <Button
-                variant="ghost"
-                className="small"
-                disabled={busy || cloud}
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
-                    )
-                  )
-                    return;
-                  setBusy(true);
-                  if (await onSave('candidates', [anonymizeCandidate(c)])) {
-                    audit &&
-                      audit({
-                        entityType: 'candidate',
-                        entityId: c.id,
-                        action: 'anonymized',
-                        detail: c.name,
-                      });
-                    notify('Profile anonymized.');
-                  }
-                  setBusy(false);
-                }}
-              >
-                Anonymize
-              </Button>
-            </div>
-          ))}
-        </div>
       )}
       <h3 className="history-heading">Interview feedback bar</h3>
       <div className="retention-row">

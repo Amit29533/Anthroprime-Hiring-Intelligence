@@ -7,6 +7,7 @@ import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
 import { RecruiterWorklist } from './RecruiterWorklist.jsx';
+import { SlaWorklist } from './OperationsConsole.jsx';
 import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
@@ -193,6 +194,7 @@ export function PagedOverview({
             onOpenClient={onOpenClient}
           />
           <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
+          <SlaWorklist key={`sla-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
         </>
       )}
       {onOpenWorklist && (

@@ -19,9 +19,9 @@ test('recruiter queues bound pages, isolate preferences and authorize conflict-s
   await db.exec(`insert into workspaces(id,name)values('${id(11)}','One'),('${id(12)}','Two');
     insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');
     insert into candidates(id,workspace_id,name,email,current)values('${id(101)}','${id(11)}','One','private@e.com',999),('${id(102)}','${id(12)}','Other','other@e.com',888);
-    insert into tasks(id,workspace_id,title,"candidateId",due) select ('75000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'${id(11)}','Task '||n,'${id(101)}',current_date-1 from generate_series(1001,1030)n;
-    insert into tasks(id,workspace_id,title,"candidateId",due,done)values('${id(1031)}','${id(11)}','Undated','${id(101)}',null,false),('${id(1032)}','${id(11)}','Later','${id(101)}',current_date+20,false),('${id(1033)}','${id(11)}','Done','${id(101)}',current_date,true),('${id(1034)}','${id(12)}','Other','${id(102)}',current_date,false);
-    insert into notes(id,workspace_id,"candidateId",text,"followUp")values('${id(1101)}','${id(11)}','${id(101)}','Call candidate',current_date);
+    insert into tasks(id,workspace_id,title,"candidateId",due) select ('75000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'${id(11)}','Task '||n,'${id(101)}',(clock_timestamp() at time zone $$UTC$$)::date-1 from generate_series(1001,1030)n;
+    insert into tasks(id,workspace_id,title,"candidateId",due,done)values('${id(1031)}','${id(11)}','Undated','${id(101)}',null,false),('${id(1032)}','${id(11)}','Later','${id(101)}',(clock_timestamp() at time zone $$UTC$$)::date+20,false),('${id(1033)}','${id(11)}','Done','${id(101)}',(clock_timestamp() at time zone $$UTC$$)::date,true),('${id(1034)}','${id(12)}','Other','${id(102)}',(clock_timestamp() at time zone $$UTC$$)::date,false);
+    insert into notes(id,workspace_id,"candidateId",text,"followUp")values('${id(1101)}','${id(11)}','${id(101)}','Call candidate',(clock_timestamp() at time zone $$UTC$$)::date);
     insert into interviews(id,workspace_id,"candidateId","scheduledAt")values('${id(1201)}','${id(11)}','${id(101)}',now());`);
   const act = (n, role = 'authenticated') =>
     db.exec(
@@ -84,7 +84,7 @@ test('recruiter queues bound pages, isolate preferences and authorize conflict-s
     1,
   );
   await db.exec(`insert into clients(id,workspace_id,name)values('${id(21)}','${id(11)}','Client');
-    insert into demands(id,workspace_id,title,client,"clientId",skills,"minExperience","maxNotice",budget,location,mode,positions,priority,target,weights)values('${id(201)}','${id(11)}','Role','Client','${id(21)}','{Python}',1,30,12345,'Delhi','Remote',1,'High',current_date,'{"skills":35,"experience":20,"readiness":20,"availability":10,"budget":10,"location":5}');
+    insert into demands(id,workspace_id,title,client,"clientId",skills,"minExperience","maxNotice",budget,location,mode,positions,priority,target,weights)values('${id(201)}','${id(11)}','Role','Client','${id(21)}','{Python}',1,30,12345,'Delhi','Remote',1,'High',(clock_timestamp() at time zone $$UTC$$)::date,'{"skills":35,"experience":20,"readiness":20,"availability":10,"budget":10,"location":5}');
     insert into submissions(id,workspace_id,"candidateId","demandId")values('${id(301)}','${id(11)}','${id(101)}','${id(201)}');
     insert into ecod_client_private.packs(id,workspace_id,client_id,candidate_id,demand_id,submission_id,version,content,source_hash,created_by)values('${id(401)}','${id(11)}','${id(21)}','${id(101)}','${id(201)}','${id(301)}',1,'{"name":"One"}',repeat('a',64),'${id(1)}');
     insert into ecod_client_private.feedback(id,workspace_id,candidate_id,pack_id,actor,kind,comment)values('${id(501)}','${id(11)}','${id(101)}','${id(401)}','${id(5)}','comment','Client original feedback');`);
