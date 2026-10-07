@@ -11,3 +11,4 @@ __pycache__/
 supabase/.temp/
 .codex-push-*.log
 .codex-push-*.json
+.codex-local-*.log

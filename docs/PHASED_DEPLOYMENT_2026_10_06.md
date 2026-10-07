@@ -1,5 +1,7 @@
 # ECOD gap closure and phased deployment
 
+Phase E2 adds [internal freshness reviews](PHASE_E_FRESHNESS_REVIEWS.md): consent/hold-aware stale-profile tasks with hourly execution, transactional receipts/cancellation, bounded retries and admin policy controls. External communication remains pending. This continuation is local only; no GitHub push or hosted activation was performed.
+
 Phase D7 adds [erasure scope and evidence review](PHASE_D_ERASURE_SCOPE.md), with retired-identity counts, linked history inventory, seven manual coverage areas and guarded closure for opted-in cases. Automatic erasure still requires approved retention policy and cascade/provider cleanup work.
 
 Phase D6 adds [reviewed access packages](PHASE_D_REVIEWED_ACCESS_PACKAGES.md): verified administrator cases collect bounded snapshots, require explicit row decisions, prepare checksummed JSON and record manual delivery evidence. Seven-day expiry and an hourly scratch-copy cleanup worker protect review copies. Complete access fulfillment, original-file disclosure, erasure and external delivery remain pending; hosted acceptance is required.

@@ -339,3 +339,10 @@ Editor-only `api_mapping_page(p_source='',p_offset=0)` returns `{rows,total}` wi
 `api_capture_erasure_scope(p_operation,p_id,p_version,p_note)` starts a fresh count/hash inventory and seven pending coverage areas for a verified erasure case under review. `api_erasure_review(p_id)` returns latest count metadata and evidence decisions without internal hashes or copied record content. `api_review_erasure_area(p_operation,p_id,p_version,p_review,p_area,p_decision,p_note)` accepts completed/retained/not_applicable with an explicit evidence/policy reference. All RPCs require administrator membership and optional privileged MFA. Mutations use case locks/versions and actor-bound operation UUIDs.
 
 After opt-in, a private table trigger prevents `api_update_subject_request` closure while areas are pending, verification differs or identified source records change. No deletion is executed. Inventory bounds, manual exclusions, legacy cases and reconciliation behavior: [D7 rollout](PHASE_D_ERASURE_SCOPE.md).
+
+
+## Internal freshness review tasks (E2)
+
+`api_freshness_reviews(p_offset=0)` returns workspace policy, successful global worker heartbeat and 50 private receipt projections. `api_set_freshness_reviews(p_enabled,p_stale_days=121)` is an idempotent desired-state update (30–365 days). `api_retry_freshness_review(p_id)` resets eligible failures; repeating after scheduling or completion returns success without duplicating work. These administrator APIs honor privileged MFA.
+
+Service-only `worker_run_freshness_reviews(p_limit=20)` creates bounded internal tasks and receipts atomically, retries failures, and reconciles changed threshold eligibility. Netlify `freshness-review-worker` runs hourly. Eligibility requires current recruiting-contact consent and excludes holds, merged/unavailable profiles and future verification dates. Source/consent triggers close obsolete tasks. No external message is sent. See [E2 deployment and limits](PHASE_E_FRESHNESS_REVIEWS.md).

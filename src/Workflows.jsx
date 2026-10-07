@@ -7,6 +7,7 @@ import { CandidateExportAudit } from './CandidateExportAudit.jsx';
 import { SubjectRequests } from './SubjectRequests.jsx';
 import { MfaPanel } from './MfaPanel.jsx';
 import { InterviewReminders } from './InterviewReminders.jsx';
+import { FreshnessReviews } from './FreshnessReviews.jsx';
 import { SavedImports } from './SavedImports.jsx';
 import { CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
@@ -1542,6 +1543,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         <MfaPanel key={`mfa-${getWorkspaceId()}`} />
         {getRole() === 'admin' && <ExecutionJobsPanel />}
         {getRole() === 'admin' && <InterviewReminders key={`reminders-${getWorkspaceId()}`} />}
+        {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
         {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}

@@ -1,8 +1,10 @@
 # Deploy Anthroprime on Netlify
 
-D7 [erasure scope review](PHASE_D_ERASURE_SCOPE.md) adds database/frontend governance with no new function or credentials. Apply all migrations through `20261007071142_reviewed_erasure_scope.sql` before using it; the function count remains 14.
+E2 [internal freshness reviews](PHASE_E_FRESHNESS_REVIEWS.md) adds the hourly `freshness-review-worker` using existing server Supabase credentials. Apply migrations through `20261007072845_internal_freshness_reviews.sql` before activation; the latest offline build packages 15 functions. Workspaces remain disabled by default.
 
-D6 adds [reviewed access packages](PHASE_D_REVIEWED_ACCESS_PACKAGES.md) and the hourly `subject-access-cleanup` scheduled function using the existing server-only Supabase credentials. The latest offline build packages 14 functions. Apply the migration before using access review; verify expiry cleanup and authenticated staging acceptance before production.
+D7 [erasure scope review](PHASE_D_ERASURE_SCOPE.md) adds database/frontend governance with no new function or credentials. Its original build packaged 14 functions; its migration is `20261007071142_reviewed_erasure_scope.sql`.
+
+D6 adds [reviewed access packages](PHASE_D_REVIEWED_ACCESS_PACKAGES.md) and the hourly `subject-access-cleanup` scheduled function using the existing server-only Supabase credentials. Its original offline build packaged 14 functions. Apply the migration before using access review; verify expiry cleanup and authenticated staging acceptance before production.
 
 The optional [LinkedIn candidate lookup](LINKEDIN_CANDIDATE_IMPORT.md) adds `linkedin-candidate` as an authenticated function, with server-only provider configuration and a database workspace/quota gate. Its original offline build packaged 13 functions. Pasted-profile extraction works without provider credentials; direct ID lookup requires them. Deploy its migration before activating the workspace option.
 
@@ -13,7 +15,7 @@ The Vite app, authenticated APIs and scheduled JavaScript jobs deploy together o
 ## Git deployment
 
 1. Import this repository into Netlify. Use the repository root as the base directory, `pnpm run build` as the build command, `dist` as the publish directory and `netlify/functions` as the functions directory. `netlify.toml` already declares these settings, Node 24 and the PDF worker's required assets. `package.json` pins pnpm; commit `pnpm-lock.yaml` and `pnpm-workspace.yaml` with the source. The workspace uses a hoisted dependency layout so dynamically launched PDF workers are packaged without build-machine symlinks.
-2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007071142_reviewed_erasure_scope.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
+2. For a shared team deployment, apply **every** file in `supabase/migrations` in ascending filename order through `20261007072845_internal_freshness_reviews.sql`, using the Supabase CLI or SQL editor as appropriate. Back up an existing database first. Older migrations redefine worker functions; always apply the newest files last. Do not stop at the historical README baseline of migration 033.
 3. Create the administrator account and workspace using the existing provisioning instructions. Set Supabase Auth's Site URL to your production HTTPS origin and allow the required login/reset redirect URLs. Use a separate database/bucket for deploy previews if you test writes there.
 4. Configure Netlify environment variables using the table below. Keep production credentials restricted to the production context. Do not expose production server secrets to untrusted pull-request builds.
 5. Create a private R2 bucket and configure CORS for your exact app origin as described below. Deploy the source through Git so Netlify builds both frontend and functions.
