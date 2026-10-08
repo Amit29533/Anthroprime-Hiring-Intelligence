@@ -1429,6 +1429,7 @@ export function CandidateProfile({
                 <article key={a.id} className="assessment-record">
                   <div>
                     <h3>{a.title}</h3>
+                    <CustomFieldValues data={data} module="assessments" values={a.custom} />
                     <strong>
                       {a.score}
                       <small>/100</small>
@@ -2522,6 +2523,7 @@ function InterviewsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
       )}
       {scheduling && !readOnly && (
         <ScheduleModal
+          settings={data.settings}
           onClose={() => setScheduling(false)}
           onSave={onSave}
           candidates={[c]}

@@ -1,3 +1,5 @@
+import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
+import { validateCustomValues } from './customFields.js';
 import { candidateLabel, anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import {
@@ -96,6 +98,7 @@ export function ScheduleModal({
   candidates,
   demands,
   preselect = {},
+  settings = [],
 }) {
   const [form, setForm] = useState(() => {
     if (interview) {
@@ -112,11 +115,14 @@ export function ScheduleModal({
       durationMins: 45,
       interviewers: '',
       notes: '',
+      custom: {},
     };
   });
   const [error, setError] = useState('');
   async function submit(e) {
     e.preventDefault();
+    const problem = validateCustomValues({ settings }, 'interviews', form.custom || {});
+    if (problem) return setError(problem);
     const { date, time, interviewers, ...rest } = form;
     if (!rest.candidateId) return setError('Select the candidate being interviewed.');
     if (!date || !time) return setError('Pick a date and time for the interview.');
@@ -234,6 +240,12 @@ export function ScheduleModal({
               placeholder="Focus areas, CV links, logistics…"
             />
           </Field>
+          <CustomFieldInputs
+            data={{ settings }}
+            module="interviews"
+            values={form.custom || {}}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           {error && <p className="form-error wide">{error}</p>}
         </div>
         <div className="modal-actions">
@@ -426,6 +438,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
             </button>
           )}
           {!c && <span className="muted">Candidate removed</span>}
+          <CustomFieldValues data={data} module="interviews" values={iv.custom} />
           <span className="iv-meta">
             <Badge>{iv.round}</Badge>
             <Badge>
@@ -708,6 +721,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
       )}
       {modal?.type === 'schedule' && !viewer && (
         <ScheduleModal
+          settings={data.settings}
           onClose={() => setModal(null)}
           onSave={onSave}
           interview={modal.interview}

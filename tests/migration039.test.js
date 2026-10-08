@@ -24,7 +24,8 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
       !file.endsWith('_dependent_stage3_google_collaboration.sql') &&
       !file.endsWith('_dependent_stage4_controlled_workflows.sql') &&
       !file.endsWith('_dependent_stage5_enterprise_fulfillment.sql') &&
-      !file.endsWith('_milestone_integrity_audit.sql')
+      !file.endsWith('_milestone_integrity_audit.sql') &&
+      !file.endsWith('_completion_workflows.sql')
     )
       await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(
@@ -92,6 +93,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(new URL('20261008105844_milestone_integrity_audit.sql', path), 'utf8'),
   );
+  await db.exec(await readFile(new URL('20261008131516_completion_workflows.sql', path), 'utf8'));
   await act(1);
   assert.equal((await rpc('api_index_health')).pending, 2);
   await act(0);
@@ -218,6 +220,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(new URL('20261008105844_milestone_integrity_audit.sql', path), 'utf8'),
   );
+  await db.exec(await readFile(new URL('20261008131516_completion_workflows.sql', path), 'utf8'));
   await act(0);
   assert.equal(
     await rpc('worker_finish_index', [

@@ -1,5 +1,12 @@
+import './completion.css';
 import React from 'react';
-import { CV_SECTIONS } from './cvEvidence.js';
+import {
+  CV_SECTIONS,
+  groupCvEvidence,
+  mergeCvRecords,
+  validateCvRecords,
+  duplicateCvRecords,
+} from './cvEvidence.js';
 
 export function CvEvidenceReview({ value, onChange, disabled = false, label = 'CV' }) {
   if (!Array.isArray(value?.items) || !value.items.length) return null;
@@ -7,11 +14,14 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
   function update(index, patch) {
     onChange({
       ...value,
+      ...(patch.reviewed === false && value.records
+        ? { records: value.records.map((record) => ({ ...record, reviewed: false })) }
+        : {}),
       items: value.items.map((item, i) => (i === index ? { ...item, ...patch } : item)),
     });
   }
   return (
-    <details>
+    <details className="cv-record-review">
       <summary>Structured CV evidence ({value.items.length})</summary>
       <p>
         These are section excerpts, not verified employment or credentials. Check each against the
@@ -21,6 +31,114 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
         <p role="status">
           Only bounded excerpts were captured. Check the original for omitted lines.
         </p>
+      )}
+      {editable && !value.records && (
+        <button type="button" disabled={disabled} onClick={() => onChange(groupCvEvidence(value))}>
+          Build cited CV records
+        </button>
+      )}
+      {value.records && (
+        <section aria-label="Cited CV records">
+          <p>
+            Merge related lines, then enter only dates stated in the original. Partial dates are
+            supported. These remain recruiter-reviewed CV claims.
+          </p>
+          {validateCvRecords(value) && <p role="alert">{validateCvRecords(value)}</p>}
+          {duplicateCvRecords(value).length > 0 && (
+            <p role="status">
+              Possible duplicate records: {duplicateCvRecords(value).join(', ')}. Check before
+              importing.
+            </p>
+          )}
+          {value.records.map((record, index) => (
+            <article key={index}>
+              <h4>
+                {record.section} record {index + 1}
+              </h4>
+              <small>Cited text lines {record.sourceLines.join(', ')}</small>
+              {value.items
+                .filter((item) => record.sourceLines.includes(item.sourceLine))
+                .map((item) => (
+                  <blockquote key={item.sourceLine}>{item.evidence}</blockquote>
+                ))}
+              {editable ? (
+                <>
+                  {['label', 'organization', 'start', 'end'].map((field) => (
+                    <label key={field}>
+                      {field}
+                      <input
+                        aria-label={`${label} record ${field} ${index + 1}`}
+                        maxLength={field === 'start' || field === 'end' ? 10 : 160}
+                        disabled={disabled}
+                        value={record[field]}
+                        onChange={(event) =>
+                          onChange({
+                            ...value,
+                            records: value.records.map((r, i) =>
+                              i === index
+                                ? { ...r, [field]: event.target.value, reviewed: false }
+                                : r,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                  {['ongoing', 'reviewed'].map((field) => (
+                    <label key={field}>
+                      <input
+                        type="checkbox"
+                        aria-label={`${label} record ${field} ${index + 1}`}
+                        checked={record[field]}
+                        disabled={
+                          disabled || (field === 'reviewed' && Boolean(validateCvRecords(value)))
+                        }
+                        onChange={(event) =>
+                          onChange({
+                            ...value,
+                            records: value.records.map((r, i) =>
+                              i === index
+                                ? {
+                                    ...r,
+                                    [field]: event.target.checked,
+                                    ...(field === 'ongoing' ? { reviewed: false } : {}),
+                                  }
+                                : r,
+                            ),
+                          })
+                        }
+                      />
+                      {field === 'reviewed' ? 'Checked record against original' : 'Ongoing'}
+                    </label>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={disabled || value.records[index + 1]?.section !== record.section}
+                    onClick={() => onChange(mergeCvRecords(value, index))}
+                  >
+                    Merge next into record {index + 1}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() =>
+                      onChange({ ...value, records: value.records.filter((_, i) => i !== index) })
+                    }
+                  >
+                    Remove record {index + 1}
+                  </button>
+                </>
+              ) : (
+                <p>
+                  {record.label} · {record.organization || 'Organization unspecified'} ·{' '}
+                  {record.start || 'Start unspecified'} –{' '}
+                  {record.ongoing ? 'Ongoing' : record.end || 'End unspecified'} ·{' '}
+                  {record.reviewed ? 'Recruiter-reviewed claim' : 'Review pending'}
+                </p>
+              )}
+            </article>
+          ))}
+        </section>
       )}
       {CV_SECTIONS.map(
         (section) =>
@@ -77,6 +195,7 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
                             onClick={() =>
                               onChange({
                                 ...value,
+                                ...(value.records ? { records: [] } : {}),
                                 items: value.items.filter((_, i) => i !== index),
                               })
                             }

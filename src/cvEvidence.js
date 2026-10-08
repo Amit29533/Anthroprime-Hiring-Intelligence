@@ -59,6 +59,113 @@ export function extractCvEvidence(text) {
 }
 
 export function evidenceReady(value) {
-  if (value?.items === undefined) return true;
-  return Array.isArray(value.items) && value.items.every((item) => item?.reviewed === true);
+  if (value?.items === undefined) return !value?.records;
+  return (
+    Array.isArray(value.items) &&
+    value.items.every((item) => item?.reviewed === true) &&
+    (!value.records ||
+      (validateCvRecords(value) === '' &&
+        value.records.every((record) => record.reviewed === true)))
+  );
+}
+
+// Begin with cited excerpts; grouping and unknown dates require explicit review.
+export function groupCvEvidence(value) {
+  return {
+    ...value,
+    records: (value.items || []).map((item) => ({
+      section: item.section,
+      label: item.label,
+      organization: '',
+      start: (item.period.match(/^(\d{4})/) || ['', ''])[1],
+      end: (item.period.match(/[-–—]\s*(\d{4})$/) || ['', ''])[1],
+      ongoing: /[-–—]\s*(present|current)$/i.test(item.period),
+      sourceLines: [item.sourceLine],
+      reviewed: false,
+    })),
+  };
+}
+export function mergeCvRecords(value, index) {
+  const left = value.records?.[index],
+    right = value.records?.[index + 1];
+  if (!left || !right || left.section !== right.section) return value;
+  return {
+    ...value,
+    records: value.records.flatMap((record, i) =>
+      i === index
+        ? [
+            {
+              ...left,
+              sourceLines: [...new Set([...left.sourceLines, ...right.sourceLines])].sort(
+                (a, b) => a - b,
+              ),
+              reviewed: false,
+            },
+          ]
+        : i === index + 1
+          ? []
+          : [record],
+    ),
+  };
+}
+export function validateCvRecords(value) {
+  if (!Array.isArray(value.records) || value.records.length > 16)
+    return 'Use up to 16 cited records.';
+  const date = (v) =>
+    typeof v === 'string' &&
+    (v === '' ||
+      (/^(19|20)\d{2}(-(?:0[1-9]|1[0-2]))?(-(?:0[1-9]|[12]\d|3[01]))?$/.test(v) &&
+        (v.length < 10 ||
+          (!Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v))));
+  if (new TextEncoder().encode(JSON.stringify(value)).length > 24000)
+    return 'CV evidence exceeds its size limit.';
+  for (const r of value.records) {
+    if (!r || typeof r !== 'object') return 'Each record must be an object.';
+    if (
+      !CV_SECTIONS.includes(r.section) ||
+      typeof r.label !== 'string' ||
+      !r.label.trim() ||
+      r.label.length > 160 ||
+      typeof r.organization !== 'string' ||
+      r.organization.length > 160 ||
+      typeof r.ongoing !== 'boolean' ||
+      typeof r.reviewed !== 'boolean' ||
+      !date(r.start) ||
+      !date(r.end)
+    )
+      return 'Check record labels, organization and dates (YYYY, YYYY-MM or YYYY-MM-DD).';
+    if (r.ongoing && r.end) return 'An ongoing record cannot have an end date.';
+    if (r.start && r.end && r.start > r.end && !r.start.startsWith(r.end))
+      return 'The end date must not precede the start date.';
+    if (
+      !Array.isArray(r.sourceLines) ||
+      !r.sourceLines.length ||
+      r.sourceLines.length > 16 ||
+      new Set(r.sourceLines).size !== r.sourceLines.length ||
+      r.sourceLines.some(
+        (line) =>
+          !Number.isInteger(line) ||
+          !value.items?.some((item) => item.sourceLine === line && item.section === r.section),
+      )
+    )
+      return 'Every record needs distinct cited lines from its section.';
+  }
+  return '';
+}
+export function duplicateCvRecords(value) {
+  const seen = new Set(),
+    duplicates = [];
+  for (const [index, r] of (value.records || []).entries()) {
+    const key = [
+      r.section,
+      r.label.trim().toLowerCase(),
+      r.organization.trim().toLowerCase(),
+      r.start,
+      r.end,
+      r.ongoing,
+    ].join('|');
+    if (seen.has(key)) duplicates.push(index + 1);
+    seen.add(key);
+  }
+  return duplicates;
 }

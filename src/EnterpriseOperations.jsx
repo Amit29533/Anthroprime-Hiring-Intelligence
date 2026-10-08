@@ -1,3 +1,4 @@
+import './completion.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { cloud, getRole, getWorkspaceId } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
@@ -12,6 +13,9 @@ export default function EnterpriseOperations({
   return <Console key={scope + ':' + role} rpc={rpc} />;
 }
 function Console({ rpc }) {
+  const [searchDraft, setSearchDraft] = useState(''),
+    [statusDraft, setStatusDraft] = useState(''),
+    [filters, setFilters] = useState({ query: '', status: '' });
   const [ctx, setCtx] = useState(null),
     [dashboard, setDashboard] = useState(null),
     [tick, setTick] = useState(0);
@@ -56,7 +60,12 @@ function Console({ rpc }) {
   }, []);
   useEffect(() => {
     let active = true;
-    const read = (a, off = 0) => rpc('api_enterprise_operations', { p_action: a, p_offset: off });
+    const read = (a, off = 0) =>
+      rpc('api_enterprise_operations', {
+        p_action: a,
+        p_offset: off,
+        p_payload: ['members', 'cases', 'browse', 'access-history'].includes(a) ? filters : {},
+      });
     Promise.all([
       read('context'),
       read('dashboard'),
@@ -81,7 +90,7 @@ function Console({ rpc }) {
     return () => {
       active = false;
     };
-  }, [rpc, tick, offset, memberOffset, caseOffset, accessOffset]);
+  }, [rpc, tick, offset, memberOffset, caseOffset, accessOffset, filters]);
   const policy = ctx?.policies?.find((p) => p.kind === kind);
   useEffect(() => {
     setConfig(
@@ -173,6 +182,47 @@ function Console({ rpc }) {
         Destructive execution is disabled. Human copy reports do not prove provider deletion or
         legal fulfillment.
       </p>
+      <form
+        className="completion-queue-search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setMembers(null);
+          setCases(null);
+          setPage(null);
+          setAccessHistory(null);
+          setMemberOffset(0);
+          setCaseOffset(0);
+          setOffset(0);
+          setAccessOffset(0);
+          setFilters({ query: searchDraft.trim(), status: statusDraft.trim() });
+        }}
+      >
+        <fieldset disabled={busy || !!pending}>
+          <legend>Search administration queues</legend>
+          <label>
+            Queue search
+            <input
+              maxLength={200}
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+            />
+          </label>
+          <label>
+            Exact queue status or role
+            <input
+              maxLength={80}
+              value={statusDraft}
+              onChange={(event) => setStatusDraft(event.target.value)}
+            />
+          </label>
+          <p>
+            Search members by email or user ID, cases and plans by candidate name, Anthro-ID or ID,
+            and access history by user ID or evidence. Leave status empty to browse open cases and
+            all other queues.
+          </p>
+          <button type="submit">Search administration queues</button>
+        </fieldset>
+      </form>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {pending && (

@@ -4,6 +4,10 @@ export const CUSTOM_MODULES = {
   demands: 'Demands',
   clients: 'Clients',
   clientContacts: 'Client contacts',
+  interviews: 'Interviews',
+  assessments: 'Assessments',
+  enrichment: 'Enrichment plans',
+  placements: 'Placements',
 };
 export const FIELD_TYPES = ['text', 'number', 'date', 'select'];
 const unsafeNames = new Set(['__proto__', 'constructor', 'prototype']);

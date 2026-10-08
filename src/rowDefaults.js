@@ -242,5 +242,8 @@ const normalizers = {
 export function normalizeRow(table, source) {
   const row = { ...source };
   normalizers[table]?.(row);
+  if (['interviews', 'assessments', 'enrichment', 'placements'].includes(table))
+    row.custom =
+      row.custom && typeof row.custom === 'object' && !Array.isArray(row.custom) ? row.custom : {};
   return row;
 }

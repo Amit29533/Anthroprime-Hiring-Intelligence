@@ -320,6 +320,8 @@ export function PlacementForm({ placement, clientId, data, onClose, onSave, busy
       updated: new Date().toISOString(),
     };
     const found = validatePlacement(normalized, data, draftId);
+    const customError = validateCustomValues(data, 'placements', form.custom || {});
+    if (customError) found.custom = customError;
     const moneyErrors = admin ? validatePlacementCommercial(commercial) : {};
     setErrors(found);
     setCommercialErrors(moneyErrors);
@@ -399,6 +401,17 @@ export function PlacementForm({ placement, clientId, data, onClose, onSave, busy
           <Field label="Placement notes" wide>
             <textarea rows={3} value={form.notes} onChange={set('notes')} />
           </Field>
+          <CustomFieldInputs
+            data={data}
+            module="placements"
+            values={form.custom || {}}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
+          {errors.custom && (
+            <p role="alert" className="form-error wide">
+              {errors.custom}
+            </p>
+          )}
         </div>
         {admin && (
           <>
@@ -915,6 +928,11 @@ export function ClientDetail({
                         >
                           {candidateName(placement.candidateId)}
                         </button>
+                        <CustomFieldValues
+                          data={data}
+                          module="placements"
+                          values={placement.custom}
+                        />
                       </td>
                       <td>
                         {data.demands.find((row) => row.id === placement.demandId)?.title || '—'}

@@ -1,3 +1,4 @@
+import CompletionWorkbench from './CompletionWorkbench.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
 import React, { useMemo, useState } from 'react';
 import { Plus, Save, Trash2, Download, BarChart3, Info } from 'lucide-react';
@@ -136,6 +137,12 @@ export function Reports({
             onOpenClient={onOpenClient}
             onOpenDemand={onOpenDemand}
           />
+        </details>
+      )}
+      {cloud && (
+        <details>
+          <summary>Historical report builder and conversion cohorts</summary>
+          <CompletionWorkbench role={role} initialTab="history" />
         </details>
       )}
       {cloud && <DemandReadinessReport demands={data.demands || []} role={role} />}

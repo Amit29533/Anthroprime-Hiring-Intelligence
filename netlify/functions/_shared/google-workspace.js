@@ -712,9 +712,18 @@ export function mimeMessage(preview, account, id) {
     '',
   ].join('\r\n');
 }
+// Only one unambiguous sender can drive automatic campaign response suppression.
+export function singleSenderEmail(value) {
+  const text = String(value || '').trim();
+  const address = text.includes('<') ? text.match(/^[^<>\r\n,]*<([^<>\s,]+)>$/)?.[1] : text;
+  return address && address.length <= 254 && /^[^<>\s,@]+@[^<>\s,@]+\.[^<>\s,@]+$/.test(address)
+    ? address.toLowerCase()
+    : '';
+}
 export function normalizeMessage(message) {
   if (!/^[a-zA-Z0-9_-]{1,200}$/.test(message?.id || '') || typeof message.threadId !== 'string')
     throw new GoogleError('invalid-message');
+  const receivedMs = Number(message.internalDate);
   const headers = message.payload?.headers || [],
     get = (key) =>
       String(headers.find((h) => h.name?.toLowerCase() === key)?.value || '').slice(0, 1000);
@@ -770,6 +779,10 @@ export function normalizeMessage(message) {
     body: {
       subject: get('subject'),
       from: get('from'),
+      ...(Number.isSafeInteger(receivedMs) && receivedMs >= 0 && receivedMs <= Date.now() + 300000
+        ? { receivedMs }
+        : {}),
+      senderEmail: singleSenderEmail(get('from')),
       to: get('to'),
       messageId: get('message-id'),
       references: get('references'),

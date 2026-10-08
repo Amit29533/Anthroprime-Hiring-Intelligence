@@ -15,7 +15,8 @@ import { MfaPanel } from './MfaPanel.jsx';
 import { InterviewReminders } from './InterviewReminders.jsx';
 import { FreshnessReviews } from './FreshnessReviews.jsx';
 import { SavedImports } from './SavedImports.jsx';
-import { CustomFieldsPanel } from './CustomFields.jsx';
+import { validateCustomValues } from './customFields.js';
+import { CustomFieldInputs, CustomFieldValues, CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
 import { OperationsConsole } from './OperationsConsole.jsx';
 import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
@@ -117,10 +118,13 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
     date: today(),
     evidence: '',
     gap: '',
+    custom: {},
   });
   async function submit(e) {
     e.preventDefault();
     setError('');
+    const customError = validateCustomValues(data, 'assessments', form.custom);
+    if (customError) return setError(customError);
     let templateFields = {};
     try {
       if (templateId && !template)
@@ -296,6 +300,12 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
             Assessment scores update matching. Recruiters confirm profile readiness separately;
             earlier assessments remain in history.
           </p>
+          <CustomFieldInputs
+            data={data}
+            module="assessments"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           {error && (
             <p className="form-error wide" role="alert">
               {error}
@@ -324,7 +334,9 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
     due: '',
     owner: '',
     status: 'Planned',
+    custom: {},
   });
+  const [error, setError] = useState('');
   const skillOptions = form.candidateId
     ? data.candidates.find((c) => c.id === form.candidateId)?.skills || []
     : [];
@@ -337,6 +349,9 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          const problem = validateCustomValues(data, 'enrichment', form.custom);
+          setError(problem);
+          if (problem) return;
           if (
             await onSave('enrichment', [
               { ...form, id: uid(), demandId: form.demandId || null, created: today() },
@@ -422,6 +437,17 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
               onChange={(e) => setForm({ ...form, due: e.target.value })}
             />
           </Field>
+          <CustomFieldInputs
+            data={data}
+            module="enrichment"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
+          {error && (
+            <p role="alert" className="form-error wide">
+              {error}
+            </p>
+          )}
         </div>
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -497,6 +523,7 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                         </td>
                         <td>
                           {a.title}
+                          <CustomFieldValues data={data} module="assessments" values={a.custom} />
                           {a.templateSnapshot && (
                             <small className="block">
                               {a.templateSnapshot.name} · v{a.templateSnapshot.version} ·{' '}
@@ -530,6 +557,7 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                   </div>
                   <div>
                     <h3>{a.title}</h3>
+                    <CustomFieldValues data={data} module="enrichment" values={a.custom} />
                     <button className="inline-link" onClick={() => onOpen(c?.id)}>
                       {c ? candidateLabel(c) : 'Unknown candidate'}
                     </button>

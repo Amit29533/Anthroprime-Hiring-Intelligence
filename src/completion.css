@@ -1,0 +1,140 @@
+/* Shared, scoped layout for the completion tools and cited CV review. */
+.completion-workbench {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.completion-workbench fieldset,
+.completion-queue-search fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+.completion-workbench legend,
+.completion-queue-search legend {
+  padding: 0 6px;
+  font-weight: 650;
+}
+.completion-workbench label,
+.completion-queue-search label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.completion-workbench fieldset > label,
+.completion-queue-search label {
+  flex: 1 1 200px;
+}
+.completion-workbench input:not([type='checkbox']),
+.completion-workbench select,
+.completion-queue-search input,
+.cv-record-review input:not([type='checkbox']) {
+  width: 100%;
+  min-width: 0;
+}
+.completion-workbench fieldset > p,
+.completion-workbench fieldset > form,
+.completion-workbench fieldset > details,
+.completion-workbench fieldset > section,
+.completion-workbench fieldset > article,
+.completion-workbench fieldset > h3,
+.completion-workbench .table-wrap,
+.completion-queue-search p {
+  flex-basis: 100%;
+  min-width: 0;
+}
+.completion-workbench button,
+.completion-queue-search button,
+.cv-record-review button {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface, #fff);
+  color: inherit;
+  padding: 9px 12px;
+  white-space: normal;
+}
+.completion-workbench button[aria-pressed='true'] {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: white;
+}
+.completion-workbench form,
+.completion-workbench details[open],
+.completion-workbench section[aria-label='Recorded operational health'] {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.completion-workbench details > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-block: 8px;
+}
+.completion-workbench details > div > label {
+  flex: 1 1 180px;
+}
+.completion-workbench article,
+.cv-record-review article {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.completion-workbench summary,
+.cv-record-review summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.completion-workbench .table-wrap {
+  overflow-x: auto;
+}
+.cv-record-review {
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.cv-record-review[open],
+.cv-record-review section {
+  display: grid;
+  gap: 12px;
+}
+.cv-record-review label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.cv-record-review label:has(input[type='checkbox']) {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cv-record-review blockquote {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--teal);
+  background: var(--surface, #f6f8fa);
+}
+@media (max-width: 600px) {
+  .completion-workbench {
+    padding: 14px;
+  }
+  .completion-workbench fieldset,
+  .completion-queue-search fieldset {
+    padding: 12px;
+  }
+  .completion-workbench fieldset > label,
+  .completion-queue-search label {
+    flex-basis: 100%;
+  }
+  .completion-workbench button,
+  .completion-queue-search button {
+    max-width: 100%;
+  }
+}

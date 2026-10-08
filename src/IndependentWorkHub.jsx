@@ -3,7 +3,8 @@ import EnterpriseOperations from './EnterpriseOperations.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useRef } from 'react';
+const CompletionWorkbench = lazy(() => import('./CompletionWorkbench.jsx'));
 const FoundationWorkbench = lazy(() => import('./FoundationWorkbench.jsx'));
 import { cloud, getRole, getWorkspaceId, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
@@ -24,9 +25,29 @@ export default function IndependentWorkHub({
   onOpenDemand,
   onSettings,
 }) {
+  const root = useRef(null);
+  const openTool = (tool) => {
+    const detail = root.current?.querySelector(`details[data-completion-target="${tool}"]`);
+    if (detail) {
+      detail.open = true;
+      detail.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }
+  };
   if (!isCloud || !['admin', 'recruiter', 'viewer'].includes(role)) return null;
   return (
-    <section aria-label="Independent feature work queues" key={`${scope}:${role}`}>
+    <section ref={root} aria-label="Independent feature work queues" key={`${scope}:${role}`}>
+      <details>
+        <summary>Completion tools: historical reports, campaigns and operational health</summary>
+        <Suspense fallback={<p role="status">Loading completion tools…</p>}>
+          <CompletionWorkbench
+            isCloud={isCloud}
+            role={role}
+            scope={scope}
+            rpc={rpc}
+            onOpenTool={openTool}
+          />
+        </Suspense>
+      </details>
       <details>
         <summary>Foundation tools: filters, quality, discovery, reports and ownership</summary>
         <Suspense fallback={<p role="status">Loading foundation workbench…</p>}>
@@ -41,18 +62,18 @@ export default function IndependentWorkHub({
           />
         </Suspense>
       </details>
-      <details>
+      <details data-completion-target="delivery">
         <summary>Dependent delivery sandbox</summary>
         <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
       </details>
       {role === 'admin' && (
-        <details>
+        <details data-completion-target="processing">
           <summary>Private processing and recovery</summary>
           <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
         </details>
       )}
       {['admin', 'recruiter'].includes(role) && (
-        <details>
+        <details data-completion-target="google">
           <summary>Google Workspace communication and scheduling</summary>
           <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
         </details>
@@ -64,7 +85,7 @@ export default function IndependentWorkHub({
         </details>
       )}
       {['admin', 'recruiter'].includes(role) && (
-        <details>
+        <details data-completion-target="controlled">
           <summary>Controlled intelligence and external workflows</summary>
           <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
         </details>
