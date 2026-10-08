@@ -156,6 +156,7 @@ test('bulk review displays differences and failed items block confirmation', asy
   fireEvent.click(screen.getByRole('button', { name: /Bulk owner and next-action preview/ }));
   await settle();
   assert.ok(screen.getByText(/Owner: Before → After/));
+  assert.match(screen.getByRole('alert').textContent, /1 failed and 0 stale/);
   assert.equal(
     screen.getByRole('button', { name: 'Confirm reviewed bulk changes' }).disabled,
     true,

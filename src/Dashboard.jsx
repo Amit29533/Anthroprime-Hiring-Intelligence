@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
+const IndependentWorkHub = lazy(() => import('./IndependentWorkHub.jsx'));
 import { TalentScene } from './Visuals.jsx';
 import {
   Users,
@@ -17,13 +18,14 @@ import {
 } from 'lucide-react';
 import { PageHeader, Button, Stat, PanelHeading, Badge, Avatar, TextLink, Empty } from './ui.jsx';
 import { freshness, matchCandidate, today } from './domain.js';
-import { canWriteForRole, getRole } from './repository.js';
+import { cloud, canWriteForRole, getRole } from './repository.js';
 import { identityFor, myQueue, ownerLooksUnmatched } from './worklist.js';
 export default function Dashboard({
   data,
   navigate,
   openCandidate,
   openDemand,
+  openClient,
   onNewDemand,
   onAdd,
   onImport,
@@ -92,6 +94,15 @@ export default function Dashboard({
           tone="amber"
         />
       </div>
+      {cloud && (
+        <Suspense fallback={<p role="status">Loading workspace review queues…</p>}>
+          <IndependentWorkHub
+            onOpen={openCandidate}
+            onOpenClient={openClient}
+            onSettings={() => navigate('Settings')}
+          />
+        </Suspense>
+      )}
       <section className="panel my-work">
         <PanelHeading
           title="Your work today"

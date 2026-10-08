@@ -1,5 +1,8 @@
 # Five build phases using the existing stack
 
+Update, 8 October 2026: the five continuation stages are locally implemented and integrated. See the [Milestone for Independent Featureset Completion](INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md) for the current acceptance record. The historical findings below describe an earlier baseline or the broader original roadmap; hosted activation remains pending.
+
+
 Started: 7 October 2026. Scope: features classified as buildable in the [Netlify feature split](NETLIFY_FEATURE_SPLIT_2026_10_07.md). Keep React/Vite, Netlify, Supabase/PostgreSQL and existing private storage. Add no external provider or worker service as part of these phases. Commit locally only.
 
 These are implementation phases, not five releases already completed. Close each slice with meaningful permission/migration/UI checks and update its status. Hosted activation requires migrations and staging acceptance; local work does not imply deployment.

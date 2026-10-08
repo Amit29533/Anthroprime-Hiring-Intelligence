@@ -234,3 +234,75 @@ test('a scoped invitation link selects its authorized account and filters histor
     history.replaceState({}, '', '/');
   }
 });
+
+test('accepted proposal refreshes surrounding profile once after exact lost-ack retry', async () => {
+  const writes = [],
+    updates = [];
+  let saved = false;
+  await mount(M.FeedbackReview, {
+    candidateId: 'candidate',
+    role: 'recruiter',
+    onUpdated: () => updates.push('refreshed'),
+    rpc: async (_, args) => {
+      if (args.p_action === 'context')
+        return {
+          ...page,
+          proposals: [
+            {
+              id: 'proposal',
+              fields: { ...fields, name: 'Changed' },
+              base: fields,
+              status: saved ? 'Accepted' : 'Pending',
+              reviewHead: 'head',
+              at: '2026-10-08',
+            },
+          ],
+        };
+      writes.push(structuredClone(args));
+      if (writes.length === 1) throw Error('Acknowledgement lost');
+      saved = true;
+      return { id: 'proposal', status: 'Accepted' };
+    },
+  });
+  await settle();
+  fireEvent.change(screen.getByLabelText('Review reason'), {
+    target: { value: 'Reviewed sourced changes' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Accept proposed fields' }));
+  await settle();
+  assert.deepEqual(updates, []);
+  fireEvent.click(screen.getByRole('button', { name: 'Retry pending request' }));
+  await settle(6);
+  assert.deepEqual(writes[1], writes[0]);
+  assert.deepEqual(updates, ['refreshed']);
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh feedback' }));
+  await settle();
+  assert.deepEqual(updates, ['refreshed']);
+});
+
+test('failed profile refresh preserves accepted receipt without offering another write retry', async () => {
+  await mount(M.FeedbackReview, {
+    candidateId: 'candidate',
+    role: 'recruiter',
+    onUpdated: async () => {
+      throw Error('Read offline');
+    },
+    rpc: async (_, args) =>
+      args.p_action === 'context'
+        ? {
+            ...page,
+            proposals: [
+              { id: 'proposal', fields, base: fields, status: 'Pending', reviewHead: 'head' },
+            ],
+          }
+        : { id: 'proposal', status: 'Accepted' },
+  });
+  await settle();
+  fireEvent.change(screen.getByLabelText('Review reason'), {
+    target: { value: 'Reviewed sourced changes' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Accept proposed fields' }));
+  await settle(6);
+  assert.match(screen.getByRole('alert').textContent, /Proposal accepted.*reopen/);
+  assert.equal(screen.queryByRole('button', { name: 'Retry pending request' }), null);
+});

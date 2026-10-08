@@ -41,7 +41,8 @@ function useJournal(rpc, api, scope, request = null) {
     [revision, setRevision] = useState(0),
     [offset, setOffset] = useState(0),
     [query, setQuery] = useState(''),
-    [message, setMessage] = useState('');
+    [message, setMessage] = useState(''),
+    [record, setRecord] = useState(null);
   const epoch = useRef(0),
     operation = useRef(null);
   const scopeKey = JSON.stringify(scope);
@@ -87,6 +88,7 @@ function useJournal(rpc, api, scope, request = null) {
           ? `Recorded. Share this authenticated link manually: ${v.path}`
           : `Recorded: ${v.status || 'Saved'}.`,
       );
+      setRecord({ operation: frozen.p_operation, action: frozen.p_action, status: v.status });
       setRevision((n) => n + 1);
       return v;
     } catch (e) {
@@ -107,6 +109,7 @@ function useJournal(rpc, api, scope, request = null) {
   }
   return {
     page,
+    record,
     error,
     busy,
     pending,
@@ -187,6 +190,7 @@ function Changes({ proposal: p }) {
 }
 
 export function FeedbackReview({
+  onUpdated,
   candidateId = null,
   clientId = null,
   rpc = repositoryRead,
@@ -199,11 +203,36 @@ export function FeedbackReview({
       clientId={clientId}
       rpc={rpc}
       role={role}
+      onUpdated={onUpdated}
     />
   );
 }
-function Reviewer({ candidateId, clientId, rpc, role }) {
+function Reviewer({ candidateId, clientId, rpc, role, onUpdated }) {
   const j = useJournal(rpc, 'api_feedback_staff', { p_candidate: candidateId, p_client: clientId });
+  const notified = useRef(null);
+  const [refreshError, setRefreshError] = useState('');
+  useEffect(() => {
+    if (
+      !onUpdated ||
+      j.record?.action !== 'review' ||
+      j.record.status !== 'Accepted' ||
+      notified.current === j.record.operation
+    )
+      return;
+    notified.current = j.record.operation;
+    let active = true;
+    Promise.resolve()
+      .then(() => onUpdated())
+      .catch(() => {
+        if (active)
+          setRefreshError(
+            'Proposal accepted. Close and reopen the profile to refresh its current fields.',
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [j.record, onUpdated]);
   const [reason, setReason] = useState(''),
     [user, setUser] = useState(''),
     [grantDays, setGrantDays] = useState('30'),
@@ -269,6 +298,7 @@ function Reviewer({ candidateId, clientId, rpc, role }) {
         and profile assertions require review; they do not certify readiness.
       </p>
       <State journal={j} />
+      {refreshError && <p role="alert">{refreshError}</p>}
       {edit && (
         <label>
           Review reason

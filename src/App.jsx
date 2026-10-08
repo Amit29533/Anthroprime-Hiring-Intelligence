@@ -811,6 +811,7 @@ export default function App() {
         navigate={navigate}
         openCandidate={openPerson}
         openDemand={openDemand}
+        openClient={openClient}
         onNewDemand={newDemand}
         onAdd={addCandidate}
         onImport={importCandidates}
@@ -1311,6 +1312,7 @@ export default function App() {
         )}
         {person && !modal && (
           <CandidateProfile
+            key={`${activeWorkspace?.id || ''}:${getRole()}:${person.id}`}
             candidate={person}
             data={data}
             onClose={() => setPersonId(null)}

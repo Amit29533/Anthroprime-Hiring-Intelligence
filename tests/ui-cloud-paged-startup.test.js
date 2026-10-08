@@ -148,6 +148,30 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   assert.ok(calls.includes('/rest/v1/documents'));
   assert.ok(await screen.findByText('Full candidate', {}, { timeout: 10000 }));
   assert.equal(screen.queryByRole('button', { name: 'More filters & bulk actions' }), null);
+  fireEvent.click(screen.getByText('Full candidate'));
+  await settle(5);
+  fireEvent.click(screen.getByRole('button', { name: 'Communication tests' }));
+  await settle();
+  assert.ok(screen.getByRole('heading', { name: 'Communication test workspace' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Feedback & self-updates' }));
+  await settle();
+  assert.ok(screen.getByRole('heading', { name: 'Candidate feedback review' }));
+  const invite = screen.getByRole('link', { name: 'Portal invite' });
+  assert.match(decodeURIComponent(invite.getAttribute('href')), /administrator-approved grant/);
+  assert.doesNotMatch(
+    decodeURIComponent(invite.getAttribute('href')),
+    /links to your profile automatically/,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+  await navTo('Overview');
+  await settle(10);
+  for (const name of [
+    'Communication test workspace',
+    'Feedback work queue',
+    'Internal SLA review',
+    'Repository quality review',
+  ])
+    assert.ok(await screen.findByRole('heading', { name }, { timeout: 10000 }), name);
   fireEvent.click(screen.getByRole('button', { name: /Workspace settings/ }));
   await settle(10);
   assert.ok(screen.getByText(/Configure cloud retention review in Operations and governance/));

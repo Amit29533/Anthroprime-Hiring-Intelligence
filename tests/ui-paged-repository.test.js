@@ -90,3 +90,64 @@ test('Candidate 360 fetches only selected sections and pages, and opens original
   assert.deepEqual(downloads, ['doc']);
   assert.match(screen.getByRole('alert').textContent, /not available/);
 });
+
+test('accepting self-update refreshes the paged profile header and its parent repository', async () => {
+  let accepted = false,
+    refreshes = 0;
+  const calls = [];
+  await mount(Profile, {
+    candidateId: 'one',
+    onClose: () => {},
+    onUpdated: () => {
+      refreshes++;
+    },
+    rpc: async (name, args) => {
+      calls.push([name, args]);
+      if (name === 'api_candidate_section')
+        return {
+          candidate: {
+            id: 'one',
+            name: accepted ? 'Updated person' : 'Original person',
+            anthroId: 'ANTHRO-00001',
+            skills: [],
+          },
+        };
+      if (args.p_action === 'context')
+        return {
+          fields: { name: 'Original person' },
+          proposals: [
+            {
+              id: 'proposal',
+              fields: { name: 'Updated person' },
+              base: { name: 'Original person' },
+              status: accepted ? 'Accepted' : 'Pending',
+              reviewHead: 'head',
+            },
+          ],
+          prompts: [],
+          responses: [],
+          grants: [],
+          preferences: [],
+          recipients: [],
+          demands: [],
+          more: false,
+        };
+      assert.equal(name, 'api_feedback_staff');
+      assert.equal(args.p_action, 'review');
+      accepted = true;
+      return { id: 'proposal', status: 'Accepted' };
+    },
+  });
+  await settle();
+  assert.ok(screen.getByRole('heading', { name: 'Original person' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Feedback & self-updates' }));
+  await settle();
+  fireEvent.change(screen.getByLabelText('Review reason'), {
+    target: { value: 'Confirmed profile changes' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Accept proposed fields' }));
+  await settle(6);
+  assert.ok(screen.getByRole('heading', { name: 'Updated person' }));
+  assert.equal(refreshes, 1);
+  assert.equal(calls.filter(([name]) => name === 'api_candidate_section').length, 2);
+});

@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
-import { getRole, getWorkspaceId, canWriteForRole } from './repository.js';
+import { getRole, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
 import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
-import { RecruiterWorklist } from './RecruiterWorklist.jsx';
-import { SlaWorklist } from './OperationsConsole.jsx';
-import { RepositoryQuality } from './RepositoryQuality.jsx';
 import CandidateProfileEditor from './CandidateProfileEditor.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
 import { CandidateCommunications } from './CandidateCommunications.jsx';
-import { FeedbackReview, FeedbackQueue } from './FeedbackLoops.jsx';
+import { FeedbackReview } from './FeedbackLoops.jsx';
+import IndependentWorkHub from './IndependentWorkHub.jsx';
 
 const SORTS = {
   name: 'Name',
@@ -186,21 +184,9 @@ export function PagedOverview({
         Refresh totals
       </Button>
       {onOpenWorklist && (
-        <>
-          <CandidateCommunications key={`communications-${getWorkspaceId()}`} />
-          <FeedbackQueue
-            key={`feedback-${getWorkspaceId()}`}
-            onOpen={onOpenWorklist}
-            onOpenClient={onOpenClient}
-          />
-          <RecruiterWorklist key={`worklist-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
-          <SlaWorklist key={`sla-${getWorkspaceId()}`} onOpen={onOpenWorklist} />
-        </>
-      )}
-      {onOpenWorklist && (
-        <RepositoryQuality
-          key={`quality-${getWorkspaceId()}`}
+        <IndependentWorkHub
           onOpen={onOpenWorklist}
+          onOpenClient={onOpenClient}
           onSettings={onSettings}
         />
       )}
@@ -580,6 +566,19 @@ export function PagedCandidate360({
       alive.current = false;
     };
   }, []);
+  async function refreshAcceptedProfile() {
+    const value = await rpc('api_candidate_section', {
+      p_candidate: candidateId,
+      p_section: 'profile',
+      p_offset: 0,
+    });
+    if (value?.candidate?.id !== candidateId)
+      throw new Error('Profile refresh returned an invalid response.');
+    if (alive.current) {
+      setProfile(value.candidate);
+      onUpdated();
+    }
+  }
   async function loadQuickEdit() {
     setEditBusy(true);
     setEditError('');
@@ -689,7 +688,9 @@ export function PagedCandidate360({
         {section === 'communications' && (
           <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
         )}
-        {section === 'feedbackReview' && <FeedbackReview candidateId={candidateId} rpc={rpc} />}
+        {section === 'feedbackReview' && (
+          <FeedbackReview candidateId={candidateId} rpc={rpc} onUpdated={refreshAcceptedProfile} />
+        )}
         {section === 'contacts' && (
           <CandidateContacts key={candidateId} candidateId={candidateId} rpc={rpc} enabled />
         )}

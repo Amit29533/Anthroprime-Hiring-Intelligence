@@ -1,5 +1,8 @@
 # ECOD blueprint: remaining-work matrix
 
+Update, 8 October 2026: this matrix preserves its stated 7 October baseline. The five continuation stages subsequently implemented selected independent workflows; see the [current milestone and acceptance matrix](INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md). Do not read historical pending entries as proof that those later slices are absent, or read the milestone as completion of every broader epic.
+
+
 Audit date: **7 October 2026**. Baseline: **54a145d**, local only. Source: root `ECOD_Talent_Intelligence_Repository_Product_Blueprint.docx`, version 1.0, 18 September 2026. Delivery plan: [five-stage roadmap](FIVE_STAGE_PRODUCT_ROADMAP_2026_10_07.md).
 
 This is an epic-level traceability matrix, not a claim that each row is one DOCX requirement or that a new percentage-complete score has been established. “Partial” means a real foundation exists but the specified workflow is incomplete. “Pending” means the end-to-end capability has not been established by the inspected implementation. Every local capability still needs applicable hosted acceptance. Rows can span stages when a secure foundation precedes integration/automation.

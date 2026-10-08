@@ -470,6 +470,10 @@ export function OperationsConsole({
           </Button>
         </fieldset>
         <h3>Job history</h3>
+        <p>
+          Completed means processing has finished. Open each job to check failed or stale items
+          before exporting.
+        </p>
         <Button
           disabled={locked}
           variant="secondary"
@@ -518,6 +522,13 @@ export function OperationsConsole({
                 .map(([state, n]) => `${state}: ${n}`)
                 .join(' · ')}
             </p>
+            {!!(detail.counts.Failed || detail.counts.Stale) && (
+              <p role="alert">
+                This job has {detail.counts.Failed || 0} failed and {detail.counts.Stale || 0} stale
+                items. Review and re-prepare these items; export remains unavailable until every
+                item completes.
+              </p>
+            )}
             {job.kind === 'erasure' && (
               <p>
                 Dry run only. Counts do not prove erasure. Operations review metadata, unlinked

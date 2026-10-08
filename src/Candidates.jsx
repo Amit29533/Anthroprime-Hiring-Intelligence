@@ -1,6 +1,8 @@
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
+import { CandidateCommunications } from './CandidateCommunications.jsx';
+import { FeedbackReview } from './FeedbackLoops.jsx';
 import { CandidateAvailability } from './CandidateAvailability.jsx';
 import { CandidateReadiness } from './CandidateReadiness.jsx';
 import { CandidateScorecards } from './CandidateScorecards.jsx';
@@ -1149,7 +1151,7 @@ export function CandidateProfile({
             <>
               <a
                 className="button secondary"
-                href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and keep your availability up to date — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in with this email address and the portal links to your profile automatically.\n\n— AnthroPrime talent team`)}`}
+                href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and propose updates to your availability — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in, then contact our team to confirm your account and approve access to your profile. Access requires an administrator-approved grant and may expire.\n\n— AnthroPrime talent team`)}`}
                 onClick={() =>
                   audit &&
                   audit({
@@ -1220,6 +1222,7 @@ export function CandidateProfile({
           {[
             'Overview',
             'Contacts',
+            ...(cloud ? ['Communication tests', 'Feedback & self-updates'] : []),
             'Availability',
             'Readiness review',
             'Scorecards',
@@ -1239,6 +1242,12 @@ export function CandidateProfile({
           ))}
         </div>
         <div className="profile-body">
+          {cloud && tab === 'Communication tests' && (
+            <CandidateCommunications key={c.id} candidateId={c.id} />
+          )}
+          {cloud && tab === 'Feedback & self-updates' && (
+            <FeedbackReview key={c.id} candidateId={c.id} onUpdated={onReload} />
+          )}
           {tab === 'Contacts' && <CandidateContacts key={c.id} candidateId={c.id} />}
           {tab === 'Availability' &&
             (cloud ? (
