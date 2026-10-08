@@ -299,10 +299,10 @@ test('Foundation Milestone full-chain API contracts and recovery', async (t) => 
       assert.equal((await call('filter', { filters: { query: '%%' } })).count, 0);
       await db.exec('reset role');
       const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-      assert.equal(inv.counts.length, 78);
+      assert.equal(inv.counts.length, 81);
       assert.ok(inv.counts.some((x) => x.category === 'foundationTasks'));
       const source = await rpc('ecod_ops_private.source_inventory', [id(11), id(21)]);
-      assert.equal(source.counts.length, 75);
+      assert.equal(source.counts.length, 78);
       const plans = await db.query(
         `explain select *from ecod_foundation_private.task_events where workspace_id='${id(11)}'and task_id='${id(80)}'order by sequence desc limit 25`,
       );

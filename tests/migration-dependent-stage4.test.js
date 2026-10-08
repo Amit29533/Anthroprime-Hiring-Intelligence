@@ -459,7 +459,7 @@ test('Stage 4 controlled external workflows protect review, authority, versions 
     async () => {
       await act(0, 'postgres');
       const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-      assert.equal(inv.counts.length, 78);
+      assert.equal(inv.counts.length, 81);
       assert.ok(inv.counts.find((x) => x.category === 'controlledWork').count > 0);
       await db.exec('reset role');
       await db.exec(

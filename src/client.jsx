@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { cloud, getSupabase } from './repository.js';
 import { ClientPortalView } from './ClientPortal.jsx';
+import EnterpriseSignIn from './EnterpriseSignIn.jsx';
 import './workspace.css';
 import './dark.css';
 import './polish.css';
@@ -121,6 +122,7 @@ function ClientApp() {
               />
             </label>
             <button disabled={busy}>Sign in</button>
+            <EnterpriseSignIn />
           </form>
         </main>
       )}

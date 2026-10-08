@@ -1,4 +1,5 @@
 import ControlledWorkflows from './ControlledWorkflows.jsx';
+import EnterpriseOperations from './EnterpriseOperations.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
@@ -1561,6 +1562,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         {getRole() === 'admin' && <ProcessingRecovery />}
         {getRole() === 'admin' && <GoogleWorkspace />}
         {getRole() === 'admin' && <ControlledWorkflows />}
+        {getRole() === 'admin' && <EnterpriseOperations />}
         {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}

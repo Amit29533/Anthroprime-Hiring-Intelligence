@@ -1,6 +1,6 @@
 # Dependent feature foundations
 
-Stages 1–4 are locally implemented: [Stage 1](STAGE_1_DEPENDENT_MILESTONE.md), [Stage 2](STAGE_2_DEPENDENT_MILESTONE.md), [Stage 3 Google Workspace](STAGE_3_DEPENDENT_MILESTONE.md) and [Stage 4 controlled workflows](STAGE_4_DEPENDENT_MILESTONE.md). Stage 4 retains provider-neutral publishing/signing contracts and fixtures as selected by the user. Stage 5 and hosted/provider activation remain pending. The original plan below records the build contract; milestone checklists supersede its historical implementation status.
+All five stages are locally implemented: [Stage 1](STAGE_1_DEPENDENT_MILESTONE.md), [Stage 2](STAGE_2_DEPENDENT_MILESTONE.md), [Stage 3 Google Workspace](STAGE_3_DEPENDENT_MILESTONE.md), [Stage 4 controlled workflows](STAGE_4_DEPENDENT_MILESTONE.md) and [Stage 5 enterprise operation and fulfillment](STAGE_5_DEPENDENT_MILESTONE.md). Stage 4 retains provider-neutral publishing/signing contracts and fixtures as selected by the user. Hosted/provider activation and actual native acceptance remain pending. The original plan below records the build contract; milestone checklists supersede its historical implementation status.
 
 Started 8 October 2026. Baseline: local Foundation Milestone `f18ccbe` on `codex/technical-improvements`. Initial preference: **provider-neutral** email/calendar contracts. For Stage 3 the user selected **Google Workspace**; neutral contracts are retained. No live provider account has been connected in this local build.
 

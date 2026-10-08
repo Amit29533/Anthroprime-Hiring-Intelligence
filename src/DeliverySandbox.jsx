@@ -31,11 +31,15 @@ export const dependencyCatalog = Object.freeze([
   ],
   ['enrichment', 'Profile enrichment', 'Licensed supported source and budget; Stage 4'],
   ['signing', 'E-signing', 'Signer workflow and permitted provider; Stage 4'],
-  ['sso', 'Enterprise SSO', 'Identity provider, entitlement and offboarding policy; Stage 5'],
+  [
+    'sso',
+    'Enterprise SSO',
+    'Use Enterprise operation and fulfillment controls; live IdP entitlement required',
+  ],
   [
     'fulfillment',
     'Retention fulfillment',
-    'Authorized policy, case decisions and external-copy handling; Stage 5',
+    'Use Enterprise operation and fulfillment controls for authorized plans and copy reconciliation',
   ],
 ]);
 export async function diagnoseDeliverySandbox() {
