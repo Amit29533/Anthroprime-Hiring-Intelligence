@@ -8,11 +8,11 @@ export const dependencyCatalog = Object.freeze([
     'Delivery sandbox',
     'Fictional adapter, final dispatch gate and receipt reconciliation',
   ],
-  ['mailbox', 'Mailbox', 'Authorized OAuth account and quarantined attachments; Stage 3'],
+  ['mailbox', 'Mailbox', 'Google Workspace mailbox and quarantine; use Stage 3 controls'],
   [
     'calendar',
     'Calendar',
-    'Authorized OAuth calendar, subscriptions and timezone acceptance; Stage 3',
+    'Google Calendar, subscriptions and timezone acceptance; use Stage 3 controls',
   ],
   [
     'processing',
@@ -305,7 +305,7 @@ function Console({ role, candidateId, rpc = repositoryRead, diagnose = diagnoseD
                         </p>
                       )}
                       <button
-                        disabled={['processing', 'recovery'].includes(id)}
+                        disabled={['mailbox', 'calendar', 'processing', 'recovery'].includes(id)}
                         onClick={() => {
                           setKind(id);
                           setBody(

@@ -1,6 +1,5 @@
-// One-way calendar export (F6/F7 groundwork): interviews as RFC 5545 .ics events that
-// open natively in Google Calendar, Outlook and Apple Calendar. Two-way sync needs a
-// server-side OAuth integration and is honestly out of scope here.
+import { resolveZonedTime } from './schedulingTime.js';
+// Manual RFC 5545 fallback; authorized two-way Google synchronization lives in GoogleWorkspace.
 const pad = (n) => String(n).padStart(2, '0');
 export const icsStamp = (iso) => {
   const d = new Date(iso);
@@ -13,7 +12,24 @@ const esc = (text) =>
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\n/g, '\\n');
-const fold = (line) => (line.length <= 74 ? line : line.match(/.{1,74}/g).join('\r\n '));
+const fold = (line) => {
+  const encoder = new TextEncoder();
+  let segment = '',
+    bytes = 0;
+  const parts = [];
+  for (const char of line) {
+    const size = encoder.encode(char).length;
+    if (bytes + size > 74) {
+      parts.push(segment);
+      segment = '';
+      bytes = 1;
+    }
+    segment += char;
+    bytes += size;
+  }
+  parts.push(segment);
+  return parts.join('\r\n ');
+};
 
 function vevent(iv, candidate, demand) {
   const start = icsStamp(iv.scheduledAt);
@@ -102,6 +118,11 @@ const icsUnescape = (s) =>
     .replace(/\\;/g, ';')
     .replace(/\\\\/g, '\\');
 export function parseICS(text) {
+  if (
+    String(text || '').length > 1048576 ||
+    new TextEncoder().encode(String(text || '')).length > 1048576
+  )
+    throw Error('Calendar import exceeds 1 MiB. Split the file before review.');
   const raw = String(text || '')
     .replace(/\r\n/g, '\n')
     .split('\n');
@@ -127,20 +148,40 @@ export function parseICS(text) {
       continue;
     }
     if (ln.trim() === 'END:VEVENT') {
-      if (cur) events.push(cur);
+      if (cur) {
+        if (events.length >= 1000)
+          throw Error('Calendar import exceeds 1000 events. Split the file before review.');
+        events.push(cur);
+      }
       cur = null;
       continue;
     }
     if (!cur) continue;
     const c = ln.indexOf(':');
     if (c < 0) continue;
-    const name = ln.slice(0, c).split(';')[0].trim().toUpperCase();
+    const property = ln.slice(0, c),
+      name = property.split(';')[0].trim().toUpperCase();
     const val = ln.slice(c + 1).trim();
     if (name === 'UID') cur.uid = val;
     else if (name === 'SUMMARY') cur.summary = icsUnescape(val);
-    else if (name === 'DTSTART') cur.start = icsDate(val);
-    else if (name === 'DTEND') cur.end = icsDate(val);
-    else if (name === 'LOCATION') cur.location = icsUnescape(val);
+    else if (name === 'DTSTART' || name === 'DTEND') {
+      const tzid = property.match(/;TZID="?([^;"\r\n]+)"?/i)?.[1];
+      let date = icsDate(val);
+      if (tzid && /^\d{8}T\d{6}$/.test(val)) {
+        const local = `${val.slice(0, 4)}-${val.slice(4, 6)}-${val.slice(6, 8)}T${val.slice(9, 11)}:${val.slice(11, 13)}`;
+        try {
+          const minute = resolveZonedTime(local, tzid);
+          const seconds = Number(val.slice(13, 15));
+          if (seconds > 59) throw Error('Invalid seconds');
+          date = new Date(Date.parse(minute) + seconds * 1000).toISOString();
+        } catch (e) {
+          date = null;
+          cur.timeIssue = e.message;
+        }
+      }
+      if (name === 'DTSTART') cur.start = date;
+      else cur.end = date;
+    } else if (name === 'LOCATION') cur.location = icsUnescape(val);
     else if (name === 'DESCRIPTION') cur.description = icsUnescape(val);
     else if (name === 'STATUS') cur.status = val;
   }

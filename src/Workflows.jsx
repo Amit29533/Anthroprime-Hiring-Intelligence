@@ -1,3 +1,4 @@
+import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import { DuplicateReview } from './DuplicateReview.jsx';
@@ -1557,6 +1558,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         {getRole() === 'admin' && <IntegrationsPanel />}
         {getRole() === 'admin' && <DeliverySandbox />}
         {getRole() === 'admin' && <ProcessingRecovery />}
+        {getRole() === 'admin' && <GoogleWorkspace />}
         {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}

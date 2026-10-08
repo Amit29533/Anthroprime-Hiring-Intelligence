@@ -118,8 +118,8 @@ test('calendar import parses folded, escaped VEVENTS into importable drafts', ()
   assert.ok(a.description.includes('Second line'), 'folded/escaped newline preserved');
   assert.equal(
     a.start,
-    '2026-11-02T14:30:00.000Z',
-    'floating time parsed (TZID-aware normalisation is server-side)',
+    '2026-11-02T09:00:00.000Z',
+    'TZID wall time is normalized to the correct UTC instant',
   );
   assert.equal(
     parseICS(

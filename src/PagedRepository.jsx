@@ -1,3 +1,4 @@
+import GoogleWorkspace from './GoogleWorkspace.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { useEffect, useState } from 'react';
 import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
@@ -692,6 +693,7 @@ export function PagedCandidate360({
           <>
             <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
             <DeliverySandbox candidateId={candidateId} rpc={rpc} />
+            <GoogleWorkspace candidateId={candidateId} rpc={rpc} />
           </>
         )}
         {section === 'feedbackReview' && (

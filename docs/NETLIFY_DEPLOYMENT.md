@@ -100,3 +100,7 @@ Local verification on 6 October 2026: Netlify CLI's offline production build pas
 For local API testing, configure `.env.local` and run `npx netlify-cli dev`. Plain `pnpm dev` serves the frontend only. Git deploys or Netlify CLI source builds are required for cloud APIs. Drag-and-drop of `dist` or the demo release zip deploys static files only and does not package these functions.
 
 Scheduled jobs run automatically only for published production deploys; previews can be checked with the Functions page's **Run now** action. Do not enable production queue-processing flags before migrations, function credentials and workers are ready. No hosted migration, Netlify publication or live provider-key validation is performed by the local build commands above.
+
+## Stage 3 Google Workspace
+
+Follow [Stage 3 activation and acceptance](STAGE_3_DEPENDENT_MILESTONE.md) for Google OAuth, server credential custody, Gmail polling/delivery and Calendar synchronization. Five additional functions provide OAuth start/callback, diagnostics, calendar hints and the scheduled worker; shared modules are not endpoints. The scheduled worker claims one job per minute, uses a 22-second application budget and two-second database calls; normal mailbox/calendar polling remains every five minutes. Actual hosted cold starts and provider calls still require staging acceptance under Netlify's scheduled-function limit. No Gmail Pub/Sub dependency or browser Google API permission is added.

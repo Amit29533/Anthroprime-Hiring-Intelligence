@@ -1,0 +1,67 @@
+# Stage 3 Dependent Milestone — Google Workspace
+
+This milestone implements Google Workspace communication and scheduling on the existing Netlify/Supabase stack. Hosted activation and account acceptance remain separate prerequisites. No live Google account, mail or calendar invitation was used in local verification.
+
+The selected provider is Google Workspace. Gmail and Calendar sit behind separate delivery, mailbox, and scheduling contracts. Existing fictional delivery tests and manual ICS scheduling remain available.
+
+## Build contract
+
+1. Administrator configuration, current owner/MFA checks, single-use OAuth state with PKCE, server-encrypted refresh credentials, generation-bound rotation/revocation, diagnostics and explicit acceptance before enablement.
+2. Reviewed template delivery with final consent/contact/hold/source checks; leased attempts; provider acceptance distinguished from delivery; uncertain acknowledgements reconciled by stable message identity without blind resend.
+3. Bounded Gmail history/full reconciliation, durable cursor checkpoints, deduplicated messages and threads, explicit candidate linking, private attachment quarantine using the existing scanner pipeline. Mailbox polling avoids adding Google Pub/Sub as a mandatory service.
+4. Bounded Calendar synchronization, expiring watch channels with authenticated hints and renewal, authoritative event fetch, free/busy refresh, conflict-safe booking/reschedule/cancellation, RSVP updates and explicit timezone/DST choices.
+5. Work hub, settings and candidate profile controls; exact-operation retries; private journals in subject-access exclusions, erasure/operations inventories and recovery lockdown; negative authorization and recovery tests; Netlify packaging and activation instructions.
+
+## Activation prerequisites
+
+Google OAuth client, consent/scopes and account authorization; server encryption key; Netlify HTTPS origin and scheduled functions; deployed database migration; private scan/OCR and isolated recovery acceptance from Stage 2. No live mail or invites will be sent during local tests.
+
+## What is implemented
+
+| Area | Result |
+| --- | --- |
+| Account control | Separate mailbox/calendar generations, configured admin owner, current membership and privileged MFA checks, exact operation receipts, diagnostics, staging acceptance, enable/pause/revoke. Browser responses exclude encrypted credentials and channel tokens. |
+| OAuth | Fixed Google authorization/token origins, encrypted single-use state, PKCE, ten-minute expiry, verified exact account, required scopes/offline grant, AES-256-GCM refresh credential custody bound to workspace/capability/generation. Reauthorization is required after local configuration rotation. |
+| Delivery | Existing reviewed templates/contacts/consent and identity families; optional future sends within 30 days; final actor/source/generation/contact-window checks before I/O; bounded leases and three delivery attempts per candidate per 24 hours. Plain text MIME, Unicode-safe headers, stable RFC message identity and reviewed thread replies. |
+| Outcome recovery | Provider acceptance is recorded separately from delivery. An unknown acknowledgement enters reconciliation; searching Sent by exact message identity never resends. Missing/duplicate evidence requires manual review. Structured delivery-status reports appear as **Bounce reported**, not authenticated delivery truth. |
+| Mailbox | Bounded full/history pages with atomic checkpoints, full reconciliation after expired or oversized history, thread/message deduplication, explicit candidate linking with evidence, deleted-source tombstones, HTML/remote-image omission and immutable attachment manifests. |
+| Attachments | Explicit import review, maximum 5 MiB, supported file extensions, source/owner/hold gates, conditional immutable private R2 upload and hash verification after a lost acknowledgement. Existing document scan/extraction/OCR/review handles release. Accepted Stage 2 processing/recovery policies and fresh evidence are required; mailbox metadata cannot mark a file clean. |
+| Calendar | Paged sync tokens, expiry recovery, authenticated expiring watch hints, renewal/old-channel stop, polling fallback, authoritative free/busy, retained reservations and stable event IDs with conditional updates. Confirmed rescheduling updates the existing interview. Cancellation, RSVP and external-change review are visible. |
+| Time handling | IANA timezone and explicit UTC minute; nonexistent times rejected; repeated times require an occurrence choice. ICS import honors TZID and flags ambiguous times. ICS exports fold UTF-8 octets without splitting code points. |
+| Experience | Shared work hub, settings and both candidate profile modes; current templates/interview context; exact frozen retries after acknowledgement loss; mailbox linking/quarantine review, booking/RSVP history and human cancellation decisions; local/demo/limited-role controls hidden. |
+| Privacy/recovery | Six candidate journal categories added: collaboration work/attempts, messages/attachments, bookings and receipts. Formal inventory has 74 categories, operations inventory 71. Private disclosure exclusions require separate review. Every new table has row and TRUNCATE recovery guards; recovery freeze pauses Google connections. |
+
+## Netlify and Google activation
+
+1. Apply all migrations through `20261008080756_dependent_stage3_google_collaboration.sql` in a staging Supabase project. Verify real PostgREST/Auth/RLS boundaries there; local PGlite is PostgreSQL behavior verification, not hosted acceptance.
+2. Create a Google web OAuth client and enable Gmail and Calendar APIs. Register the exact redirect `https://YOUR-ORIGIN/.netlify/functions/google-oauth-callback`. Configure the consent screen and permitted test users or internal Workspace audience.
+3. Set server-only `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CREDENTIAL_KEY` and `GOOGLE_APP_ORIGIN`, alongside existing Supabase server configuration. The key is 32 random bytes encoded as 64 hex characters. Store a recoverable copy in independent key custody; it is not a Vite/browser variable and is not committed. The origin must be HTTPS with no path/query. Preserve the same credential key during an isolated restore; rotating it requires reauthorizing affected connections.
+4. Mailbox requests `openid`, `email`, `gmail.send` and `gmail.readonly`. Calendar requests `openid`, `email`, `calendar.events`, `calendar.freebusy` and `calendar.calendars.readonly`. Scope names here abbreviate the full `https://www.googleapis.com/auth/` URI. Gmail read-only access is a restricted scope; use Google's documented verification/security-assessment requirements for your app audience and server handling. [Google scope requirements](https://developers.google.com/workspace/gmail/api/auth/scopes).
+5. Deploy the frontend and all Netlify functions. Google calls run server-side; browser CSP does not need a broad Google API allowance. Confirm the scheduled worker manifest and the HTTPS calendar callback route. No Google Pub/Sub project/topic/subscription is required by this polling implementation.
+6. In **Google Workspace communication and scheduling**, configure each capability with the current admin owner UUID, exact Google account and calendar ID (`primary` or explicit accessible calendar). Record purpose, quota/budget decision and acceptance evidence. Authorize as that owner, refresh, run the authenticated diagnostic, accept staging, then enable. Existing Stage 1 sandbox and legacy communication tests remain separate.
+7. Use a dedicated recruiting mailbox, an isolated staging workspace and fictional candidate records with controlled owned recipient accounts. Verify one message's provider acceptance and inbox receipt manually, received failure reports, reconnect/revocation, a missed calendar hint, channel renewal, a stale cursor, simultaneous booking and reschedule/cancel/RSVP. Use only explicitly reviewed and consented contacts. Acceptance is an operating decision; the diagnostic alone does not certify deliverability.
+8. Before importing a mailbox attachment, complete Stage 2's real native scanning/OCR and isolated backup/restore acceptance. Enable opted-in private documents and current processing/recovery policies. Confirm that an unscanned file remains quarantined and that replaced objects/invalid hashes cannot release it.
+
+## Limits and recovery
+
+- The scheduled worker processes one leased job per minute, with three-item provider pages, a 22-second application deadline and two-second database requests. Normal polling is due every five minutes; catch-up pages are due immediately. This stays below Netlify's scheduled execution limit. Full catch-up is incremental; large mailboxes, heavy activity, low provider quotas or slow cold starts can delay synchronization. Context shows due time, full-sync state and redacted failures. Monitor your plan's function usage and Google quotas before enabling. This is not a guaranteed real-time SLA.
+- Only one configured mailbox and calendar per workspace are supported in this milestone. Microsoft 365, sender aliases, Gmail push/Pub/Sub, SMS/WhatsApp and multiple panel calendars are later adapters.
+- PostgreSQL serializes application reservations for the selected calendar, including a calendar shared across workspaces. Google Calendar allows overlapping events from other applications/users, so a final free/busy check reduces external races but cannot provide a distributed atomic booking transaction. External changes require review.
+- Unknown calendar writes retain both old and proposed reservations. Reconciliation confirms the exact provider operation; it does not blindly retry a write. If automatic reconciliation cannot establish the outcome, an administrator can record **independently verified cancellation in the original provider calendar** and release the retained reservation with evidence/MFA. This is clearly a human decision, not fabricated provider proof.
+- Local pause/revoke blocks work and invalidates local credential use. Remove the app in Google account permissions to revoke the provider grant. Configuration rotation does not erase existing messages, candidate links, attempts or reservations, and never retargets an unknown operation to another account/candidate.
+- A Gmail accepted response proves acceptance only. Gmail supplies no universal delivered/read callback for these messages. A received DSN can be forged or incomplete, so it is presented as a reported bounce for review. No successful send or missing bounce is labeled “Delivered.”
+- HTML-only mail is intentionally omitted from app rendering. Read the original in Gmail when needed. Imports never run attachments or automatically apply extracted CV facts.
+- Database/source inventories retain identity-family associations after merges. D6 disclosure, D7 fulfillment, Gmail copies and backups require reviewed handling; this adapter has no Gmail delete scope and does not silently delete external mail.
+- Rollback: pause the two capabilities, let leases expire/drain, inspect uncertain operations and retained reservations, retain all private journals/credentials in the recovery inventory, and continue manual scheduling/ICS and existing internal tools. Do not drop the schema or release ambiguous reservations to “fix” an outage.
+
+## Verification record
+
+- Focused PostgreSQL, adapter, UI and ICS checks: 37 passing tests, including account/tenant/role/MFA boundaries, immutable quarantine, held-source suppression, uncertain-write recovery, calendar conflicts, DST and legacy ICS behavior.
+- All 89 repository migrations execute in the PGlite integration harness. Native Supabase CLI database lint was attempted but the local PostgreSQL endpoint at `127.0.0.1:54322` is unavailable. Real hosted PostgREST/Auth/RLS acceptance remains an activation prerequisite.
+- Offline Netlify production packaging succeeds with 26 functions, including all five Google functions and the one-minute scheduled worker. The main JavaScript bundle is 68.5 KiB against the existing 100 KiB budget. Windows packaging does not establish Linux cold-start or provider acceptance.
+- Desktop and mobile browser review uses clearly labeled fictional records, with no account connected or outbound operation. Both layouts have no horizontal page overflow; unauthorized queue actions are disabled. [Desktop evidence](dependent-stage3-desktop-preview.png), [mobile booking review](dependent-stage3-mobile-preview.png).
+- Final full regression: **980/980 tests passed**, zero failures/skips, 528.5 seconds. The final attached-original DSN parser change was additionally verified with **15/15 adapter tests**. ESLint passes with no warnings or errors. Changed JavaScript/JSX files pass Prettier with native line-ending handling. The repository-wide default formatter flags Windows line endings; allowing native line endings leaves one pre-existing style warning in unchanged `tests/migration030.test.js`. No unrelated formatting rewrite was made.
+
+## References
+
+[Google server OAuth](https://developers.google.com/identity/protocols/oauth2/web-server), [Gmail synchronization](https://developers.google.com/workspace/gmail/api/guides/sync), [Calendar synchronization](https://developers.google.com/workspace/calendar/api/guides/sync), [Calendar notification channels](https://developers.google.com/workspace/calendar/api/guides/push).

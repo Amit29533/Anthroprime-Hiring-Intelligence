@@ -20,7 +20,8 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
       !file.endsWith('_stage5_operations_governance.sql') &&
       !file.endsWith('_foundation_milestone.sql') &&
       !file.endsWith('_dependent_stage1_delivery.sql') &&
-      !file.endsWith('_dependent_stage2_processing_recovery.sql')
+      !file.endsWith('_dependent_stage2_processing_recovery.sql') &&
+      !file.endsWith('_dependent_stage3_google_collaboration.sql')
     )
       await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(
@@ -64,6 +65,12 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(
       new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008080756_dependent_stage3_google_collaboration.sql', path),
       'utf8',
     ),
   );
@@ -169,6 +176,12 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(
       new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008080756_dependent_stage3_google_collaboration.sql', path),
       'utf8',
     ),
   );

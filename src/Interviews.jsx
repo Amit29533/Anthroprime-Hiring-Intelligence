@@ -584,11 +584,21 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
                 const file = e.target.files?.[0];
                 e.target.value = '';
                 if (!file) return;
-                const events = parseICS(await file.text()).filter(
-                  (ev) => ev.start && ev.status !== 'CANCELLED',
-                );
-                const drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
-                setModal({ type: 'ics', drafts });
+                try {
+                  if (file.size > 1048576)
+                    throw Error('Calendar import exceeds 1 MiB. Split the file before review.');
+                  const parsed = parseICS(await file.text()),
+                    issues = parsed.filter((ev) => ev.timeIssue);
+                  if (issues.length)
+                    notify?.(
+                      `Skipped ${issues.length} calendar event(s) with timezone issues: ${issues[0].timeIssue} Fix the source time before importing.`,
+                    );
+                  const events = parsed.filter((ev) => ev.start && ev.status !== 'CANCELLED'),
+                    drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
+                  setModal({ type: 'ics', drafts });
+                } catch (error) {
+                  notify?.(error.message);
+                }
               }}
             />
           </label>

@@ -1,3 +1,4 @@
+import GoogleWorkspace from './GoogleWorkspace.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
@@ -1260,6 +1261,7 @@ export function CandidateProfile({
             <>
               <CandidateCommunications key={c.id} candidateId={c.id} />
               <DeliverySandbox candidateId={c.id} />
+              <GoogleWorkspace candidateId={c.id} />
             </>
           )}
           {cloud && tab === 'Feedback & self-updates' && (

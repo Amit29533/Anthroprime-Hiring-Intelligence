@@ -350,7 +350,7 @@ test('Stage 2 Dependent Milestone operational gates and recovery lockdown', asyn
       await act(0, 'postgres');
       assert.equal(
         (await rpc('ecod_private.erasure_inventory', [id(11), id(21)])).counts.length,
-        68,
+        74,
       );
       await db.exec(
         await readFile(

@@ -1,3 +1,4 @@
+import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { lazy, Suspense } from 'react';
@@ -46,6 +47,12 @@ export default function IndependentWorkHub({
         <details>
           <summary>Private processing and recovery</summary>
           <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
+        </details>
+      )}
+      {['admin', 'recruiter'].includes(role) && (
+        <details>
+          <summary>Google Workspace communication and scheduling</summary>
+          <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
         </details>
       )}
       <CandidateCommunications rpc={rpc} role={role} />
