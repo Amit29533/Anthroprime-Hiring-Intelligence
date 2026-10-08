@@ -2,15 +2,18 @@ import { authorizeRequest } from './_shared/auth.js';
 import { httpError, json, requestBody } from './_shared/responses.js';
 import { linkedinLookup } from '../../src/linkedin.js';
 import { enrichLinkedin, linkedinConfiguration } from './_shared/linkedin.js';
+import { executionClient } from './_shared/execution.js';
+import { workflowRpc } from './_shared/controlled-workflows.js';
 export function createLinkedinHandler({
   authorize = authorizeRequest,
   lookup = enrichLinkedin,
   configuration = linkedinConfiguration,
+  service = () => executionClient(3000),
 } = {}) {
   return async (event) => {
     if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed.' });
     try {
-      const { supabase, membership } = await authorize(event, { write: true });
+      const { supabase, membership, user } = await authorize(event, { write: true });
       if (!['admin', 'recruiter'].includes(membership.role))
         throw httpError(403, 'Candidate import requires an editor role.');
       if ((event.body || '').length > 2000) throw httpError(400, 'Request is too large.');
@@ -56,7 +59,19 @@ export function createLinkedinHandler({
           429,
           'Workspace lookup limit reached (20 attempts per UTC day). Paste profile text instead.',
         );
-      return json(200, await lookup(profile, { configuration: config }));
+      const worker = service(),
+        gateRequest = { workspace: membership.workspace_id, actor: user.id, profile };
+      const gate = await workflowRpc(worker, 'legacy-enrichment-gate', gateRequest);
+      await workflowRpc(worker, 'legacy-enrichment-gate', {
+        ...gateRequest,
+        generation: gate.generation,
+      });
+      const result = await lookup(profile, { configuration: config });
+      await workflowRpc(worker, 'legacy-enrichment-gate', {
+        ...gateRequest,
+        generation: gate.generation,
+      });
+      return json(200, result);
     } catch (err) {
       const code = Number(err?.statusCode) || 500;
       return json(code, {

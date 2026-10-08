@@ -106,7 +106,7 @@ test('optional AI never calls provider when disabled, validates input and record
     },
   });
   assert.equal(
-    (await disabled({ httpMethod: 'POST', body: '{"action":"draft","candidateId":"c1"}' }))
+    (await disabled({ httpMethod: 'POST', body: '{"action":"embedding","candidateId":"c1"}' }))
       .statusCode,
     403,
   );
@@ -116,11 +116,15 @@ test('optional AI never calls provider when disabled, validates input and record
   const failed = createIntelligenceHandler({
     authorize: async () => ({
       supabase: { rpc: async () => ({ data: { id: 'job', text: 'React engineer' } }) },
+      user: { id: 'user' },
+      membership: { workspace_id: 'workspace' },
     }),
     service: () => ({
       rpc: async (name, args) => {
         calls.push(args);
-        return {};
+        return name === 'worker_controlled_workflows'
+          ? { data: { allowed: true, generation: 1, embeddingModel: 'text-embedding-3-small' } }
+          : {};
       },
     }),
     provider: async () => {
@@ -129,11 +133,11 @@ test('optional AI never calls provider when disabled, validates input and record
   });
   const response = await failed({
     httpMethod: 'POST',
-    body: '{"action":"draft","candidateId":"c1"}',
+    body: '{"action":"embedding","candidateId":"c1"}',
   });
   assert.equal(response.statusCode, 503);
   assert.ok(!response.body.includes('secret'));
-  assert.equal(calls[0].p_failed, true);
+  assert.equal(calls.at(-1).p_failed, true);
 });
 
 test('provider uses Responses without response storage and rejects malformed embeddings', async () => {

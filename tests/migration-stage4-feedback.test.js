@@ -606,7 +606,7 @@ test('feedback pages, queues and privacy inventory remain bounded and migrations
   assert.equal((await rpc('api_feedback_queue', ['proposals', 25])).rows.length, 1);
   await db.exec('reset role');
   const inventory = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-  assert.equal(inventory.counts.length, 74);
+  assert.equal(inventory.counts.length, 78);
   assert.equal(inventory.counts.find((x) => x.category === 'feedbackProposals').count, 26);
   assert.equal(inventory.counts.find((x) => x.category === 'feedbackGrants').count, 1);
   await act(3);

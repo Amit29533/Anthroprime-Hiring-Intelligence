@@ -1,5 +1,6 @@
 import { linkedinProfile, linkedinLookup, pdlCandidateDraft } from '../../../src/linkedin.js';
 import { httpError } from './responses.js';
+import { boundedProviderJson } from './controlled-workflows.js';
 export function linkedinConfiguration(env = process.env) {
   return {
     key: env.PEOPLEDATALABS_API_KEY || '',
@@ -42,7 +43,11 @@ export async function enrichLinkedin(
     throw httpError(409, 'Enrichment provider rejected the configured key or plan permissions.');
   if (!response.ok) throw httpError(502, 'LinkedIn enrichment provider is unavailable.');
   try {
-    const body = await response.json();
+    const body = response.body?.getReader
+      ? await boundedProviderJson(response)
+      : await response.json();
+    if (Buffer.byteLength(JSON.stringify(body)) > 65536)
+      throw Error('Provider response exceeds its limit.');
     if (
       body.status !== 200 ||
       !Number.isInteger(body.likelihood) ||

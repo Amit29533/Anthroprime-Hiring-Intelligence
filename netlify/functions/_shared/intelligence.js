@@ -1,3 +1,4 @@
+import { boundedProviderJson } from './controlled-workflows.js';
 export function validEmbedding(value) {
   return (
     Array.isArray(value) &&
@@ -36,11 +37,16 @@ export async function providerRequest(
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      redirect: 'error',
       signal: AbortSignal.timeout(12000),
     },
   );
   if (!response.ok) throw new Error('AI provider request failed.');
-  const body = await response.json();
+  const body = response.body?.getReader
+    ? await boundedProviderJson(response)
+    : await response.json();
+  if (Buffer.byteLength(JSON.stringify(body)) > 65536)
+    throw Error('AI response exceeds its limit.');
   const actualModel =
     typeof body.model === 'string' && body.model.length <= 100 ? body.model : model;
   if (kind !== 'draft') {

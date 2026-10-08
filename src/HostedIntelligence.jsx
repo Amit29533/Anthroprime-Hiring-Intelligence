@@ -205,25 +205,15 @@ export function HostedIntelligence({
               >
                 Index for AI search
               </Button>
-              <Button
-                disabled={busy || !candidate}
-                onClick={() =>
-                  run(async () => {
-                    await request('draft', candidate);
-                    await loadDrafts();
-                  })
-                }
-              >
-                Generate review draft
-              </Button>
               <Button variant="secondary" disabled={busy} onClick={() => run(loadDrafts)}>
                 Load drafts
               </Button>
             </div>
             <p>
-              AI receives title, skills, experience, location and work mode. Contact details, CV
-              files, employer names and notes are excluded. Review facts before approving. Approved
-              drafts stay separate from candidate profiles.
+              Create new cited highlights in the Stage 4 controlled workflows panel. Legacy AI
+              indexing receives title, skills, experience, location and work mode. Contact details,
+              CV files, employer names and notes are excluded. Review facts before approving.
+              Approved drafts stay separate from candidate profiles.
             </p>
             {drafts.map((draft) => (
               <div key={draft.id} className="panel settings-body">

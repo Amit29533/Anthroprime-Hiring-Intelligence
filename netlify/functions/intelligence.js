@@ -2,6 +2,7 @@ import { authorizeRequest } from './_shared/auth.js';
 import { executionClient } from './_shared/execution.js';
 import { providerRequest } from './_shared/intelligence.js';
 import { json, requestBody } from './_shared/responses.js';
+import { workflowRpc } from './_shared/controlled-workflows.js';
 
 export function createIntelligenceHandler({
   authorize = authorizeRequest,
@@ -13,10 +14,15 @@ export function createIntelligenceHandler({
     if ((event.body || '').length > 12000) return json(413, { error: 'Request is too large.' });
     let job, worker;
     try {
-      const { supabase } = await authorize(event, { write: true });
+      const { supabase, user, membership } = await authorize(event, { write: true });
       const body = requestBody(event);
       if (!['embedding', 'draft', 'query'].includes(body?.action))
         return json(400, { error: 'Invalid intelligence action.' });
+      if (body.action === 'draft')
+        return json(409, {
+          error:
+            'Create new attributable drafts through Stage 4 controlled workflows. Previous drafts remain available for review.',
+        });
       if (
         body.action === 'query' &&
         (typeof body.query !== 'string' || !body.query.trim() || body.query.length > 4000)
@@ -32,7 +38,13 @@ export function createIntelligenceHandler({
           error: reservation.error.message,
         });
       job = reservation.data;
+      const gateRequest = { id: job.id, workspace: membership.workspace_id, actor: user.id };
+      const gate = await workflowRpc(worker, 'legacy-ai-gate', gateRequest);
+      if (gate.embeddingModel !== (process.env.AI_EMBEDDING_MODEL || 'text-embedding-3-small'))
+        throw Error('Accept the configured embedding model in the Stage 4 policy first.');
+      await workflowRpc(worker, 'legacy-ai-gate', { ...gateRequest, generation: gate.generation });
       const result = await provider(body.action, body.action === 'query' ? body.query : job.text);
+      await workflowRpc(worker, 'legacy-ai-gate', { ...gateRequest, generation: gate.generation });
       const completion = await worker.rpc('worker_intelligence_complete', {
         p_id: job.id,
         p_model: result.model,

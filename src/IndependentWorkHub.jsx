@@ -1,3 +1,4 @@
+import ControlledWorkflows from './ControlledWorkflows.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
@@ -53,6 +54,12 @@ export default function IndependentWorkHub({
         <details>
           <summary>Google Workspace communication and scheduling</summary>
           <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
+        </details>
+      )}
+      {['admin', 'recruiter'].includes(role) && (
+        <details>
+          <summary>Controlled intelligence and external workflows</summary>
+          <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
         </details>
       )}
       <CandidateCommunications rpc={rpc} role={role} />

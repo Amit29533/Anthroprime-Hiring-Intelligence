@@ -410,7 +410,7 @@ test('Stage 1 Dependent Milestone leased sandbox contracts', async (t) => {
     async () => {
       await db.exec('reset role');
       const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-      assert.equal(inv.counts.length, 74);
+      assert.equal(inv.counts.length, 78);
       for (const category of [
         'deliveryIntents',
         'deliveryAttempts',
@@ -423,7 +423,7 @@ test('Stage 1 Dependent Milestone leased sandbox contracts', async (t) => {
       assert.ok(sources.counts.find((x) => x.category === 'deliveryIntents')?.count >= 3);
       assert.equal(
         (await rpc('ecod_ops_private.source_inventory', [id(11), id(21)])).counts.length,
-        71,
+        75,
       );
       await db.exec(
         await readFile(new URL('20261008050701_dependent_stage1_delivery.sql', h.root), 'utf8'),

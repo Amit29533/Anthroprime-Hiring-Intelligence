@@ -533,11 +533,11 @@ test('Stage 3 Google database controls, mailbox checkpoints, scheduling and priv
     async () => {
       await act(0, 'postgres');
       const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-      assert.equal(inv.counts.length, 74);
+      assert.equal(inv.counts.length, 78);
       assert.ok(inv.counts.some((x) => x.category === 'mailboxMessages' && x.count > 0));
       assert.equal(
         (await rpc('ecod_ops_private.source_inventory', [id(11), id(21)])).counts.length,
-        71,
+        75,
       );
       await act(0, 'service_role');
       await rpc('worker_processing_recovery', [

@@ -1,3 +1,4 @@
+import ControlledWorkflows from './ControlledWorkflows.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { useEffect, useState } from 'react';
@@ -694,6 +695,7 @@ export function PagedCandidate360({
             <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
             <DeliverySandbox candidateId={candidateId} rpc={rpc} />
             <GoogleWorkspace candidateId={candidateId} rpc={rpc} />
+            <ControlledWorkflows candidateId={candidateId} rpc={rpc} />
           </>
         )}
         {section === 'feedbackReview' && (

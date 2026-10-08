@@ -92,8 +92,10 @@ test('Netlify lookup requires editor membership, workspace opt-in and quota befo
     role = 'recruiter';
   const handler = createLinkedinHandler({
     configuration: () => config,
+    service: () => ({ rpc: async () => ({ data: { allowed: true, generation: 1 } }) }),
     authorize: async () => ({
-      membership: { role },
+      membership: { role, workspace_id: 'workspace' },
+      user: { id: 'user' },
       supabase: { rpc: async () => ({ data: allowed, error: null }) },
     }),
     lookup: async () => {
