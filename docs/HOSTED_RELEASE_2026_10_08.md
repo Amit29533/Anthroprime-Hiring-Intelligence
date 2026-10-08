@@ -8,6 +8,8 @@ The hosted database initially recorded 38 baseline migrations and lacked the com
 
 Hosted security advisors identified two mutable helper search paths. Added and applied `20261008160434_hosted_helper_search_paths.sql`, pinning `demand_requisition_terms(public.demands)` and `skill_evidence_weight(text)` to an empty search path without changing behavior or grants. The hosted database now records exactly 94 canonical migrations. Rechecked both helper outputs and confirmed that their mutable-search-path warnings disappeared.
 
+Live function probing found an additional runtime mismatch: eight nonscheduled diagnostic, OAuth and callback functions exported Lambda-style handlers as defaults. Netlify consequently invoked its modern API and rejected their object responses with HTTP 502. Those functions now export the named `handler` used by Netlify's [Lambda compatibility API](https://docs.netlify.com/build/functions/lambda-compatibility/). Scheduled workers already return web Responses and retain their default exports. New regressions exercise the actual deployed entrypoints, including method rejection and unauthenticated/callback-verification failures, rather than testing only factories.
+
 ## Checks performed
 
 - Staff, careers, client and candidate-portal HTML returned HTTP 200. Every directly referenced application JS/CSS asset returned HTTP 200 with the appropriate MIME type. All entry points include the appearance bootstrap. The client entry now loads its separate client bundle.
@@ -17,6 +19,8 @@ Hosted security advisors identified two mutable helper search paths. Added and a
 - All public tables have RLS enabled. No private application table grants direct SELECT to anonymous or authenticated roles.
 - Candidate-portal mobile layout was checked at 390 × 844; document width equals the 375-pixel available viewport. Staff desktop theme switching worked and was restored after verification.
 - All 27 focused role-matrix, requisition and skill-model tests passed after adding the helper migration. The earlier full audit passed 1,063 Node and five OCR tests; that full run preceded this small migration follow-up.
+- All 55 endpoint, Google Workspace, controlled-workflow and sandbox checks passed after the deployment-export fix, including 18 new entrypoint regression checks.
+- ESLint, repository formatting and offline Netlify packaging passed after the export fix; all 28 functions were packaged.
 
 One initial staff-page console observation reported a MutationObserver error. It did not recur after reload and did not prevent rendering. No application source instantiates that observer; the built shared bundle includes Vite's document-based modulepreload observer. The origin of that one observation was not established, so this report does not claim an entirely error-free browser session. Client, careers and candidate-portal observations reported no console warnings or errors.
 

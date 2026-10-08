@@ -52,4 +52,4 @@ export function createGoogleDiagnostic({
     }
   };
 }
-export default createGoogleDiagnostic();
+export const handler = createGoogleDiagnostic();

@@ -27,4 +27,4 @@ export function createSandboxCallback({
     }
   };
 }
-export default createSandboxCallback();
+export const handler = createSandboxCallback();

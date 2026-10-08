@@ -32,4 +32,4 @@ export function createControlledRunner({
     }
   };
 }
-export default createControlledRunner();
+export const handler = createControlledRunner();

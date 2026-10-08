@@ -19,4 +19,4 @@ export function createControlledCallback({
     }
   };
 }
-export default createControlledCallback();
+export const handler = createControlledCallback();

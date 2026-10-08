@@ -49,4 +49,4 @@ export function createGoogleOAuthCallback({
     }
   };
 }
-export default createGoogleOAuthCallback();
+export const handler = createGoogleOAuthCallback();

@@ -33,4 +33,4 @@ export function createSandboxDiagnostic({
     }
   };
 }
-export default createSandboxDiagnostic();
+export const handler = createSandboxDiagnostic();

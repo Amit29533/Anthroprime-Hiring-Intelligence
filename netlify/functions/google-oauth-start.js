@@ -35,4 +35,4 @@ export function createGoogleOAuthStart({
     }
   };
 }
-export default createGoogleOAuthStart();
+export const handler = createGoogleOAuthStart();

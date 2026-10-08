@@ -15,4 +15,4 @@ export function createGoogleCalendarCallback({ client = () => executionClient(40
     }
   };
 }
-export default createGoogleCalendarCallback();
+export const handler = createGoogleCalendarCallback();
