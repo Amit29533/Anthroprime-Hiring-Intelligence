@@ -379,6 +379,18 @@ function Console({ rpc }) {
                 {r.action} · {r.body.user}
               </button>{' '}
               · {r.body.reason} · {r.result.status}
+              {r.action === 'offboard-report' && (
+                <>
+                  {' '}
+                  · IdP: {r.body.idp} · sessions: {r.body.sessions} · downloads: {r.body.downloads}
+                </>
+              )}
+              {r.actor && (
+                <>
+                  {' '}
+                  · recorded by {r.actor} · {r.at}
+                </>
+              )}
             </p>
           ))}
           {pages(accessOffset, setAccessOffset, accessHistory?.more, 'access history')}
@@ -479,6 +491,12 @@ function Console({ rpc }) {
               Plan {detail.plan.id} · candidate {detail.plan.candidate_id} · policy generation{' '}
               {detail.plan.generation}
             </p>
+            {detail.approval && (
+              <p>
+                Independently approved by {detail.approval.actor} · {detail.approval.at} ·{' '}
+                {detail.approval.evidence}
+              </p>
+            )}
             <details>
               <summary>Frozen approved source</summary>
               <pre style={{ whiteSpace: 'pre-wrap' }}>

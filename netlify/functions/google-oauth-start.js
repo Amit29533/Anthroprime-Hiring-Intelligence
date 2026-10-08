@@ -7,6 +7,8 @@ export function createGoogleOAuthStart({
 } = {}) {
   return async (event) => {
     if (event.httpMethod !== 'POST') return json(405, { error: 'POST required.' });
+    if (event.isBase64Encoded || Buffer.byteLength(event.body || '', 'utf8') > 2000)
+      return json(400, { error: 'Choose a configured Google capability.' });
     try {
       const config = configuration(),
         body = requestBody(event);

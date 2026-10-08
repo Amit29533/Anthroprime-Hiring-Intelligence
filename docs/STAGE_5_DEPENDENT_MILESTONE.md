@@ -1,5 +1,7 @@
 # Stage 5 Dependent Milestone — enterprise operation and fulfillment
 
+Subsequent verification and fixes: [milestone integrity/role audit](MILESTONE_INTEGRITY_AUDIT_2026_10_08.md). The audit adds an additive migration, retained approval visibility, complete offboarding report display and SSO keyboard/client-return fixes. Use the current deployment guide for the latest migration endpoint.
+
 Implementation record, 8 October 2026. Baseline: Stage 4 local commit `bba2699`. This completes the local Stage 5 build contract on the existing Netlify/Supabase stack. No hosted migration, deployment, real IdP connection, external revocation, erasure, or GitHub push is included.
 
 ## Delivered scope
@@ -14,7 +16,7 @@ Implementation record, 8 October 2026. Baseline: Stage 4 local commit `bba2699`.
 | Operating dashboard | Aggregate delivery, Google, controlled-workflow and fulfillment states, open subject-request count, recorded restore timestamp and recovery status | Recorded states do not demonstrate live reachability, delivery, current backup health or complete fulfillment |
 | Retention plans | Current verified erasure/retention case, frozen professional inventory, identity family, current processing/document holds, versioned policy, independent administrator approval | Authorized planning and human reconciliation only; no destructive executor or automatically derived deletion eligibility |
 | Fulfillment receipts | Scoped area decisions, immutable operation receipts, paged history, stale-scope rejection, cancellation and completion with explicit limitations | All local data/held copies preserved; external removal remains a human assertion |
-| Experience | Work hub and Settings administrator panels; searchable existing case/member pages, typed evidence controls, exact retry after lost acknowledgment, retained sources and receipt pages | Cloud administrators only; hidden for recruiters, viewers, limited roles and local mode |
+| Experience | Work hub and Settings administrator panels; paged existing case/member selectors, typed evidence controls, exact retry after lost acknowledgment, retained sources and receipt pages | Cloud administrators only; hidden for recruiters, viewers, limited roles and local mode |
 | Governance | Private RLS tables, guarded RPCs, existing privileged MFA, recovery row/TRUNCATE protection and updated privacy inventory | Native advisors, Auth, session concurrency and isolated restore drill acceptance remain staging prerequisites |
 
 The stage adds no package, external service, environment credential, worker or Netlify function. The offline package still contains 28 functions. The migration chain now contains 91 SQL migrations.

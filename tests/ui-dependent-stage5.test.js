@@ -168,6 +168,13 @@ test('SSO calls native provider UUID flow, uses current origin and rejects insec
     }),
     /Secure SSO/,
   );
+  await assert.rejects(
+    start(provider, {
+      client: async () => ({ auth: { signInWithSSO: async () => ({ data: {} }) } }),
+      origin: 'https://fixture.invalid',
+    }),
+    /Secure SSO/,
+  );
 });
 test('SSO failure stays actionable and button never submits the password form', async () => {
   await mount(SignIn, {
@@ -182,4 +189,88 @@ test('SSO failure stays actionable and button never submits the password form', 
   await settle();
   assert.ok(screen.getByRole('alert'));
   assert.equal(b.disabled, false);
+});
+
+test('SSO preserves the client portal route without returning query tokens or external destinations', async () => {
+  for (const [path, expected] of [
+    ['/client.html', 'https://fixture.invalid/client.html'],
+    ['//outside.invalid', 'https://fixture.invalid'],
+    ['/portal.html', 'https://fixture.invalid'],
+  ]) {
+    let captured;
+    await start(' 79000000-0000-4000-8000-000000000501 ', {
+      origin: 'https://fixture.invalid',
+      path,
+      client: async () => ({
+        auth: {
+          signInWithSSO: async (p) => {
+            captured = p;
+            return { data: { url: 'https://idp.invalid/auth' } };
+          },
+        },
+      }),
+      redirect: () => {},
+    });
+    assert.equal(captured.options.redirectTo, expected);
+    assert.equal(captured.providerId, '79000000-0000-4000-8000-000000000501');
+  }
+});
+
+test('Enter in the SSO field starts SSO once and cancels password-form submission', async () => {
+  let calls = 0;
+  await mount(SignIn, {
+    start: async (provider) => {
+      assert.equal(provider, '79000000-0000-4000-8000-000000000501');
+      calls++;
+    },
+  });
+  const input = screen.getByLabelText('SSO provider UUID');
+  assert.ok(input.maxLength > 38, 'pasted whitespace must not truncate the 36-character UUID');
+  fireEvent.change(input, { target: { value: ' 79000000-0000-4000-8000-000000000501 ' } });
+  assert.equal(fireEvent.keyDown(input, { key: 'Enter' }), false);
+  await settle();
+  assert.equal(calls, 1);
+});
+
+test('administrators can read retained approval evidence and offboarding limitations', async () => {
+  const plan = { id: 'plan', status: 'Approved', source: { inventory: { counts: [] } } };
+  await mount(Console, {
+    isCloud: true,
+    role: 'admin',
+    rpc: async (n, p) => {
+      if (p.p_action === 'browse') return { rows: [plan] };
+      if (p.p_action === 'detail')
+        return {
+          plan,
+          rows: [],
+          approval: {
+            actor: 'independent-admin',
+            at: '2026-10-08',
+            evidence: 'Independent evidence reference 102',
+          },
+        };
+      if (p.p_action === 'access-history')
+        return {
+          rows: [
+            {
+              id: 'receipt',
+              action: 'offboard-report',
+              body: {
+                user: 'former-member',
+                idp: 'reported_revoked',
+                sessions: 'unresolved',
+                downloads: 'retained',
+              },
+              result: { status: 'Human report' },
+            },
+          ],
+        };
+      return fixture(n, p);
+    },
+  });
+  await settle();
+  assert.ok(screen.getByText(/IdP: reported_revoked.*sessions: unresolved.*downloads: retained/));
+  fireEvent.click(screen.getByText('Approved · plan'));
+  await settle();
+  assert.ok(screen.getByText(/Independent evidence reference 102/));
 });

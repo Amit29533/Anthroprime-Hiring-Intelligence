@@ -17,7 +17,7 @@ export function requestBody(event) {
 
 export function publicError(error) {
   const statusCode = Number(error?.statusCode) || 500;
-  if (statusCode >= 500) console.error(error);
+  if (statusCode >= 500) console.error('Document operation failed.', { statusCode });
   return json(statusCode, {
     error: statusCode >= 500 ? 'Document storage is temporarily unavailable.' : error.message,
   });

@@ -232,6 +232,8 @@ test('Stage 5 enterprise access and human fulfillment enforce exact current auth
       assert.deepEqual(await api('approve', p, d.head, op), r);
       d = await detail(plan);
       assert.equal(d.plan.status, 'Approved');
+      assert.equal(d.approval.actor, id(7));
+      assert.equal(d.approval.evidence, p.evidence);
       assert.equal((await db.query('select count(*)n from candidates')).rows[0].n, 1);
       await act(4);
       await assert.rejects(detail(plan), /unavailable/);
@@ -351,6 +353,15 @@ test('Stage 5 enterprise access and human fulfillment enforce exact current auth
           'utf8',
         ),
       );
+      const audit = await readFile(
+        new URL('20261008105844_milestone_integrity_audit.sql', root),
+        'utf8',
+      );
+      await db.exec(audit);
+      await db.exec(audit);
+      await act(1);
+      assert.equal((await detail(plan)).approval.actor, id(7));
+      await act(0, 'postgres');
       await rpc('worker_processing_recovery', [
         'lockdown',
         { reason: 'Fictional isolated enterprise restore rehearsal' },

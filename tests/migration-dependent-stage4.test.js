@@ -187,7 +187,10 @@ test('Stage 4 controlled external workflows protect review, authority, versions 
     'literal citations, retained edits and independent acceptance leave candidate facts unchanged',
     async () => {
       const lease = await worker('claim', { id: ai.op, workspace: id(11), actor: id(1) });
+      await assert.rejects(worker('gate', { ...lease, generation: null }), /Current lease/);
       await worker('gate', lease);
+      await assert.rejects(worker('finish', { ...lease, outcome: null }), /Explicit outcome/);
+      await assert.rejects(worker('finish', lease), /Explicit outcome/);
       await assert.rejects(
         worker('finish', {
           ...lease,
@@ -393,6 +396,10 @@ test('Stage 4 controlled external workflows protect review, authority, versions 
         state: 'completed',
         envelope: signing.op,
       };
+      await assert.rejects(
+        worker('fixture-event', { ...event, state: null }),
+        /generation mismatch/,
+      );
       await worker('fixture-event', event);
       assert.equal((await worker('fixture-event', event)).status, 'duplicate');
       await assert.rejects(

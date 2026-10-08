@@ -7,8 +7,10 @@ export async function startEnterpriseSignIn(
     client = getSupabase,
     redirect = (url) => window.location.assign(url),
     origin = window.location.origin,
+    path = window.location.pathname,
   } = {},
 ) {
+  providerId = providerId.trim();
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(providerId)
   )
@@ -16,13 +18,21 @@ export async function startEnterpriseSignIn(
   const supabase = await client();
   const { data, error } = await supabase.auth.signInWithSSO({
     providerId,
-    options: { redirectTo: origin, skipBrowserRedirect: true },
+    options: {
+      redirectTo: path === '/client.html' ? new URL(path, origin).href : origin,
+      skipBrowserRedirect: true,
+    },
   });
   if (error)
     throw Error(
       'SSO is unavailable. Check your configured provider and project entitlement with your administrator.',
     );
-  const url = new URL(data?.url || '');
+  let url;
+  try {
+    url = new URL(data?.url || '');
+  } catch {
+    throw Error('Secure SSO redirect unavailable.');
+  }
   if (url.protocol !== 'https:') throw Error('Secure SSO redirect unavailable.');
   redirect(url.href);
 }
@@ -30,6 +40,18 @@ export default function EnterpriseSignIn({ start = startEnterpriseSignIn }) {
   const [provider, setProvider] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  async function signIn() {
+    if (busy || !provider.trim()) return;
+    setBusy(true);
+    setError('');
+    try {
+      await start(provider.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <details>
       <summary>Sign in with enterprise SSO</summary>
@@ -42,27 +64,19 @@ export default function EnterpriseSignIn({ start = startEnterpriseSignIn }) {
         <input
           aria-label="SSO provider UUID"
           value={provider}
-          maxLength={36}
+          maxLength={80}
           disabled={busy}
           onChange={(e) => setProvider(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              signIn();
+            }
+          }}
         />
       </label>
       {error && <p role="alert">{error}</p>}
-      <button
-        type="button"
-        disabled={busy || !provider}
-        onClick={async () => {
-          setBusy(true);
-          setError('');
-          try {
-            await start(provider);
-          } catch (e) {
-            setError(e.message);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
+      <button type="button" disabled={busy || !provider.trim()} onClick={signIn}>
         Continue with enterprise SSO
       </button>
     </details>

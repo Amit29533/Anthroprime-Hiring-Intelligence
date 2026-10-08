@@ -28,9 +28,8 @@ test('migration 030 preserves legacy documents and constrains storage providers'
       'utf8',
     ),
   );
-  const legacy = (
-    await db.query(`select "storageProvider",stored,"storageError" from documents`)
-  ).rows[0];
+  const legacy = (await db.query(`select "storageProvider",stored,"storageError" from documents`))
+    .rows[0];
   assert.equal(legacy.storageProvider, 'supabase');
   assert.equal(legacy.stored, true, 'a legacy row with a storage path remains marked as stored');
   assert.equal(legacy.storageError, '');
