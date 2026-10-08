@@ -1,5 +1,7 @@
 # ECOD Talent Intelligence
 
+Next foundation: [Independent feature foundations](docs/INDEPENDENT_FEATURE_FOUNDATION.md). Defines the shared contracts and remaining build tracks, starting with advanced paged filters; these next capabilities are planned, not shipped.
+
 Current acceptance record: [Milestone for Independent Featureset Completion](docs/INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md), 8 October 2026. The five continuation stages are locally implemented; this milestone connects both repository modes, refreshes accepted profile proposals, and records feature/test coverage and hosted activation gates. No new service or migration is added. Changes remain local.
 
 Latest milestone: [Stage 5 operations and governance](docs/STAGE_5_COMPLETION_CHECKLIST.md), following [Stage 4 feedback loops](docs/STAGE_4_COMPLETION_CHECKLIST.md), [Stage 3 communication tests](docs/STAGE_3_COMPLETION_CHECKLIST.md), [Stage 2 demand journey](docs/STAGE_2_COMPLETION_CHECKLIST.md) and [Stage 1 facts/access](docs/STAGE_1_COMPLETION_CHECKLIST.md). Apply the complete migration chain through `20261007190524_stage5_operations_governance.sql` before activating this frontend. Settings now includes bounded report/bulk/dry-run jobs, retention/SLA policy and redacted queue health; the overview includes optional internal SLA notices. No live provider, destructive executor or new service; local implementation and hosted acceptance are recorded separately.
