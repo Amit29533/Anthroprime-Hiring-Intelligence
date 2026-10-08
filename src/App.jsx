@@ -157,6 +157,8 @@ function CreateWorkspaceModal({ onClose, onCreate, busy }) {
 
 export default function App() {
   const [theme, setTheme] = useTheme();
+  const mobileNav = useRef(null);
+  const mobileTrigger = useRef(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [demoSignedOut, setDemoSignedOut] = useState(false);
   const [pageFilter, setPageFilter] = useState(null);
@@ -244,6 +246,45 @@ export default function App() {
       authSubscription?.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (!mobile) return;
+    const priorOverflow = document.body.style.overflow;
+    const trigger = mobileTrigger.current;
+    document.body.style.overflow = 'hidden';
+    const buttons = () => [
+      ...(mobileNav.current?.querySelectorAll('button:not(:disabled),a[href]') || []),
+    ];
+    buttons()[0]?.focus();
+    const keys = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobile(false);
+      }
+      if (event.key === 'Tab') {
+        const items = buttons(),
+          first = items[0],
+          last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    const resized = () => {
+      if (window.innerWidth > 760) setMobile(false);
+    };
+    document.addEventListener('keydown', keys);
+    window.addEventListener('resize', resized);
+    return () => {
+      document.body.style.overflow = priorOverflow;
+      document.removeEventListener('keydown', keys);
+      window.removeEventListener('resize', resized);
+      trigger?.focus();
+    };
+  }, [mobile]);
   const userId = session?.user?.id || null;
   useEffect(() => {
     if (!authReady) return;
@@ -1031,7 +1072,19 @@ export default function App() {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <aside className={`sidebar ${mobile ? 'is-open' : ''}`}>
+      <aside
+        id="workspace-navigation"
+        ref={mobileNav}
+        className={`sidebar ${mobile ? 'is-open' : ''}`}
+      >
+        {mobile && (
+          <IconButton
+            icon={X}
+            label="Close navigation"
+            className="icon-button mobile-nav-close"
+            onClick={() => setMobile(false)}
+          />
+        )}
         <a
           className="brand"
           href="#"
@@ -1098,6 +1151,7 @@ export default function App() {
                 className="workspace-create"
                 onClick={() => {
                   setWorkspaceMenu(false);
+                  setMobile(false);
                   setWorkspaceCreate(true);
                 }}
               >
@@ -1108,7 +1162,7 @@ export default function App() {
           )}
         </div>
         <div className="nav-label">WORKSPACE</div>
-        <nav>
+        <nav aria-label="Main navigation">
           {nav.map(([name, Icon]) => (
             <button
               className={page === name ? 'active' : ''}
@@ -1148,7 +1202,10 @@ export default function App() {
             className="sidebar-user account-trigger"
             aria-label="Open your account from sidebar"
             aria-haspopup="dialog"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => {
+              setMobile(false);
+              setAccountOpen(true);
+            }}
           >
             <Avatar name={userName} size="small" />
             <span>
@@ -1166,6 +1223,9 @@ export default function App() {
             <IconButton
               icon={Menu}
               label="Open navigation"
+              ref={mobileTrigger}
+              aria-expanded={mobile}
+              aria-controls="workspace-navigation"
               className="icon-button mobile-toggle"
               onClick={() => setMobile(!mobile)}
             />
@@ -1202,7 +1262,10 @@ export default function App() {
               className="profile-trigger"
               aria-label="Open your account"
               aria-haspopup="dialog"
-              onClick={() => setAccountOpen(true)}
+              onClick={() => {
+                setMobile(false);
+                setAccountOpen(true);
+              }}
             >
               <Avatar name={userName} size="small" />
             </button>

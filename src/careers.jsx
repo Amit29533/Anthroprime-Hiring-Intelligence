@@ -15,6 +15,7 @@ import './workspace.css';
 import './dark.css';
 import './polish.css';
 import './modern.css';
+import './experience.css';
 
 const WS_KEY = 'ecod-careers-workspace';
 

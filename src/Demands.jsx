@@ -754,7 +754,7 @@ export function DemandDetail({
                     >
                       {o.status}
                     </Badge>
-                    <small>{o.ctc != null ? `${money(o.ctc)} LPA` : ''}</small>
+                    <small>{o.ctc != null ? money(o.ctc) : ''}</small>
                   </div>
                 );
               })}

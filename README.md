@@ -1,5 +1,7 @@
 # ECOD Talent Intelligence
 
+Current visual release: [UI/UX experience milestone](docs/UI_UX_MILESTONE_2026_10_08.md). Shared light/dark design, responsive tables and forms, smooth motion, profile layout repairs and keyboard-friendly mobile navigation cover all four entry points. No new service or migration; changes remain local.
+
 Current local milestone: [Completion workflows milestone](docs/COMPLETION_MILESTONE_2026_10_08.md), following all five dependent stages and their integrity audit. Apply all 93 migrations through `20261008131516_completion_workflows.sql` and deploy the frontend with all **28 Netlify functions**. Use the [current deployment guide](docs/NETLIFY_DEPLOYMENT.md); older migration endpoints and function counts below describe historical releases.
 
 [Stage 3](docs/STAGE_3_DEPENDENT_MILESTONE.md) adds Google Workspace mail/calendar; [Stage 4](docs/STAGE_4_DEPENDENT_MILESTONE.md) adds controlled AI/enrichment, approved job exports and provider-neutral signing fixtures; [Stage 5](docs/STAGE_5_DEPENDENT_MILESTONE.md) adds enterprise SSO/access/offboarding and retention reconciliation. Live provider configuration, native hosted acceptance, actual recovery drills and destructive fulfillment remain separate operating dependencies. Changes are local; no GitHub push or deployment was performed by the audit.

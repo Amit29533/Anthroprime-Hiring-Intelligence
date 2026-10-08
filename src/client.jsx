@@ -3,11 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { cloud, getSupabase } from './repository.js';
 import { ClientPortalView } from './ClientPortal.jsx';
 import EnterpriseSignIn from './EnterpriseSignIn.jsx';
+import { useTheme, ThemeToggle } from './theme.jsx';
+import { MotionToggle, PublicBrand } from './Visuals.jsx';
 import './workspace.css';
 import './dark.css';
 import './polish.css';
 import './modern.css';
+import './experience.css';
 function ClientApp() {
+  const [theme, setTheme] = useTheme();
   const [session, setSession] = useState(null),
     [ready, setReady] = useState(false),
     [email, setEmail] = useState(''),
@@ -77,16 +81,26 @@ function ClientApp() {
   }
   if (!cloud)
     return (
-      <main className="careers-main">
+      <main className="careers-main client-signin">
+        <div className="public-controls">
+          <ThemeToggle theme={theme} onChange={setTheme} />
+          <MotionToggle />
+        </div>
         <h1>Client portal</h1>
         <p>Configure the existing cloud workspace to enable client accounts.</p>
       </main>
     );
   if (!ready) return <p>Checking your session…</p>;
   return (
-    <>
-      <header className="careers-main">
-        <a href="/">AnthroPrime</a>
+    <div className="client-portal-shell">
+      <header className="careers-main client-portal-header">
+        <a href="/">
+          <PublicBrand subtitle="CLIENT WORKSPACE" />
+        </a>
+        <div className="public-controls">
+          <ThemeToggle theme={theme} onChange={setTheme} />
+          <MotionToggle />
+        </div>
         {session && (
           <button disabled={busy} onClick={logout}>
             Sign out
@@ -97,7 +111,7 @@ function ClientApp() {
       {session ? (
         <ClientPortalView key={session.user.id} />
       ) : (
-        <main className="careers-main">
+        <main className="careers-main client-signin">
           <h1>Client sign in</h1>
           <p>Use the account your recruiter provisioned.</p>
           <form onSubmit={login}>
@@ -121,12 +135,14 @@ function ClientApp() {
                 autoComplete="current-password"
               />
             </label>
-            <button disabled={busy}>Sign in</button>
+            <button className="button" disabled={busy}>
+              Sign in
+            </button>
             <EnterpriseSignIn />
           </form>
         </main>
       )}
-    </>
+    </div>
   );
 }
 createRoot(document.getElementById('client-root')).render(<ClientApp />);

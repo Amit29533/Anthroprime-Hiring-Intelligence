@@ -1,5 +1,7 @@
 # Deploy Anthroprime on Netlify
 
+The [UI/UX experience release](UI_UX_MILESTONE_2026_10_08.md) adds no migration or function. Publish the complete new frontend build, including `appearance.js` and generated CSS/JS assets, together; do not deploy the stylesheet alone.
+
 Current local release: the [completion workflows milestone](COMPLETION_MILESTONE_2026_10_08.md), following all five dependent stages and their integrity audit. Apply **all 93 migrations** in sorted order through `20261008131516_completion_workflows.sql`; deploy the frontend and **all 28 functions** together. Historical counts/endpoints below are release records, not current deployment instructions.
 
 Follow the current [Google Workspace activation and credential guide](STAGE_3_DEPENDENT_MILESTONE.md), [controlled workflow activation](STAGE_4_DEPENDENT_MILESTONE.md) and [enterprise SSO/offboarding/fulfillment acceptance](STAGE_5_DEPENDENT_MILESTONE.md). Set provider credentials only in server/function scope as those guides specify, never `VITE_` variables. Configure the native SAML provider and authorize the exact `/client.html` login redirect as well as the staff origin. Keep capabilities paused until their applicable hosted/provider acceptance passes. Provider-neutral job/signing fixtures do not publish to a vendor or execute a legal signature.

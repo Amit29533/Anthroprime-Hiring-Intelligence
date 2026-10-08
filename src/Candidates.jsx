@@ -1158,62 +1158,64 @@ export function CandidateProfile({
               ))}
             </div>
           </div>
-          {!viewer && (
-            <Button variant="secondary" icon={Pencil} onClick={() => onEdit(c)}>
-              Edit
-            </Button>
-          )}
-          {!viewer && (
-            <>
-              <a
-                className="button secondary"
-                href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and propose updates to your availability — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in, then contact our team to confirm your account and approve access to your profile. Access requires an administrator-approved grant and may expire.\n\n— AnthroPrime talent team`)}`}
-                onClick={() =>
-                  audit &&
-                  audit({
-                    entityType: 'candidate',
-                    entityId: c.id,
-                    action: 'exported',
-                    detail: `Portal invite drafted for ${c.name}`,
-                  })
-                }
-              >
-                Portal invite
-              </a>
-              <button className="button secondary" onClick={() => setLetterOpen(true)}>
-                Generate letter
-              </button>
-              <button
-                className="button secondary"
-                title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
-                onClick={() => setPresentationOpen(true)}
-              >
-                Client-ready profile
-              </button>
-              <button
-                className="button secondary"
-                title="Printable internal dossier (audited export)"
-                onClick={() => {
-                  const downloaded = exportSensitiveFile(
-                    dossierHtml(c, data),
-                    `dossier-${c.name.toLowerCase().replace(/\s+/g, '-')}.html`,
-                    'text/html',
-                    notify,
-                  );
-                  if (!downloaded) return;
-                  audit &&
+          <div className="profile-actions">
+            {!viewer && (
+              <Button variant="secondary" icon={Pencil} onClick={() => onEdit(c)}>
+                Edit
+              </Button>
+            )}
+            {!viewer && (
+              <>
+                <a
+                  className="button secondary"
+                  href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and propose updates to your availability — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in, then contact our team to confirm your account and approve access to your profile. Access requires an administrator-approved grant and may expire.\n\n— AnthroPrime talent team`)}`}
+                  onClick={() =>
+                    audit &&
                     audit({
                       entityType: 'candidate',
                       entityId: c.id,
                       action: 'exported',
-                      detail: `Full profile dossier exported for ${c.name}`,
-                    });
-                }}
-              >
-                Dossier
-              </button>
-            </>
-          )}
+                      detail: `Portal invite drafted for ${c.name}`,
+                    })
+                  }
+                >
+                  Portal invite
+                </a>
+                <button className="button secondary" onClick={() => setLetterOpen(true)}>
+                  Generate letter
+                </button>
+                <button
+                  className="button secondary"
+                  title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
+                  onClick={() => setPresentationOpen(true)}
+                >
+                  Client-ready profile
+                </button>
+                <button
+                  className="button secondary"
+                  title="Printable internal dossier (audited export)"
+                  onClick={() => {
+                    const downloaded = exportSensitiveFile(
+                      dossierHtml(c, data),
+                      `dossier-${c.name.toLowerCase().replace(/\s+/g, '-')}.html`,
+                      'text/html',
+                      notify,
+                    );
+                    if (!downloaded) return;
+                    audit &&
+                      audit({
+                        entityType: 'candidate',
+                        entityId: c.id,
+                        action: 'exported',
+                        detail: `Full profile dossier exported for ${c.name}`,
+                      });
+                  }}
+                >
+                  Dossier
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="profile-contact">
           {c.email && (
@@ -1525,7 +1527,7 @@ export function CandidateProfile({
                       <div>
                         <h3>Offer · {o.role || od?.title || 'Role'}</h3>
                         <p>
-                          {o.ctc != null ? `${money(o.ctc)} LPA` : 'Package in offer letter'}
+                          {o.ctc != null ? money(o.ctc) : 'Package in offer letter'}
                           {o.joining ? ` · joining ${o.joining}` : ''}
                         </p>
                         {o.notes && <p>{o.notes}</p>}

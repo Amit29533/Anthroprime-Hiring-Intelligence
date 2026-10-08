@@ -782,7 +782,7 @@ function offerDraftHref(o, candidate, demand, settings) {
     demand: demand ? `${demand.title} (${demand.client})` : o.role || 'the role',
     mode: demand?.mode || '',
     location: o.location || demand?.location || '',
-    ctc: o.ctc ? `${money(o.ctc)} LPA` : 'the package in your letter',
+    ctc: o.ctc ? money(o.ctc) : 'the package in your letter',
     date: o.joining
       ? new Date(o.joining).toLocaleDateString(undefined, {
           day: 'numeric',
@@ -1017,7 +1017,7 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
           )}
           {!c && <span className="muted">Candidate removed</span>}
           <small className="iv-notes">
-            {o.ctc != null ? `${money(o.ctc)} LPA` : 'Package in letter'}
+            {o.ctc != null ? money(o.ctc) : 'Package in letter'}
             {o.joining
               ? ` · joining ${new Date(o.joining).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
               : ''}
