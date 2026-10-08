@@ -1,3 +1,4 @@
+import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { lazy, Suspense } from 'react';
 const FoundationWorkbench = lazy(() => import('./FoundationWorkbench.jsx'));
 import { cloud, getRole, getWorkspaceId, canWriteForRole } from './repository.js';
@@ -35,6 +36,10 @@ export default function IndependentWorkHub({
             onOpenDemand={onOpenDemand}
           />
         </Suspense>
+      </details>
+      <details>
+        <summary>Dependent delivery sandbox</summary>
+        <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
       </details>
       <CandidateCommunications rpc={rpc} role={role} />
       <FeedbackQueue rpc={rpc} onOpen={onOpen} onOpenClient={onOpenClient} />

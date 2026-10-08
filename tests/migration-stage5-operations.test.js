@@ -121,14 +121,14 @@ test('dry-run inventories cover operations metadata and never delete source reco
   await call('start', id(140), id(141), null, { kind: 'erasure', anthroIds: [anthro], reason });
   await call('step', id(142), id(141), 1);
   const page = await call('detail', null, id(141));
-  assert.equal(page.rows[0].result.inventory.counts.length, 60);
+  assert.equal(page.rows[0].result.inventory.counts.length, 65);
   assert.equal(page.rows[0].result.destructiveExecution, false);
   await call('export', id(143), id(141), 2);
   await db.exec('reset role');
   const inv = await (async () =>
     (await db.query('select ecod_private.erasure_inventory($1,$2) value', [id(11), id(21)])).rows[0]
       .value)();
-  assert.equal(inv.counts.length, 63);
+  assert.equal(inv.counts.length, 68);
   assert.equal(inv.counts.find((x) => x.category === 'operationsItems').count, 1);
   assert.equal((await db.query('select count(*) n from candidates')).rows[0].n, 2);
   await db.exec(`update candidates set summary='New evidence'where id='${id(21)}'`);

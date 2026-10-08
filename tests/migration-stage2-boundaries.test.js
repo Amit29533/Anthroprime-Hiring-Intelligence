@@ -285,7 +285,7 @@ test('expiry, invalidated sources, merge preservation, reports, privacy and subm
   assert.equal(report.cohorts.sealedScorecards, 1);
   await db.exec('reset role');
   const inv = await rpc('ecod_private.erasure_inventory', [id(11), id(21)]);
-  assert.equal(inv.counts.length, 63);
+  assert.equal(inv.counts.length, 68);
   assert.equal(inv.counts.find((r) => r.category === 'journeyClaims').count, 2);
   assert.equal(inv.counts.find((r) => r.category === 'journeyDecisions').count, 1);
   await db.query(

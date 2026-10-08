@@ -1,6 +1,11 @@
 # Deploy Anthroprime on Netlify
 
-Latest addition: [Foundation Milestone](FOUNDATION_MILESTONE.md). Apply every migration through `20261008035834_foundation_milestone.sql`, then deploy frontend and the existing 18 functions together. No new service or credential is required. Recapture D7/operations inventories (63/60 categories), regenerate reviewed D6 packages, include `ecod_foundation_private` in recovery backups, and complete its hosted acceptance gates before activation.
+Latest addition: [Stage 1 Dependent Milestone](STAGE_1_DEPENDENT_MILESTONE.md). Apply every migration through `20261008050701_dependent_stage1_delivery.sql` and deploy the frontend with all **21 functions**. The three additions are `delivery-sandbox-worker` (five-minute fictional dispatcher), `delivery-sandbox-diagnostic` (authenticated administrator diagnostics) and `delivery-sandbox-callback` (signed fictional events). They reuse server Supabase credentials. Basic sandbox dispatch needs no new service/key. Optional `DELIVERY_SANDBOX_CALLBACK_SECRET` belongs in Functions only, must be at least 32 characters and must never use a `VITE_` prefix. Missing verification configuration rejects callback intake; it does not enable a live provider.
+
+Recapture D7/operations inventories (**68/65 categories**), regenerate D6 reviewed packages and include `ecod_delivery_private` in complete recovery backups. Connections start unconfigured; fictional enablement requires current administrator/MFA checks, configuration, fresh server diagnostic and explicit acceptance. Follow the milestone's hosted acceptance and rollback checklist. Local offline packaging does not deploy or activate these features.
+
+
+Previous addition: [Foundation Milestone](FOUNDATION_MILESTONE.md). Apply every migration through `20261008035834_foundation_milestone.sql`, then deploy frontend and the existing 18 functions together. No new service or credential is required. Recapture D7/operations inventories (63/60 categories), regenerate reviewed D6 packages, include `ecod_foundation_private` in recovery backups, and complete its hosted acceptance gates before activation.
 
 Latest continuation: [Stage 5 operations/governance](STAGE_5_COMPLETION_CHECKLIST.md). Apply every migration through `20261007190524_stage5_operations_governance.sql`; existing 18 functions and credentials remain sufficient. Notices default paused, jobs are operator-resumable, and neither destructive erasure nor live delivery is enabled. Hosted acceptance and complete database/object restore evidence remain required.
 

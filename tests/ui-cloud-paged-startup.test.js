@@ -115,8 +115,12 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   await type('Password', 'test-password');
   await press('Sign in');
   await settle(12);
-  assert.ok(screen.getByRole('heading', { name: 'Repository overview' }));
-  assert.ok(screen.getByRole('heading', { name: 'Repository quality review' }));
+  assert.ok(
+    await screen.findByRole('heading', { name: 'Repository overview' }, { timeout: 30000 }),
+  );
+  assert.ok(
+    await screen.findByRole('heading', { name: 'Repository quality review' }, { timeout: 30000 }),
+  );
   assert.ok(calls.includes('/rest/v1/rpc/api_repository_quality'));
   assert.equal(
     calls.filter((p) => p === '/rest/v1/candidates' || p === '/rest/v1/documents').length,

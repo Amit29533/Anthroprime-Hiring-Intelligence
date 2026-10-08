@@ -1,8 +1,11 @@
 # ECOD Talent Intelligence
 
+Latest local completion: [Stage 1 Dependent Milestone](docs/STAGE_1_DEPENDENT_MILESTONE.md). Provider-neutral readiness catalog, administrator diagnostics, leased fictional delivery, verified callbacks and ambiguous-outcome reconciliation are implemented across Settings, Work hub and both candidate repository modes. Apply the complete migration chain through `20261008050701_dependent_stage1_delivery.sql` and deploy frontend/functions together (21 functions). No sender key or new service is needed for the sandbox; real delivery and later dependent stages remain pending.
+
+
 Next groundwork: [Dependent feature foundations](docs/DEPENDENT_FEATURE_FOUNDATION.md). Provider-neutral architecture, dependency inventory and five-stage build order for external delivery, private processing/recovery, mailbox/calendar, intelligence/connectors and enterprise fulfillment. This is a plan; live dependent features are not activated.
 
-Latest local milestone: [Foundation Milestone](docs/FOUNDATION_MILESTONE.md). All five [foundation tracks](docs/INDEPENDENT_FEATURE_FOUNDATION.md) are implemented: advanced typed filters, quality review, bounded discovery/search, aggregate reports/reuse, and recruiter task ownership. Apply every migration through `20261008035834_foundation_milestone.sql` before enabling this UI. No new service or function is required; hosted acceptance is separate.
+Previous local milestone: [Foundation Milestone](docs/FOUNDATION_MILESTONE.md). All five [foundation tracks](docs/INDEPENDENT_FEATURE_FOUNDATION.md) are implemented: advanced typed filters, quality review, bounded discovery/search, aggregate reports/reuse, and recruiter task ownership. Apply every migration through `20261008035834_foundation_milestone.sql` before enabling this UI. No new service or function is required; hosted acceptance is separate.
 
 Previous acceptance record: [Milestone for Independent Featureset Completion](docs/INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md), 8 October 2026. The five continuation stages are locally implemented; this milestone connects both repository modes, refreshes accepted profile proposals, and records feature/test coverage and hosted activation gates. No new service or migration is added. Changes remain local.
 

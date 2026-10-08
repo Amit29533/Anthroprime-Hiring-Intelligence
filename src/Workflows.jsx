@@ -1,3 +1,4 @@
+import DeliverySandbox from './DeliverySandbox.jsx';
 import { DuplicateReview } from './DuplicateReview.jsx';
 import { candidateLabel, anthroIdFor } from './anthroId.js';
 import { LifecycleAnalytics } from './LifecycleAnalytics.jsx';
@@ -1553,6 +1554,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
         {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
+        {getRole() === 'admin' && <DeliverySandbox />}
         {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}

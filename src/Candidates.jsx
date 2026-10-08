@@ -1,3 +1,4 @@
+import DeliverySandbox from './DeliverySandbox.jsx';
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
@@ -1256,7 +1257,10 @@ export function CandidateProfile({
         </div>
         <div className="profile-body">
           {cloud && tab === 'Communication tests' && (
-            <CandidateCommunications key={c.id} candidateId={c.id} />
+            <>
+              <CandidateCommunications key={c.id} candidateId={c.id} />
+              <DeliverySandbox candidateId={c.id} />
+            </>
           )}
           {cloud && tab === 'Feedback & self-updates' && (
             <FeedbackReview key={c.id} candidateId={c.id} onUpdated={onReload} />

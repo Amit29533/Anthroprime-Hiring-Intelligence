@@ -1,3 +1,4 @@
+import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { useEffect, useState } from 'react';
 import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
 import { getRole, canWriteForRole } from './repository.js';
@@ -688,7 +689,10 @@ export function PagedCandidate360({
         </div>
         {error && <p role="alert">{error}</p>}
         {section === 'communications' && (
-          <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
+          <>
+            <CandidateCommunications key={candidateId} candidateId={candidateId} rpc={rpc} />
+            <DeliverySandbox candidateId={candidateId} rpc={rpc} />
+          </>
         )}
         {section === 'feedbackReview' && (
           <FeedbackReview candidateId={candidateId} rpc={rpc} onUpdated={refreshAcceptedProfile} />

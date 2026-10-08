@@ -10,6 +10,7 @@ afterEach(cleanup);
 test.after(stopVite);
 
 function response(name, args) {
+  if (name === 'api_delivery_sandbox') return { connections: [], rows: [], more: false };
   if (name === 'api_foundation') return { fields: [], views: [], members: [], demands: [] };
   if (name === 'api_test_communications')
     return args.p_action === 'browse'
