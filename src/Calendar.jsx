@@ -1,3 +1,4 @@
+import { candidateLabel } from './anthroId.js';
 import React, { useState } from 'react';
 import {
   ChevronLeft,
@@ -173,7 +174,7 @@ export function SlotPublisher({ data, candidateId, demandId, onClose, onSave, no
               <option value="">Choose a candidate…</option>
               {candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>

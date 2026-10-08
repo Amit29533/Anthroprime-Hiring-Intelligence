@@ -6,7 +6,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      input: { main: 'index.html', careers: 'careers.html', portal: 'portal.html' },
+      input: {
+        main: 'index.html',
+        careers: 'careers.html',
+        portal: 'portal.html',
+        client: 'client.html',
+      },
       output: {
         manualChunks: { react: ['react', 'react-dom'], database: ['@supabase/supabase-js'] },
       },

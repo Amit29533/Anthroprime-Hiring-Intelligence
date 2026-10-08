@@ -1,0 +1,15 @@
+{
+  "directory": "/srv/offsite/anthroprime-recovery",
+  "sourceRef": "staging-source",
+  "destinationRef": "offsite-custody",
+  "keyRef": "recovery-key-v1",
+  "sourceService": "anthro_source",
+  "workspaces": ["00000000-0000-0000-0000-000000000011"],
+  "offsiteConfirmed": false,
+  "drainConfirmed": false,
+  "targetService": "anthro_isolated_restore",
+  "targetRef": "isolated-drill",
+  "stageDirectory": "/srv/private-drills/unique-empty-directory",
+  "isolatedConfirmed": false,
+  "operatorResumeConfirmed": false
+}

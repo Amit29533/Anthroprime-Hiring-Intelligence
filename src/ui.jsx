@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useId } from 'react';
 import { X, Search, ArrowUpRight } from 'lucide-react';
 import { initials } from './domain.js';
+import { anthroIdFor } from './anthroId.js';
 const dialogLocks = new WeakMap();
 
 function lockDialogScroll(doc) {
@@ -185,6 +186,9 @@ export function PersonName({ person, onClick, index = 0 }) {
       <span>
         <strong>{person.name}</strong>
         <small>{person.title}</small>
+        <small className="anthro-id" title="Permanent Anthro-ID">
+          {anthroIdFor(person)}
+        </small>
       </span>
     </button>
   );

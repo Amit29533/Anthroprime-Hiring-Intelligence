@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button, Field } from './ui.jsx';
 import { ThemeToggle } from './theme.jsx';
 import { getSupabase } from './repository.js';
+import EnterpriseSignIn from './EnterpriseSignIn.jsx';
 
 export function Login({ theme = 'system', onThemeChange }) {
   const [email, setEmail] = useState(''),
@@ -86,6 +87,7 @@ export function Login({ theme = 'system', onThemeChange }) {
           <ArrowRight size={16} />
         </Button>
         <small>Accounts are provisioned by your workspace administrator.</small>
+        <EnterpriseSignIn />
       </form>
     </div>
   );

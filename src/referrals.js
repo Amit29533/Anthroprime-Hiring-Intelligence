@@ -1,3 +1,4 @@
+import { candidateIdentityText } from './anthroId.js';
 // Employee and partner referrals (Zoho Recruit D6).
 //
 // Referrals are the highest-quality hiring source in most organisations, and the module is one
@@ -200,7 +201,14 @@ export function referralList(data, { query = '', status = 'All', reward = 'All' 
       if (status !== 'All' && r.status !== status) return false;
       if (reward !== 'All' && r.rewardStatus !== reward) return false;
       if (!q) return true;
-      return [r.refereeName, r.refereeEmail, r.referrerName, r.referrerEmail, r.relationship]
+      return [
+        candidateIdentityText(data.candidates?.find((c) => c.id === r.candidateId)),
+        r.refereeName,
+        r.refereeEmail,
+        r.referrerName,
+        r.referrerEmail,
+        r.relationship,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(q);

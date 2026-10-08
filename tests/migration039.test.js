@@ -1,3 +1,4 @@
+import { reviewedMerge } from './stage1-api-helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -14,7 +15,19 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   );
   const path = new URL('../supabase/migrations/', import.meta.url);
   for (const file of (await readdir(path)).filter((n) => /^\d+.*\.sql$/.test(n)).sort())
-    if (file !== '039_operations.sql') await db.exec(await readFile(new URL(file, path), 'utf8'));
+    if (
+      file !== '039_operations.sql' &&
+      !file.endsWith('_stage5_operations_governance.sql') &&
+      !file.endsWith('_foundation_milestone.sql') &&
+      !file.endsWith('_dependent_stage1_delivery.sql') &&
+      !file.endsWith('_dependent_stage2_processing_recovery.sql') &&
+      !file.endsWith('_dependent_stage3_google_collaboration.sql') &&
+      !file.endsWith('_dependent_stage4_controlled_workflows.sql') &&
+      !file.endsWith('_dependent_stage5_enterprise_fulfillment.sql') &&
+      !file.endsWith('_milestone_integrity_audit.sql') &&
+      !file.endsWith('_completion_workflows.sql')
+    )
+      await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(
     `insert into auth.users values('${id(1)}','a@e.com'),('${id(2)}','b@e.com'),('${id(3)}','c@e.com'),('${id(4)}','d@e.com');insert into workspaces(id,name) values('${id(11)}','Team'),('${id(12)}','Other');insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');`,
   );
@@ -46,6 +59,41 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   ]);
   await db.exec('reset role');
   await db.exec(await readFile(new URL('039_operations.sql', path), 'utf8'));
+  await db.exec(
+    await readFile(new URL('20261007190524_stage5_operations_governance.sql', path), 'utf8'),
+  );
+  await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
+  await db.exec(
+    await readFile(new URL('20261008050701_dependent_stage1_delivery.sql', path), 'utf8'),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008080756_dependent_stage3_google_collaboration.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008092747_dependent_stage4_controlled_workflows.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008101818_dependent_stage5_enterprise_fulfillment.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(new URL('20261008105844_milestone_integrity_audit.sql', path), 'utf8'),
+  );
+  await db.exec(await readFile(new URL('20261008131516_completion_workflows.sql', path), 'utf8'));
   await act(1);
   assert.equal((await rpc('api_index_health')).pending, 2);
   await act(0);
@@ -138,6 +186,41 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   jobs = await rpc('worker_claim_index', [20]);
   await db.exec('reset role');
   await db.exec(await readFile(new URL('039_operations.sql', path), 'utf8'));
+  await db.exec(
+    await readFile(new URL('20261007190524_stage5_operations_governance.sql', path), 'utf8'),
+  );
+  await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
+  await db.exec(
+    await readFile(new URL('20261008050701_dependent_stage1_delivery.sql', path), 'utf8'),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008080756_dependent_stage3_google_collaboration.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008092747_dependent_stage4_controlled_workflows.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008101818_dependent_stage5_enterprise_fulfillment.sql', path),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await readFile(new URL('20261008105844_milestone_integrity_audit.sql', path), 'utf8'),
+  );
+  await db.exec(await readFile(new URL('20261008131516_completion_workflows.sql', path), 'utf8'));
   await act(0);
   assert.equal(
     await rpc('worker_finish_index', [
@@ -198,10 +281,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await rpc('worker_finish_webhook', [delivery.id, delivery.lease, true, '']);
   await act(1);
   await rpc('api_rotate_webhook', [sub, 'c'.repeat(40)]);
-  await db.query('update candidates set "mergedInto"=$1 where id=$2', [
-    second.candidateId,
-    first.candidateId,
-  ]);
+  await reviewedMerge(db, second.candidateId, first.candidateId);
   await db.exec('reset role');
   assert.equal(
     (

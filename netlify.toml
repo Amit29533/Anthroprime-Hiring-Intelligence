@@ -6,8 +6,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions."cv-extract-worker"]
+  external_node_modules = ["pdfjs-dist"]
+  included_files = ["cv-extraction-worker.mjs", "netlify/functions/_shared/cv-extraction.js", "src/cvParser.js", "src/cvEvidence.js", "src/taxonomy.js", "node_modules/pdfjs-dist/**", "node_modules/@napi-rs/**"]
+
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "24"
 
 # Vite copies public/_redirects and public/_headers into dist for both Git and manual deploys.
 # Keep SPA routing and security headers in those files as the single source of truth.

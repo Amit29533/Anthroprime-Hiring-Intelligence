@@ -9,18 +9,30 @@ import { render, screen, fireEvent, cleanup, within } from '@testing-library/rea
 import { makeSeed } from '../src/seed.js';
 
 let server;
+let starting;
 const modules = new Map();
 
 export async function startVite() {
   if (server) return server;
-  server = await createServer({
+  if (starting) return starting;
+  starting = createServer({
+    // Each Node test worker owns its cache. Sharing Vite's default directory
+    // races cache renames across parallel suites and concurrent builds.
+    cacheDir: `node_modules/.vite-tests/${process.pid}`,
     server: { middlewareMode: true, ws: false },
     appType: 'custom',
     // SSR tests load modules directly; background HTML scanning only races teardown.
     optimizeDeps: { noDiscovery: true, include: [] },
     logLevel: 'error',
-  });
-  return server;
+  })
+    .then((created) => {
+      server = created;
+      return created;
+    })
+    .finally(() => {
+      starting = null;
+    });
+  return starting;
 }
 
 export async function stopVite() {

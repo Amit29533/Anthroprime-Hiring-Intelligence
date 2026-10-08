@@ -30,6 +30,7 @@ afterEach(() => cleanup());
 
 const CANDIDATE = {
   id: 'p1',
+  anthroNumber: 1,
   name: 'Aarav Sharma',
   title: 'Lead Data Engineer',
   company: 'Northwind Retail',
@@ -189,7 +190,7 @@ test('downloading produces exactly the previewed document and is audited', async
     previewed,
     'what was on screen is byte-for-byte what was downloaded',
   );
-  assert.match(files[0].name, /^aarav-sharma-anth-.*\.html$/);
+  assert.match(files[0].name, /^aarav-sharma-anthro-.*\.html$/);
   assert.equal(files[0].type, 'text/html;charset=utf-8');
   const event = harness.state.audits.find((a) => a.action === 'exported');
   assert.ok(event, 'sending a profile out of the building is audited');

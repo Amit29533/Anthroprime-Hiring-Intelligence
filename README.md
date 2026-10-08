@@ -1,5 +1,38 @@
 # ECOD Talent Intelligence
 
+Current visual release: [UI/UX experience milestone](docs/UI_UX_MILESTONE_2026_10_08.md). Shared light/dark design, responsive tables and forms, smooth motion, profile layout repairs and keyboard-friendly mobile navigation cover all four entry points. No new service or migration; changes remain local.
+
+Current local milestone: [Completion workflows milestone](docs/COMPLETION_MILESTONE_2026_10_08.md), following all five dependent stages and their integrity audit. Apply all 93 migrations through `20261008131516_completion_workflows.sql` and deploy the frontend with all **28 Netlify functions**. Use the [current deployment guide](docs/NETLIFY_DEPLOYMENT.md); older migration endpoints and function counts below describe historical releases.
+
+[Stage 3](docs/STAGE_3_DEPENDENT_MILESTONE.md) adds Google Workspace mail/calendar; [Stage 4](docs/STAGE_4_DEPENDENT_MILESTONE.md) adds controlled AI/enrichment, approved job exports and provider-neutral signing fixtures; [Stage 5](docs/STAGE_5_DEPENDENT_MILESTONE.md) adds enterprise SSO/access/offboarding and retention reconciliation. Live provider configuration, native hosted acceptance, actual recovery drills and destructive fulfillment remain separate operating dependencies. Changes are local; no GitHub push or deployment was performed by the audit.
+
+Historical Stage 2 implementation: [Stage 2 Dependent Milestone](docs/STAGE_2_DEPENDENT_MILESTONE.md). Admin processing/recovery controls, generation-bound native health, strict quarantine gates, encrypted database/roles/private-object capture and isolated restore checks are implemented. Apply every migration through `20261008055723_dependent_stage2_processing_recovery.sql`; the existing 21 Netlify functions remain sufficient. Native worker/off-site PostgreSQL acceptance needs the approved infrastructure and operator; no hosted activation or GitHub push is included.
+
+Previous local completion: [Stage 1 Dependent Milestone](docs/STAGE_1_DEPENDENT_MILESTONE.md). Provider-neutral readiness catalog, administrator diagnostics, leased fictional delivery, verified callbacks and ambiguous-outcome reconciliation are implemented across Settings, Work hub and both candidate repository modes. Apply the complete migration chain through `20261008050701_dependent_stage1_delivery.sql` and deploy frontend/functions together (21 functions). No sender key or new service is needed for the sandbox; real provider activation remained pending at that historical baseline.
+
+
+Original groundwork: [Dependent feature foundations](docs/DEPENDENT_FEATURE_FOUNDATION.md). Provider-neutral architecture, dependency inventory and five-stage build order for external delivery, private processing/recovery, mailbox/calendar, intelligence/connectors and enterprise fulfillment. This is a plan; live dependent features are not activated.
+
+Previous local milestone: [Foundation Milestone](docs/FOUNDATION_MILESTONE.md). All five [foundation tracks](docs/INDEPENDENT_FEATURE_FOUNDATION.md) are implemented: advanced typed filters, quality review, bounded discovery/search, aggregate reports/reuse, and recruiter task ownership. Apply every migration through `20261008035834_foundation_milestone.sql` before enabling this UI. No new service or function is required; hosted acceptance is separate.
+
+Previous acceptance record: [Milestone for Independent Featureset Completion](docs/INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md), 8 October 2026. The five continuation stages are locally implemented; this milestone connects both repository modes, refreshes accepted profile proposals, and records feature/test coverage and hosted activation gates. No new service or migration is added. Changes remain local.
+
+Previous milestone: [Stage 5 operations and governance](docs/STAGE_5_COMPLETION_CHECKLIST.md), following [Stage 4 feedback loops](docs/STAGE_4_COMPLETION_CHECKLIST.md), [Stage 3 communication tests](docs/STAGE_3_COMPLETION_CHECKLIST.md), [Stage 2 demand journey](docs/STAGE_2_COMPLETION_CHECKLIST.md) and [Stage 1 facts/access](docs/STAGE_1_COMPLETION_CHECKLIST.md). Apply the complete migration chain through `20261007190524_stage5_operations_governance.sql` before activating this frontend. Settings now includes bounded report/bulk/dry-run jobs, retention/SLA policy and redacted queue health; the overview includes optional internal SLA notices. No live provider, destructive executor or new service; local implementation and hosted acceptance are recorded separately.
+
+Historical baseline (superseded for the five continuation stages by the milestone above): [five-phase code audit](docs/FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md), bounded repository quality queues and admin Anthro-ID capacity warnings. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql` before activating the new panels. The original broad phases have a separate remaining backlog; hosted activation is pending. Cloud retention review now uses Operations and governance.
+
+Original broader build plan: [five phases on the existing stack](docs/CURRENT_STACK_BUILD_PHASES.md). Phase 5 has started with a [bounded recruiter worklist](docs/PHASE_N5_RECRUITER_WORKLIST.md), personal display settings and retry-safe internal task/feedback handling. Apply migrations through `20261007114511_recruiter_worklist.sql` before activating it. The continuation stages implement the selected independent slices; the broader backlog and hosted acceptance remain separate.
+
+Latest local addition: [LinkedIn candidate import](docs/LINKEDIN_CANDIDATE_IMPORT.md), with URL/handle/numeric-ID lookup through an optional server-side enrichment provider, key-free pasted-profile extraction and editable review before normal Anthro-ID assignment. Provider configuration and hosted activation remain pending.
+
+Latest local slice: [Phase D3 data-subject request review](docs/PHASE_D_SUBJECT_REQUESTS.md), with admin case intake, verification/review states, assignment, review dates and server-owned history. It tracks manual decisions; it does not execute erasure or processing restriction.
+
+Latest local slice: [Phase D2 audited candidate CSV exports](docs/PHASE_D_CANDIDATE_EXPORTS.md), with server projections, per-user quotas, snapshot provenance and an admin audit panel. It is opt-in and awaits hosted activation.
+
+Candidate identity across the ecosystem: [Anthro-ID design, coverage, and rollout](docs/ANTHRO_ID.md).
+
+Latest local slice: [Phase D1 audited document signing](docs/PHASE_D_DOCUMENT_ACCESS.md), with optional per-user quotas, server-owned receipts and an administrator audit panel. Apply the full migration chain and verify server credentials/Storage policies before enabling it.
+
 A Netlify-ready recruiting workspace inspired by Zoho Recruit's repository-to-demand flow and the supplied ECOD product blueprint. People remain independent of applications, so candidate history stays useful across roles.
 
 Latest assessment: [Product audit and phased implementation plan — 3 October 2026](docs/PRODUCT_AUDIT_2026_10_03.md). The current customization slice adds **Workspace settings → Custom fields** for candidates, demands, clients and contacts, with text/number/date/choice inputs and reversible archiving. Apply migrations through **034_custom_fields.sql** before deploying this frontend update. Archived values remain attached to records; these fields are visible to workspace members and are not a substitute for the restricted financial fields.
@@ -63,7 +96,7 @@ Open the URL shown by Vite. Without database configuration, the app opens with *
 - Public careers portal (`/careers.html`, separate lightweight bundle): only explicitly published, still-open roles appear. The anonymous listing RPC is workspace-scoped and returns a curated field projection; anonymous table reads are revoked. Applications land in the Activities triage queue, and the database requires contact consent plus a currently published role before accepting an application. Each applicant receives a private status code; email alone cannot reveal application status (migrations 009, 018 and 019). Set the careers URL to `/careers.html?ws=<workspace-id>` and publish roles from each demand form.
 - One-way calendar export: any interview, or the whole schedule, as an RFC 5545 `.ics` file that opens natively in Google/Outlook/Apple Calendar.
 - Offer-letter generation: a formatted letter rendered from the offer record's own terms (package from the record, explicit placeholders for missing data) with download and email-draft handoff — signing stays in your e-sign workflow.
-- Workspace backup & restore: a complete JSON snapshot of every table with a merge-by-id restore that never applies deletions.
+- Application portability & restore: JSON of currently loaded application rows with an explicit partial-cloud/exclusion notice and merge-by-id restore that never applies deletions. Full recovery requires private-schema, Auth, object and database-configuration backups.
 - Upload hardening: beyond the extension allowlist, file magic bytes (%PDF, PK) are sniffed so a type-spoofed upload is rejected before parsing (migration 010).
 - Paginated sync API: `api_changes_page(day, page_block, page_size)` with deterministic id-ordered feeds and a `next` flag — see `docs/api.md`.
 - Workflow automation rules: admin-defined condition-based rules (candidate/demand/offer/interview triggers) that create tasks, add notes, tag candidates and set next actions — every application audited, examples seeded.
@@ -97,7 +130,7 @@ Open the URL shown by Vite. Without database configuration, the app opens with *
 ### Demo deployment
 
 1. Put this source project in a Git repository and import it into Netlify.
-2. Netlify reads `netlify.toml`: build command `pnpm run build`, publish directory `dist`, Node 22.
+2. Netlify reads `netlify.toml`: build command `pnpm run build`, publish directory `dist`, Node 24.
 3. Leave both Supabase environment variables unset for the clearly labeled local demo.
 
 Alternatively, build locally and upload the contents of `dist` using Netlify's manual deploy interface. Run `npx pnpm@11.25.0 release` to produce `releases/ecod-netlify-demo.zip` (it builds the demo and zips `dist`, including the `_redirects` and `_headers` files); extract it and upload the extracted folder. The archive is a build artifact and is gitignored, so it is generated rather than checked in. The included `_redirects` and `_headers` configure navigation and response headers for manual deploys too.
@@ -106,8 +139,10 @@ Alternatively, build locally and upload the contents of `dist` using Netlify's m
 
 Static hosting does not itself store team records. Configure a separate Supabase project:
 
+Follow the current [Netlify deployment guide](docs/NETLIFY_DEPLOYMENT.md) for complete migration order, environment scopes, R2 CORS and optional scanner/OCR services. Git deployment packages functions; dragging `dist` into Netlify only deploys the static demo.
+
 1. Create a new Supabase project in your chosen region.
-2. Apply every migration in ascending numeric order, through `033_client_documents_filters.sql`; do not skip a file.
+2. Apply every file in `supabase/migrations` in ascending filename order, including the timestamped Anthro-ID and Phase A/B/C migrations; do not stop at migration 033 or skip a file. The historical list below describes the original baseline.
    Every migration is safe to re-run: re-applying the whole chain in order is a no-op, so if you are unsure
    which files you have already run, run them all again rather than guessing.
    - `001_ecod.sql` — core tables, workspace membership, RLS, constraints and append-only history.
@@ -174,7 +209,7 @@ The target start date is stored for planning; the current availability score com
 
 The cloud schema denies anonymous access, enforces workspace membership, uses composite foreign keys to block cross-workspace links, blocks viewer writes and records before-update snapshots in server-generated history. Administrators and recruiters have the same data-editing privileges; workspace/role administration is performed through the trusted SQL console. Viewer accounts can see the same fields, including compensation, but cannot save changes. The cloud UI hides or disables editing, restore and data-export actions for viewers, and refuses writes while a role is unresolved; PostgreSQL RLS remains the enforcement boundary.
 
-This is a functional first release, not the full multi-release blueprint. Not implemented: a hosted embedding index (the in-browser TF-IDF ranker covers Phase 1.5 retrieval locally); a mailbox-based resume inbox (email-to-parse; forwarding an email into the importer is supported); server-sent interview notifications and two-way calendar/video synchronization (email drafts, a week view, candidate self-booking and one-way `.ics` import/export are available); e-signature execution and onboarding handoff; client and vendor login portals (candidate self-service and public careers portals are available); WhatsApp/SMS and mass communication; custom fields on other modules and custom-field report/filter support; fair-evaluation masking; watermarking and rate-limited exports; SSO/MFA administration; automatic retention enforcement; automated backups/restore verification. See `docs/REMAINING_FEATURES_ROADMAP.md` for the implementation sequence. Agree these controls before using the app as a production system for sensitive candidate data.
+This is a functional first release, not the full multi-release blueprint. Not implemented: a hosted embedding index (the in-browser TF-IDF ranker covers Phase 1.5 retrieval locally); a mailbox-based resume inbox (email-to-parse; forwarding an email into the importer is supported); server-sent interview notifications and two-way calendar/video synchronization (email drafts, a week view, candidate self-booking and one-way `.ics` import/export are available); e-signature execution and onboarding handoff; client and vendor login portals (candidate self-service and public careers portals are available); WhatsApp/SMS and mass communication; custom fields on other modules and custom-field report/filter support; fair-evaluation masking; watermarking and rate-limited exports; SSO and broader MFA enforcement (covered administrator actions support optional TOTP step-up); automatic retention enforcement; automated backups/restore verification. See `docs/REMAINING_FEATURES_ROADMAP.md` for the implementation sequence. Agree these controls before using the app as a production system for sensitive candidate data.
 
 The frontend currently fetches the workspace in paginated batches and filters/ranks in memory. For very large repositories, add server-side search, pagination and ranking. Demo storage size is browser-limited and produces a visible save error if full.
 
@@ -209,3 +244,15 @@ Validation for these slices: 616 tests passed in the full suite, followed by tar
 ## Automatic index maintenance and integration administration
 
 Migration 039 and the scheduled private index worker add automatic indexing after candidate changes, backfill, lease recovery, bounded retries and admin health controls. Editors can page through external mappings and reconcile candidate links with version checks; admins can rotate signing keys on paused, drained webhook subscriptions. The worker uses local feature hashing and makes no external AI calls. See [deployment and operational details](docs/OPERATIONS_MAINTENANCE.md).
+
+## Current gap-closure rollout
+
+The latest [C5 legacy R2 and retention review slice](docs/PHASE_C_LEGACY_DOCUMENT_REVIEW.md) adds an administrator document inventory, explicit quarantine of eligible originals and keep/hold/reversible archive decisions, with migration `20261006142030_legacy_document_review.sql`. No original deletion is automated.
+
+The latest [C4 structured CV evidence slice](docs/PHASE_C_STRUCTURED_CV_EVIDENCE.md) adds reviewed section excerpts to CV import and Candidate 360, with migration `20261006134846_structured_cv_evidence.sql`. Follow the [current Netlify deployment guide](docs/NETLIFY_DEPLOYMENT.md) for the full migration chain and function/worker packaging.
+
+See [the phased deployment plan](docs/PHASED_DEPLOYMENT_2026_10_06.md) for remaining ECOD features, deployment gates and VirusTotal configuration. The first local slice adds historical cohort analytics (`20261006080639_lifecycle_analytics.sql`) and an optional admin-only, server-side VirusTotal hash reputation check. It does not upload CVs or provide a clean antivirus verdict. Apply the migration and deploy before hosted acceptance; provider configuration is separate.
+
+Phase B1 adds [saved spreadsheet reviews and atomic background imports](docs/PHASE_B_IMPORTS.md) with migration `20261006082325_resumable_imports.sql` and scheduled `import-worker`. Cloud CSV/XLSX imports require saved review and explicit approval. New hashes use full SHA-256. Phase B2 adds an opt-in [durable CV staging/extraction preview](docs/PHASE_B_CV_STAGING.md) with migration `20261006085425_durable_cv_staging.sql`, private immutable originals, isolated extraction and atomic candidate/document commits. Phase C1 adds a [private ClamAV scan gate](docs/PHASE_C_PRIVATE_SCANNING.md) with migration `20261006094612_private_cv_quarantine.sql`. Phase B3 adds opt-in [paged startup, browsing and Candidate 360 reads](docs/PHASE_B_PAGED_REPOSITORY.md) with migration `20261006092243_paged_repository.sql`; established editing, matching, reports and bulk/export workflows explicitly expand to complete snapshots.
+
+Phase C2/C3 add [candidate/client attachment quarantine and optional private OCR](docs/PHASE_C_ATTACHMENTS_AND_OCR.md), with migrations `20261006125833_private_attachment_quarantine.sql` and `20261006131222_private_ocr_pipeline.sql`. Workspace flags `custom.privateDocuments` and `custom.ocrDocuments` default off. Apply migrations and deploy the private services before staging acceptance; keep production flags off until real ClamAV/Poppler/Tesseract checks pass. Local verification passed all 702 Node tests, four Python tests, lint and build checks. Legacy backfill and richer structured extraction remain pending; these slices are not deployed.

@@ -1,6 +1,8 @@
+import { allCandidateRows, assignAnthroIds } from './anthroId.js';
 import { makeSeed } from './seed.js';
 import { uid } from './domain.js';
 import { CUSTOM_MODULES, validateCustomValues } from './customFields.js';
+import { normalizeRow } from './rowDefaults.js';
 const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
 const url = env.VITE_SUPABASE_URL;
 const key = env.VITE_SUPABASE_ANON_KEY;
@@ -26,6 +28,7 @@ export const getRole = () => currentRole;
 // the settings screen can show a link that actually works instead of a placeholder.
 let currentWorkspaceId = '';
 let currentWorkspaces = [];
+let workspaceContextRevision = 0;
 export const getWorkspaceId = () => currentWorkspaceId;
 export const getWorkspaces = () => currentWorkspaces.map((workspace) => ({ ...workspace }));
 export const getWorkspace = () =>
@@ -35,6 +38,7 @@ export const canExportForRole = canWriteForRole;
 
 // A new cloud identity must not inherit the previous account's UI permissions while loading.
 export function resetRoleForSessionChange() {
+  workspaceContextRevision++;
   currentRole = cloud ? 'viewer' : 'admin';
   currentWorkspaceId = '';
   currentWorkspaces = [];
@@ -44,12 +48,15 @@ import { TABLES, emptyData, normalizeData } from './schema.js';
 const STORAGE = 'ecod-demo-v1';
 
 function applyWorkspaceContext(workspaces, activeWorkspace) {
+  workspaceContextRevision++;
   currentWorkspaces = (workspaces || [])
     .filter((workspace) => workspace?.id)
     .map((workspace) => ({
       id: workspace.id,
       name: String(workspace.name || 'Untitled workspace'),
-      role: ['admin', 'recruiter', 'viewer'].includes(workspace.role) ? workspace.role : 'viewer',
+      role: ['admin', 'recruiter', 'viewer', 'assessor', 'sales'].includes(workspace.role)
+        ? workspace.role
+        : 'viewer',
     }));
   const active =
     currentWorkspaces.find((workspace) => workspace.id === activeWorkspace) ||
@@ -60,8 +67,22 @@ function applyWorkspaceContext(workspaces, activeWorkspace) {
   return active;
 }
 
+export async function refreshWorkspaceAccess() {
+  const revision = workspaceContextRevision;
+  const client = await getSupabase();
+  const { data, error } = await client.rpc('api_my_workspaces');
+  if (revision !== workspaceContextRevision) return getWorkspace();
+  if (error || !Array.isArray(data?.workspaces))
+    throw new Error(error?.message || 'Workspace access could not be verified.');
+  const active = applyWorkspaceContext(data.workspaces, data.activeWorkspace);
+  if (!active) throw new Error('Your workspace access has been removed.');
+  return active;
+}
+
 async function loadWorkspaceContext(supabase) {
+  const revision = workspaceContextRevision;
   const { data: payload, error: rpcError } = await supabase.rpc('api_my_workspaces');
+  if (revision !== workspaceContextRevision) return getWorkspace();
   if (!rpcError && payload && Array.isArray(payload.workspaces)) {
     if (payload.error) throw new Error(payload.error);
     const active = applyWorkspaceContext(payload.workspaces, payload.activeWorkspace);
@@ -88,6 +109,7 @@ async function loadWorkspaceContext(supabase) {
     .select('id,name')
     .eq('id', membership.workspace_id)
     .maybeSingle();
+  if (revision !== workspaceContextRevision) return getWorkspace();
   return applyWorkspaceContext(
     [
       {
@@ -130,7 +152,7 @@ export async function createWorkspace(name) {
   return loadWorkspaceContext(supabase);
 }
 
-export async function loadData() {
+export async function loadData({ forceFull = false } = {}) {
   if (!cloud) {
     applyWorkspaceContext([{ id: 'demo', name: 'AnthroPrime', role: 'admin' }], 'demo');
     const stored = localStorage.getItem(STORAGE);
@@ -152,15 +174,38 @@ export async function loadData() {
   const supabase = await getSupabase();
   const data = emptyData();
   await loadWorkspaceContext(supabase);
+  if (['assessor', 'sales'].includes(getRole())) return { ...data, assignedOnly: true };
+  if (!forceFull) {
+    const { data: settings, error } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('id', 'workspace');
+    if (error) throw error;
+    if (settings?.some((row) => row.custom?.pagedRepository === true)) {
+      data.settings = settings;
+      const { data: taxonomy, error: taxError } = await supabase
+        .from('taxonomy')
+        .select('*')
+        .eq('id', 'workspace');
+      if (taxError) throw taxError;
+      data.taxonomy = taxonomy;
+      return { ...normalizeData(data, { assignIdentities: false }), repositoryPartial: true };
+    }
+  }
   await Promise.all(
     TABLES.map(async (table) => {
       let from = 0;
       while (true) {
-        const { data: rows, error } = await supabase
-          .from(table)
-          .select('*')
-          .order('id')
-          .range(from, from + 999);
+        const projected = ['candidates', 'history', 'offers', 'submissions'].includes(table);
+        const response = projected
+          ? await supabase.rpc('api_legacy_rows', { p_table: table, p_offset: from, p_limit: 1000 })
+          : await supabase
+              .from(table)
+              .select('*')
+              .order('id')
+              .range(from, from + 999);
+        const { error } = response;
+        const rows = projected ? response.data?.rows : response.data;
         if (error) {
           if (
             ['assessmentTemplates', 'talentPools', 'poolMembers'].includes(table) &&
@@ -171,13 +216,15 @@ export async function loadData() {
             );
           throw error;
         }
+        if (!Array.isArray(rows) || rows.length > 1000)
+          throw new Error('Workspace returned an invalid projected page.');
         data[table].push(...rows);
         if (rows.length < 1000) break;
         from += 1000;
       }
     }),
   );
-  return normalizeData(data);
+  return normalizeData(data, { assignIdentities: false });
 }
 
 // Structured repository filtering is evaluated by PostgreSQL in cloud mode. Return IDs only;
@@ -221,7 +268,47 @@ export function historyRefreshLimit(rowCount) {
   return Math.max(1000, rowCount);
 }
 
-export async function saveRows(table, rows, current) {
+let demoCandidateQueue = Promise.resolve();
+export async function saveRows(table, rows, current, { identityLocked = false } = {}) {
+  if (current?.repositoryPartial) throw new Error('Load the full workspace before saving records.');
+  if (!cloud && table === 'candidates' && !identityLocked) {
+    const commit = () => saveRows(table, rows, current, { identityLocked: true });
+    const operation = demoCandidateQueue.then(() =>
+      globalThis.navigator?.locks?.request
+        ? globalThis.navigator.locks.request('ecod-demo-candidate-save', commit)
+        : commit(),
+    );
+    demoCandidateQueue = operation.catch(() => {});
+    return operation;
+  }
+  if (table === 'candidates') {
+    if (!cloud) {
+      // Under the browser lock, include allocations saved by another tab since
+      // this screen loaded. Do not overwrite or reuse its newly allocated IDs.
+      const stored = localStorage.getItem(STORAGE);
+      if (stored) {
+        // The draft rows below are the requested edit; every other record must
+        // come from the latest committed workspace, including notes/history.
+        current = normalizeData(JSON.parse(stored), { activatePreferences: false });
+      }
+      const existing = allCandidateRows(current);
+      const byId = new Map(existing.map((c) => [c.id, c]));
+      const combined = assignAnthroIds([
+        ...existing.filter((c) => !rows.some((r) => r.id === c.id)),
+        ...rows.map((row) =>
+          byId.has(row.id)
+            ? {
+                ...row,
+                anthroNumber: byId.get(row.id).anthroNumber,
+                anthroId: byId.get(row.id).anthroId,
+              }
+            : row,
+        ),
+      ]);
+      rows = combined.filter((c) => rows.some((r) => r.id === c.id));
+    }
+    rows = rows.map((row) => normalizeRow(table, row));
+  }
   if (Object.hasOwn(CUSTOM_MODULES, table)) {
     for (const row of rows) {
       const problem = validateCustomValues(current, table, row.custom || {});
@@ -239,16 +326,50 @@ export async function saveRows(table, rows, current) {
             delete saved.serverAutomation;
             return saved;
           })
-        : rows;
-    const { data, error } = await supabase.from(table).upsert(writableRows).select();
+        : table === 'candidates'
+          ? rows.map((row) => {
+              const saved = { ...row };
+              // PostgreSQL owns the allocated number and generated label; aliases are derived from tombstones.
+              delete saved.anthroId;
+              delete saved.anthroNumber;
+              delete saved.anthroAliases;
+              delete saved.processingRestricted;
+              delete saved.mergedInto;
+              if (getRole() !== 'admin') {
+                delete saved.current;
+                delete saved.expected;
+                delete saved.currency;
+              }
+              return saved;
+            })
+          : table === 'offers'
+            ? rows.map((row) => {
+                const saved = { ...row };
+                delete saved.termsApproved;
+                if (getRole() !== 'admin')
+                  for (const key of ['ctc', 'approvedTerms', 'approvedAt', 'approvedBy'])
+                    delete saved[key];
+                return saved;
+              })
+            : rows;
+    const response = ['candidates', 'offers'].includes(table)
+      ? await supabase.rpc(table === 'candidates' ? 'api_save_candidates' : 'api_save_offers', {
+          p_rows: writableRows,
+        })
+      : await supabase.from(table).upsert(writableRows).select();
+    const { error } = response;
+    const data = ['candidates', 'offers'].includes(table) ? response.data?.rows : response.data;
     if (error) throw error;
-    const { data: recentHistory } = await supabase
-      .from('history')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(historyRefreshLimit(data.length));
+    if (!Array.isArray(data)) throw new Error('Workspace returned an invalid save response.');
+    const { data: historyResponse, error: historyError } = await supabase.rpc('api_legacy_rows', {
+      p_table: 'history',
+      p_offset: 0,
+      p_limit: 1000,
+    });
+    if (historyError) throw historyError;
+    const recentHistory = historyResponse?.rows;
     return {
-      rows: data,
+      rows: table === 'candidates' ? data.map((row) => normalizeRow(table, row)) : data,
       history: mergeHistory(current.history || [], recentHistory || []),
     };
   }
@@ -263,11 +384,12 @@ export async function saveRows(table, rows, current) {
     actor: 'Demo recruiter',
     snapshot: current[table].find((r) => r.id === row.id) || null,
   }));
-  const next = {
+  let next = {
     ...current,
     [table]: [...rows, ...current[table].filter((r) => !rows.some((n) => n.id === r.id))],
     history: [...history, ...current.history],
   };
+  if (table === 'candidates') next = normalizeData(next);
   localStorage.setItem(STORAGE, JSON.stringify(next));
   return { rows, history: next.history };
 }
@@ -280,6 +402,8 @@ export async function saveRows(table, rows, current) {
 export const DELETABLE_TABLES = ['reports', 'assignmentRules'];
 
 export async function deleteRows(table, ids, current) {
+  if (current?.repositoryPartial)
+    throw new Error('Load the full workspace before deleting records.');
   if (!DELETABLE_TABLES.includes(table))
     throw new Error(`${table} records cannot be deleted from the product.`);
   if (cloud) {

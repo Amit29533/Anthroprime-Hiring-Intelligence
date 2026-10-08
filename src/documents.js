@@ -3,7 +3,7 @@
 // PDF.js), and a heuristic CV parser that always produces a reviewable draft.
 // No AI dependency: extraction failures fall back to recruiter-entered text.
 import { uid } from './domain.js';
-import { scanSkills } from './taxonomy.js';
+export { parseCVText } from './cvParser.js';
 import { cloud, getSupabase } from './repository.js';
 
 export const ALLOWED_EXTENSIONS = {
@@ -39,10 +39,7 @@ export const fileToDataUrl = (file) =>
 export async function sha256(buffer) {
   if (globalThis.crypto?.subtle) {
     const digest = await crypto.subtle.digest('SHA-256', buffer);
-    return [...new Uint8Array(digest)]
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .slice(0, 32);
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
   }
   return '';
 }
@@ -153,62 +150,6 @@ export async function extractText(buffer, ext) {
   return '';
 }
 
-// Blueprint §11 — heuristic parse into a reviewable draft. Never auto-saved.
-export function parseCVText(text) {
-  const clean = String(text || '').replace(/\r/g, '');
-  if (!clean.trim())
-    return {
-      name: '',
-      email: '',
-      phone: '',
-      linkedin: '',
-      title: '',
-      skills: [],
-      experience: null,
-      summary: '',
-    };
-  const lines = clean
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const email = (clean.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [''])[0];
-  const phone = (clean.match(/\+?\d[\d\s().-]{7,}\d/) || [''])[0].trim();
-  const linkedin = (clean.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[A-Za-z0-9._-]+/i) || [
-    '',
-  ])[0];
-  const years = clean.match(/(\d{1,2})\+?\s*(?:years|yrs)\b/i);
-  const name =
-    lines
-      .slice(0, 6)
-      .find(
-        (l) =>
-          /^[A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+){1,3}$/.test(l) &&
-          !l.includes('@') &&
-          !/\d/.test(l),
-      ) || '';
-  const title =
-    lines
-      .slice(0, 8)
-      .find(
-        (l) =>
-          l.length < 60 &&
-          /engineer|architect|developer|consultant|analyst|manager|lead|specialist|scientist/i.test(
-            l,
-          ) &&
-          !l.includes('@'),
-      ) || '';
-  return {
-    name,
-    email: email.toLowerCase(),
-    phone,
-    linkedin,
-    title,
-    skills: scanSkills(clean),
-    experience: years ? Number(years[1]) : null,
-    summary: lines.slice(0, 3).join(' ').slice(0, 240),
-  };
-}
-
 export function buildDocumentRecord({
   file,
   ext,
@@ -242,7 +183,7 @@ export function buildDocumentRecord({
   };
 }
 
-async function storageFunction(name, body) {
+export async function storageFunction(name, body) {
   const supabase = await getSupabase();
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
@@ -276,23 +217,42 @@ export async function persistBinary(record, file) {
     record.stored = true;
     return record;
   }
-  const { uploadUrl, storagePath } = await storageFunction('document-upload-url', {
-    candidateId: record.candidateId,
-    ...(record.clientId ? { clientId: record.clientId } : {}),
-    filename: record.name,
-    contentType: record.mime || 'application/octet-stream',
-    size: file.size,
-  });
+  const { uploadUrl, storagePath, quarantined, headers } = await storageFunction(
+    'document-upload-url',
+    {
+      documentId: record.id,
+      hash: record.hash,
+      kind: record.kind,
+      candidateId: record.candidateId,
+      ...(record.clientId ? { clientId: record.clientId } : {}),
+      filename: record.name,
+      contentType: record.mime || 'application/octet-stream',
+      size: file.size,
+    },
+  );
   if (!uploadUrl || !storagePath) throw new Error('Document storage did not return an upload URL.');
   const upload = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': record.mime || 'application/octet-stream' },
+    headers: headers || {
+      'Content-Type': record.mime || 'application/octet-stream',
+      'If-None-Match': '*',
+    },
     body: file,
   });
-  if (!upload.ok) throw new Error(`Document upload failed (${upload.status}).`);
+  if (!upload.ok && upload.status !== 412)
+    throw new Error(`Document upload failed (${upload.status}).`);
   record.storagePath = storagePath;
   record.storageProvider = 'r2';
   record.stored = true;
+  if (quarantined) {
+    const supabase = await getSupabase();
+    const { error } = await supabase.rpc('api_attachment_uploaded', { p_id: record.id });
+    if (error) throw error;
+    record.extracted = '';
+    record.dataUrl = '';
+    record.parserStatus = 'quarantined';
+    record.scanRequired = true;
+  }
   return record;
 }
 
@@ -348,6 +308,15 @@ export async function signedUrlFor(record, ttlSeconds = 300) {
     // Existing installations may already have files in Supabase Storage. Keep those records
     // readable while every new upload is written to R2.
     const supabase = await getSupabase();
+    const { data: audited, error: modeError } = await supabase.rpc('api_document_access_mode');
+    if (modeError || typeof audited !== 'boolean')
+      throw new Error('Document access configuration is unavailable.');
+    if (audited) {
+      const { downloadUrl } = await storageFunction('document-download-url', {
+        documentId: record.id,
+      });
+      return downloadUrl || null;
+    }
     const { data, error } = await supabase.storage
       .from('documents')
       .createSignedUrl(record.storagePath, ttlSeconds);
@@ -355,4 +324,14 @@ export async function signedUrlFor(record, ttlSeconds = 300) {
     return data?.signedUrl || null;
   }
   return record.dataUrl || null;
+}
+
+export async function privateAttachmentsEnabled() {
+  if (!cloud) return false;
+  const supabase = await getSupabase();
+  const { data, error } = await supabase.rpc('api_attachment_mode');
+  if (error) throw new Error('Could not check private document mode. Check migrations and retry.');
+  if (typeof data !== 'boolean')
+    throw new Error('Private document mode returned an invalid response.');
+  return data;
 }

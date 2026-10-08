@@ -296,6 +296,19 @@ Settings definitions inherit admin-only writes; values inherit each record's wor
 
 The queue table is deliberately excluded from normal repository TABLES and public/incremental record feeds; admin operations use the dedicated API. Existing tasks/notes/profile effects enter normal history and sync; job lifecycle audit summaries exclude action payloads. See [deployment and failure behavior](PHASE3_SERVER_EXECUTION.md).
 
+## Reviewed subject access packages (D6)
+
+Administrator/MFA-gated RPCs for active verified access cases:
+
+- `api_start_subject_access_review(p_operation,p_id,p_version,p_note)` captures a fresh bounded snapshot and clears earlier scratch rows.
+- `api_subject_access_page(p_id,p_offset=0)` returns 25 projected rows with decisions, latest review metadata and the last five package receipts. Expired, closed, superseded or differently verified copies return no rows.
+- `api_review_subject_access_rows(p_operation,p_id,p_version,p_review,p_decisions,p_note)` accepts 1–25 explicit `{category,id,decision,data?}` entries. Decisions are include/redact/withhold. Redaction only removes fields or replaces existing text.
+- `api_prepare_subject_access_package(p_operation,p_id,p_version,p_review,p_note)` requires all rows reviewed, unchanged source hashes and an unexpired copy. Returns `{id,version,status,reviewId,packageId,sha256,content}`; content is canonical JSON text. Browser verifies its hash and scope before download. Five packages per administrator/workspace/24 hours; unchanged retries replay exact bytes.
+- `api_record_subject_access_delivery(p_operation,p_id,p_version,p_package,p_note)` records an operator's delivery reference without sending or closing the case.
+- Service-only `worker_purge_subject_access_reviews(p_limit=20)` purges expired scratch rows, preserving sources and receipts. Netlify `subject-access-cleanup` calls it hourly.
+
+All mutations need a 10–2,000-character review reference and actor-bound operation UUID. Cases use optimistic versions plus row locks. No browser table grants exist for copied originals, reviewed rows or package metadata. Scope exclusions and activation checks: [D6 deployment](PHASE_D_REVIEWED_ACCESS_PACKAGES.md).
+
 ## Phase 4/5 RPCs and functions (036/037, optional 038)
 
 `integration-candidate` is a POST-only editor endpoint with bearer auth, bounded allowlisted candidate JSON, an `Idempotency-Key` header and `version` on updates. `api_integrate_candidate` returns candidateId/version/replayed atomically with its receipt; `api_external_mappings(p_source='')` returns the most recent 100 mappings. UI edits advance mapping versions; conflicts return HTTP 409.
@@ -308,8 +321,28 @@ The queue table is deliberately excluded from normal repository TABLES and publi
 
 `api_intelligence_drafts(p_candidate=null)` returns up to 50 editor-visible draft summaries and review metadata. `api_review_intelligence(p_id,p_approve,p_content='')` accepts only a current draft; approvals require current source and edited content within 5000 characters. Approval/rejection records reviewer identity; original generated content stays protected in the database. It does not update candidate profiles. New provider/configuration/outbox tables are excluded from bulk workspace backup and sync: dedicated APIs and database-owner backups are required. See [security, signatures and deployment](PHASE4_5_INTEGRATIONS_INTELLIGENCE.md).
 
+## Historical ECOD outcome RPCs (7 October 2026)
+
+`api_ecod_outcome_analytics(p_days=90)` accepts only 30, 90 or 365 days and returns current-workspace aggregate `candidates`, `assessedCandidates`, `placedCandidates`, `sources`, `enrichment` and `timings`, plus server `asOf` and outcome `trackingSince`. Timing rows contain `metric`, `tracked`, `completed`, `unobserved`, `averageDays`, `medianDays` and `p90Days`; missing durations are null. Metrics use observed server events rather than editable business dates. Workspace members, including viewers, can read them.
+
+`api_prepare_ecod_analytics_export(p_days=90)` is editor-only and permits five preparations per actor/workspace per minute. It returns `{receiptId,preparedAt,workspaceId,actor,schemaVersion:1,metrics}` and stores the exact aggregate summary in the read-only `ecodAnalyticsExports` receipt table. Client CSV generation escapes formulas and includes server provenance; no candidate contacts, CV text or commercials are projected. New server-owned coverage, event and receipt data are excluded from the ordinary workspace JSON backup; full database backup is required. See [metric semantics and deployment](PHASE_A_OUTCOME_ANALYTICS.md).
+
 ## Operations RPCs (migration 039)
 
 The private scheduled `index-worker` uses service-only `worker_claim_index(p_limit=20)` and `worker_finish_index(p_workspace,p_candidate,p_lease,p_vector=null,p_failed=false)` to compute local vectors and atomically finish queued profile updates. Claims are leased and obsolete completions return false. Admin-only `api_index_health(p_retry_failed=false)` returns indexed/pending/processing/failed counts and at most 25 failed candidate summaries. The queue is excluded from regular workspace reads/backups; database-owner backups are required.
 
 Editor-only `api_mapping_page(p_source='',p_offset=0)` returns `{rows,total}` with 25 stable-order external mappings. `api_reconcile_mapping(p_source,p_external_id,p_version,p_candidate)` changes a link to an active candidate in the same workspace, advances its version and records metadata history. It never copies candidate fields. `api_rotate_webhook(p_id,p_secret)` requires an admin, a paused subscription and no active delivery leases. Claims lock subscriptions as well as deliveries to serialize pause/rotation with worker claims. See [operations contract](OPERATIONS_MAINTENANCE.md).
+
+
+## Erasure impact review (D7)
+
+`api_capture_erasure_scope(p_operation,p_id,p_version,p_note)` starts a fresh count/hash inventory and seven pending coverage areas for a verified erasure case under review. `api_erasure_review(p_id)` returns latest count metadata and evidence decisions without internal hashes or copied record content. `api_review_erasure_area(p_operation,p_id,p_version,p_review,p_area,p_decision,p_note)` accepts completed/retained/not_applicable with an explicit evidence/policy reference. All RPCs require administrator membership and optional privileged MFA. Mutations use case locks/versions and actor-bound operation UUIDs.
+
+After opt-in, a private table trigger prevents `api_update_subject_request` closure while areas are pending, verification differs or identified source records change. No deletion is executed. Inventory bounds, manual exclusions, legacy cases and reconciliation behavior: [D7 rollout](PHASE_D_ERASURE_SCOPE.md).
+
+
+## Internal freshness review tasks (E2)
+
+`api_freshness_reviews(p_offset=0)` returns workspace policy, successful global worker heartbeat and 50 private receipt projections. `api_set_freshness_reviews(p_enabled,p_stale_days=121)` is an idempotent desired-state update (30�365 days). `api_retry_freshness_review(p_id)` resets eligible failures; repeating after scheduling or completion returns success without duplicating work. These administrator APIs honor privileged MFA.
+
+Service-only `worker_run_freshness_reviews(p_limit=20)` creates bounded internal tasks and receipts atomically, retries failures, and reconciles changed threshold eligibility. Netlify `freshness-review-worker` runs hourly. Eligibility requires current recruiting-contact consent and excludes holds, merged/unavailable profiles and future verification dates. Source/consent triggers close obsolete tasks. No external message is sent. See [E2 deployment and limits](PHASE_E_FRESHNESS_REVIEWS.md).

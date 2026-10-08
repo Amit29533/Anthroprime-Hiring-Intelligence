@@ -14,6 +14,7 @@
 //   3. INTERNAL COMMERCIALS ARE NEVER PRESENTABLE. Current CTC and expectations are admin-only
 //      and, even for an admin, off by default — a client should be quoted a rate, not shown the
 //      candidate's salary.
+import { anthroIdFor } from './anthroId.js';
 import { consentForProfileSharing, submissionConsentState } from './submissions.js';
 
 export const DEFAULT_BRANDING = {
@@ -180,12 +181,7 @@ export function buildPresentation(candidate, demand, data, options = {}, context
     brand,
     consent: { ...consent, date: record?.date || '' },
     options: opts,
-    reference: `${
-      brand.agencyName
-        .replace(/[^A-Za-z]/g, '')
-        .slice(0, 4)
-        .toUpperCase() || 'CAND'
-    }-${String(candidate.id).slice(0, 8).toUpperCase()}`,
+    reference: anthroIdFor(candidate),
     generatedAt: now instanceof Date ? now.toISOString() : String(now),
     displayName: opts.anonymise ? initialsOf(candidate.name) : candidate.name,
     anonymised: opts.anonymise,

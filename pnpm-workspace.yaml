@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: true
+# Dynamically launched PDF workers need ordinary paths in deployment archives.
+nodeLinker: hoisted

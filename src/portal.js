@@ -1,4 +1,5 @@
 import { uid, MAX_NOTICE_DAYS } from './domain.js';
+import { anthroIdFor } from './anthroId.js';
 
 // Batch 11 — candidate portal core (pure, unit-tested). The projection is deliberately
 // curated: applications, interviews, offers and consents only — never internal notes,
@@ -51,6 +52,7 @@ export function portalOverview(c, data) {
   return {
     profile: {
       id: c.id,
+      anthroId: anthroIdFor(c),
       name: c.name,
       title: c.title,
       location: c.location,

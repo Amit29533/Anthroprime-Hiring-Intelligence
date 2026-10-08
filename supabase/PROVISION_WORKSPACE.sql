@@ -4,7 +4,7 @@
 do $$
 declare workspace uuid; member uuid;
 begin
- select id into member from auth.users where email='REPLACE_WITH_YOUR_EMAIL';
+ select id into member from auth.users where email='amit29533@gmail.com';
  if member is null then raise exception 'Create the Auth user and replace the email first'; end if;
  insert into public.workspaces(name) values ('AnthroPrime') returning id into workspace;
  insert into public.memberships(user_id,workspace_id,role) values(member,workspace,'admin');

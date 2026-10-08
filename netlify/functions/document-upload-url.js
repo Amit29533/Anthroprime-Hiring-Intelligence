@@ -66,23 +66,49 @@ export function createUploadHandler({
         );
 
       const { client, bucket } = storage();
-      const storagePath = clientId
-        ? `${membership.workspace_id}/clients/${clientId}/${randomUUID()}/${safeFilename(filename)}`
-        : documentObjectKey(membership.workspace_id, candidateId, filename);
+      const { data: reservation, error: reserveError } = await supabase.rpc(
+        'api_prepare_attachment',
+        {
+          p_id: body.documentId || null,
+          p_candidate: candidateId || null,
+          p_client: clientId || null,
+          p_name: filename,
+          p_ext: extension,
+          p_size: size,
+          p_hash: body.hash || '',
+          p_kind: body.kind || 'Other',
+        },
+      );
+      if (reserveError) throw reserveError;
+      if (typeof reservation?.required !== 'boolean')
+        throw new Error('Invalid attachment reservation');
+      const storagePath = reservation.required
+        ? reservation.storagePath
+        : clientId
+          ? `${membership.workspace_id}/clients/${clientId}/${randomUUID()}/${safeFilename(filename)}`
+          : documentObjectKey(membership.workspace_id, candidateId, filename);
       const uploadUrl = await signer(
         client,
         new PutObjectCommand({
           Bucket: bucket,
           Key: storagePath,
           ContentType: contentType,
+          IfNoneMatch: '*',
           Metadata: {
             workspace: membership.workspace_id,
             ...(clientId ? { client: clientId } : { candidate: candidateId }),
           },
         }),
-        { expiresIn: 300, signableHeaders: new Set(['content-type']) },
+        { expiresIn: 300, signableHeaders: new Set(['content-type', 'if-none-match']) },
       );
-      return json(200, { uploadUrl, storagePath, expiresIn: 300 });
+      return json(200, {
+        uploadUrl,
+        storagePath,
+        expiresIn: 300,
+        quarantined: reservation.required,
+        documentId: reservation.id,
+        headers: { 'Content-Type': contentType, 'If-None-Match': '*' },
+      });
     } catch (error) {
       return publicError(error);
     }

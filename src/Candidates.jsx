@@ -1,5 +1,20 @@
+import ControlledWorkflows from './ControlledWorkflows.jsx';
+import GoogleWorkspace from './GoogleWorkspace.jsx';
+import DeliverySandbox from './DeliverySandbox.jsx';
+import { AttachmentProcessing } from './AttachmentProcessing.jsx';
+import { CandidateContacts } from './CandidateContacts.jsx';
+import FoundationWorkbench from './FoundationWorkbench.jsx';
+import { CandidateFacts } from './CandidateFacts.jsx';
+import { CandidateCommunications } from './CandidateCommunications.jsx';
+import { FeedbackReview } from './FeedbackLoops.jsx';
+import { CandidateAvailability } from './CandidateAvailability.jsx';
+import { CandidateReadiness } from './CandidateReadiness.jsx';
+import { CandidateScorecards } from './CandidateScorecards.jsx';
+import { SubjectRequests } from './SubjectRequests.jsx';
+import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import { HostedIntelligence } from './HostedIntelligence.jsx';
+import { anthroIdFor } from './anthroId.js';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Plus,
@@ -57,7 +72,13 @@ import {
 import { captureChanges } from './history.js';
 import { queueById } from './quality.js';
 import { deriveGaps } from './gaps.js';
-import { cloud, getRole, canWriteForRole, queryRepositoryIds } from './repository.js';
+import {
+  cloud,
+  getRole,
+  getWorkspaceId,
+  canWriteForRole,
+  queryRepositoryIds,
+} from './repository.js';
 import {
   blankRepositoryFilters,
   hasRepositoryFilters,
@@ -67,6 +88,7 @@ import {
 import {
   classifyFile,
   extractDocumentText,
+  privateAttachmentsEnabled,
   sha256,
   buildDocumentRecord,
   persistBinary,
@@ -77,13 +99,16 @@ import { documentTemplatesFor, mergeContext, renderTemplate, dossierHtml } from 
 import { parseTalentQuery, matchesSemantic, skillsUnder, allSkillDomains } from './semantic.js';
 import { placementsForCandidate } from './placements.js';
 export { downloadFile, canExportData, exportSensitiveFile, exportCandidates } from './downloads.js';
-import { exportSensitiveFile, exportCandidates } from './downloads.js';
+import { exportSensitiveFile } from './downloads.js';
+import { exportCandidateData } from './candidateExports.js';
 export function Candidates({
   data,
   query,
   setQuery,
   initialFilter,
   onOpen,
+  onOpenClient,
+  onOpenDemand,
   onAdd,
   onImport,
   notify,
@@ -238,6 +263,16 @@ export function Candidates({
           </>
         )}
       </PageHeader>
+      {cloud && (
+        <details>
+          <summary>Advanced repository tools</summary>
+          <FoundationWorkbench
+            onOpen={onOpen}
+            onOpenClient={onOpenClient}
+            onOpenDemand={onOpenDemand}
+          />
+        </details>
+      )}
       <HostedIntelligence candidates={data.candidates} onOpen={onOpen} />
       <div className="repository-tabs">
         {['All candidates', 'Ready', 'Near-ready', 'Assessing', 'Stale'].map((s) => (
@@ -310,8 +345,8 @@ export function Candidates({
             title={
               cloud && !canWriteForRole(getRole()) ? 'Viewer role cannot export candidate data' : ''
             }
-            onClick={() => {
-              const exported = exportCandidates(
+            onClick={async () => {
+              const exported = await exportCandidateData(
                 selected.length ? rows.filter((c) => selected.includes(c.id)) : rows,
                 notify,
               );
@@ -815,6 +850,12 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
     >
       <form onSubmit={submit}>
         <div className="modal-body form-grid">
+          <Field label="Anthro-ID">
+            <input
+              readOnly
+              value={candidate ? anthroIdFor(candidate) : 'Assigned automatically when saved'}
+            />
+          </Field>
           <Field label="Full name *">
             {field('name', 'text', { required: true, maxLength: 120 })}
           </Field>
@@ -836,12 +877,16 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
           <Field label="Notice period (days)">
             {field('notice', 'number', { min: 0, max: MAX_NOTICE_DAYS })}
           </Field>
-          <Field label="Current CTC (₹ LPA)">
-            {field('current', 'number', { min: 0, step: 0.1 })}
-          </Field>
-          <Field label="Expected CTC (₹ LPA)">
-            {field('expected', 'number', { min: 0, step: 0.1 })}
-          </Field>
+          {(!cloud || getRole() === 'admin') && (
+            <>
+              <Field label="Current CTC (₹ LPA)">
+                {field('current', 'number', { min: 0, step: 0.1 })}
+              </Field>
+              <Field label="Expected CTC (₹ LPA)">
+                {field('expected', 'number', { min: 0, step: 0.1 })}
+              </Field>
+            </>
+          )}
           <Field label="Work preference">
             <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
               {['Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
@@ -1004,6 +1049,7 @@ export function CandidateProfile({
   initialTab,
   onTabChange,
   notify,
+  onReload,
 }) {
   const viewer = cloud && !canWriteForRole(getRole());
   const [tab, setTab] = useState(initialTab || 'Overview'),
@@ -1070,12 +1116,36 @@ export function CandidateProfile({
           <Avatar name={c.name} size="large" />
           <div>
             <h1>{c.name}</h1>
+            <div className="anthro-identity">
+              <span className="anthro-id">Anthro-ID: {anthroIdFor(c)}</span>
+              <Button
+                variant="secondary"
+                className="small"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(anthroIdFor(c));
+                    notify('Anthro-ID copied.');
+                  } catch {
+                    notify('Copy unavailable. Select the Anthro-ID above to copy it.');
+                  }
+                }}
+              >
+                Copy ID
+              </Button>
+            </div>
+            {!!c.anthroAliases?.filter((id) => /^ANTHRO-\d{5}$/.test(id)).length && (
+              <small className="anthro-id">
+                Former Anthro-IDs:{' '}
+                {c.anthroAliases.filter((id) => /^ANTHRO-\d{5}$/.test(id)).join(', ')}
+              </small>
+            )}
             <p>
               {c.title} · {c.company}
             </p>
             <div className="profile-badges">
               <Badge>{c.status}</Badge>
               <Badge>{freshness(c.verified)}</Badge>
+              {c.processingRestricted && <Badge tone="amber">Outbound recruiting hold</Badge>}
               {viewer && <Badge>Read only</Badge>}
               <span>
                 <MapPin size={13} />
@@ -1088,62 +1158,64 @@ export function CandidateProfile({
               ))}
             </div>
           </div>
-          {!viewer && (
-            <Button variant="secondary" icon={Pencil} onClick={() => onEdit(c)}>
-              Edit
-            </Button>
-          )}
-          {!viewer && (
-            <>
-              <a
-                className="button secondary"
-                href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and keep your availability up to date — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in with this email address and the portal links to your profile automatically.\n\n— AnthroPrime talent team`)}`}
-                onClick={() =>
-                  audit &&
-                  audit({
-                    entityType: 'candidate',
-                    entityId: c.id,
-                    action: 'exported',
-                    detail: `Portal invite drafted for ${c.name}`,
-                  })
-                }
-              >
-                Portal invite
-              </a>
-              <button className="button secondary" onClick={() => setLetterOpen(true)}>
-                Generate letter
-              </button>
-              <button
-                className="button secondary"
-                title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
-                onClick={() => setPresentationOpen(true)}
-              >
-                Client-ready profile
-              </button>
-              <button
-                className="button secondary"
-                title="Printable internal dossier (audited export)"
-                onClick={() => {
-                  const downloaded = exportSensitiveFile(
-                    dossierHtml(c, data),
-                    `dossier-${c.name.toLowerCase().replace(/\s+/g, '-')}.html`,
-                    'text/html',
-                    notify,
-                  );
-                  if (!downloaded) return;
-                  audit &&
+          <div className="profile-actions">
+            {!viewer && (
+              <Button variant="secondary" icon={Pencil} onClick={() => onEdit(c)}>
+                Edit
+              </Button>
+            )}
+            {!viewer && (
+              <>
+                <a
+                  className="button secondary"
+                  href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and propose updates to your availability — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in, then contact our team to confirm your account and approve access to your profile. Access requires an administrator-approved grant and may expire.\n\n— AnthroPrime talent team`)}`}
+                  onClick={() =>
+                    audit &&
                     audit({
                       entityType: 'candidate',
                       entityId: c.id,
                       action: 'exported',
-                      detail: `Full profile dossier exported for ${c.name}`,
-                    });
-                }}
-              >
-                Dossier
-              </button>
-            </>
-          )}
+                      detail: `Portal invite drafted for ${c.name}`,
+                    })
+                  }
+                >
+                  Portal invite
+                </a>
+                <button className="button secondary" onClick={() => setLetterOpen(true)}>
+                  Generate letter
+                </button>
+                <button
+                  className="button secondary"
+                  title="Branded profile for sending to a client — consent-gated, contact details withheld by default"
+                  onClick={() => setPresentationOpen(true)}
+                >
+                  Client-ready profile
+                </button>
+                <button
+                  className="button secondary"
+                  title="Printable internal dossier (audited export)"
+                  onClick={() => {
+                    const downloaded = exportSensitiveFile(
+                      dossierHtml(c, data),
+                      `dossier-${c.name.toLowerCase().replace(/\s+/g, '-')}.html`,
+                      'text/html',
+                      notify,
+                    );
+                    if (!downloaded) return;
+                    audit &&
+                      audit({
+                        entityType: 'candidate',
+                        entityId: c.id,
+                        action: 'exported',
+                        detail: `Full profile dossier exported for ${c.name}`,
+                      });
+                  }}
+                >
+                  Dossier
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="profile-contact">
           {c.email && (
@@ -1167,6 +1239,11 @@ export function CandidateProfile({
         <div className="profile-tabs">
           {[
             'Overview',
+            'Contacts',
+            ...(cloud ? ['Communication tests', 'Feedback & self-updates'] : []),
+            'Availability',
+            'Readiness review',
+            'Scorecards',
             'Skills & assessments',
             'Employment',
             'Documents',
@@ -1183,6 +1260,31 @@ export function CandidateProfile({
           ))}
         </div>
         <div className="profile-body">
+          {cloud && tab === 'Communication tests' && (
+            <>
+              <CandidateCommunications key={c.id} candidateId={c.id} />
+              <DeliverySandbox candidateId={c.id} />
+              <GoogleWorkspace candidateId={c.id} />
+              <ControlledWorkflows candidateId={c.id} />
+            </>
+          )}
+          {cloud && tab === 'Feedback & self-updates' && (
+            <FeedbackReview key={c.id} candidateId={c.id} onUpdated={onReload} />
+          )}
+          {tab === 'Contacts' && <CandidateContacts key={c.id} candidateId={c.id} />}
+          {tab === 'Availability' &&
+            (cloud ? (
+              <CandidateFacts
+                key={c.id}
+                candidateId={c.id}
+                kind="availability"
+                onUpdated={() => onReload?.()}
+              />
+            ) : (
+              <CandidateAvailability key={c.id} candidateId={c.id} />
+            ))}
+          {tab === 'Readiness review' && <CandidateReadiness key={c.id} candidateId={c.id} />}
+          {tab === 'Scorecards' && <CandidateScorecards key={c.id} candidateId={c.id} />}
           {tab === 'Overview' && (
             <>
               <div className="profile-section">
@@ -1207,8 +1309,12 @@ export function CandidateProfile({
                         ? 'Immediate'
                         : `${c.notice} days`,
                   ],
-                  ['Current CTC', money(c.current)],
-                  ['Expected CTC', money(c.expected)],
+                  ...(!cloud || getRole() === 'admin'
+                    ? [
+                        ['Current CTC', money(c.current)],
+                        ['Expected CTC', money(c.expected)],
+                      ]
+                    : []),
                   ['Engagement', c.engagement || 'Not stated'],
                   ['Registry status', c.activeStatus || 'Active'],
                   ['Earliest start', c.earliestStart || 'Unknown'],
@@ -1280,7 +1386,12 @@ export function CandidateProfile({
                         ))}
                     </select>
                     <Button
-                      disabled={!demand || busy || applications.some((a) => a.demandId === demand)}
+                      disabled={
+                        c.processingRestricted ||
+                        !demand ||
+                        busy ||
+                        applications.some((a) => a.demandId === demand)
+                      }
                       onClick={() => onShortlist(c.id, demand)}
                     >
                       {applications.some((a) => a.demandId === demand)
@@ -1320,6 +1431,7 @@ export function CandidateProfile({
                 <article key={a.id} className="assessment-record">
                   <div>
                     <h3>{a.title}</h3>
+                    <CustomFieldValues data={data} module="assessments" values={a.custom} />
                     <strong>
                       {a.score}
                       <small>/100</small>
@@ -1341,13 +1453,33 @@ export function CandidateProfile({
             </>
           )}
           {tab === 'Employment' && (
-            <EmploymentTab
-              candidate={c}
-              data={data}
-              onSave={onSave}
-              busy={busy}
-              readOnly={viewer}
-            />
+            <>
+              {cloud ? (
+                <>
+                  <CandidateFacts
+                    candidateId={c.id}
+                    kind="employment"
+                    onUpdated={() => onReload?.()}
+                  />
+                  {getRole() === 'admin' && (
+                    <CandidateFacts
+                      candidateId={c.id}
+                      kind="compensation"
+                      onUpdated={() => onReload?.()}
+                    />
+                  )}
+                </>
+              ) : (
+                <EmploymentTab
+                  candidate={c}
+                  data={data}
+                  onSave={onSave}
+                  busy={busy}
+                  readOnly={viewer}
+                />
+              )}
+              <CvEvidenceReview value={c.cvEvidence} />
+            </>
           )}
           {tab === 'Documents' && (
             <DocumentsTab candidate={c} data={data} onSave={onSave} busy={busy} readOnly={viewer} />
@@ -1373,6 +1505,7 @@ export function CandidateProfile({
               busy={busy}
               readOnly={viewer}
               notify={notify}
+              onReload={onReload}
             />
           )}
           {tab === 'Applications' && (
@@ -1394,7 +1527,7 @@ export function CandidateProfile({
                       <div>
                         <h3>Offer · {o.role || od?.title || 'Role'}</h3>
                         <p>
-                          {o.ctc != null ? `${money(o.ctc)} LPA` : 'Package in offer letter'}
+                          {o.ctc != null ? money(o.ctc) : 'Package in offer letter'}
                           {o.joining ? ` · joining ${o.joining}` : ''}
                         </p>
                         {o.notes && <p>{o.notes}</p>}
@@ -1539,8 +1672,12 @@ export function CandidateProfile({
                           {[
                             ['Employer', h.snapshot.company],
                             ['Title', h.snapshot.title],
-                            ['Current CTC', money(h.snapshot.current)],
-                            ['Expected CTC', money(h.snapshot.expected)],
+                            ...(!cloud || getRole() === 'admin'
+                              ? [
+                                  ['Current CTC', money(h.snapshot.current)],
+                                  ['Expected CTC', money(h.snapshot.expected)],
+                                ]
+                              : []),
                             [
                               'Notice',
                               h.snapshot.notice == null ? 'Unknown' : `${h.snapshot.notice} days`,
@@ -1892,7 +2029,15 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
     setFileBusy(true);
     try {
       const buffer = await file.arrayBuffer();
-      const extraction = await extractDocumentText(buffer, cls.ext);
+      const quarantine = await privateAttachmentsEnabled();
+      const extraction = quarantine
+        ? {
+            text: '',
+            status: 'quarantined',
+            warning:
+              'Original is quarantined until private scanning and background extraction finish.',
+          }
+        : await extractDocumentText(buffer, cls.ext);
       const extracted = extraction.text;
       const hash = await sha256(buffer);
       const record = buildDocumentRecord({
@@ -1946,14 +2091,19 @@ function DocumentsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
           <FileText size={20} />
           <div className="document-info">
             <strong>{d.name}</strong>
+            <AttachmentProcessing record={d} readOnly={readOnly} onSave={onSave} />
             <small className="block">
               {d.kind} · v{d.version} · {(d.size / 1024).toFixed(0)} KB ·{' '}
               {d.uploaded ? new Date(d.uploaded).toLocaleString() : ''} · {d.uploadedBy}
             </small>
             <small>
-              {d.parserStatus === 'parsed'
-                ? `Parsed text captured (${(d.extracted || '').length} characters) — evidence stays with the profile.`
-                : 'Text could not be extracted automatically; the original is kept for reference.'}
+              {['quarantined', 'scan-error', 'blocked', 'queued', 'extracting'].includes(
+                d.parserStatus,
+              )
+                ? 'Private scan/extraction is pending or blocked. Refresh processing status for details.'
+                : d.parserStatus === 'parsed'
+                  ? `Parsed text captured (${(d.extracted || '').length} characters) — evidence stays with the profile.`
+                  : 'Text could not be extracted automatically; the original is kept for reference.'}
             </small>
             {d.stored === false && (
               <small className="block text-amber">
@@ -2137,7 +2287,16 @@ function EcodTab({ candidate: c, data, onSave, busy, readOnly = false }) {
     </>
   );
 }
-function ConsentTab({ candidate: c, data, onSave, audit, busy, readOnly = false, notify }) {
+function ConsentTab({
+  candidate: c,
+  data,
+  onSave,
+  audit,
+  busy,
+  readOnly = false,
+  notify,
+  onReload,
+}) {
   const purposes = ['recruiting-contact', 'profile-sharing', 'assessment', 'marketing'];
   const [form, setForm] = useState({
     purpose: 'recruiting-contact',
@@ -2214,9 +2373,17 @@ function ConsentTab({ candidate: c, data, onSave, audit, busy, readOnly = false,
       </div>
       <p className="supporting-text">
         Blueprint §12: record what consent covers, which notice version the person saw, and when.
-        Data-subject export returns everything held about this person; correction is via Edit;
-        erasure is the admin Anonymize action (audited).
+        Profile export includes the records available in this workspace view and may exclude
+        originals or history. Correction is via Edit. Profile anonymization does not remove all
+        linked records; request review tracks the wider work.
       </p>
+      {getRole() === 'admin' && (
+        <SubjectRequests
+          key={`${getWorkspaceId()}:${c.id}`}
+          candidateId={c.id}
+          onHoldChange={onReload}
+        />
+      )}
       {!readOnly && (
         <form className="consent-form" onSubmit={addConsent}>
           <Field label="Purpose">
@@ -2358,6 +2525,7 @@ function InterviewsTab({ candidate: c, data, onSave, busy, readOnly = false }) {
       )}
       {scheduling && !readOnly && (
         <ScheduleModal
+          settings={data.settings}
           onClose={() => setScheduling(false)}
           onSave={onSave}
           candidates={[c]}

@@ -1,0 +1,10 @@
+# Paged repository RPC additions
+
+Migration `20261007080659_repository_views_and_quick_edit.sql` extends the authenticated, active-workspace RPC surface. It adds no external service or Netlify endpoint.
+
+- `api_repository_page(p_filters, p_cursor, p_limit)` additionally accepts `maxExperience`, exact `tag`, and `sort` (`name`, `verified`, `experience`, `notice`). Page size remains 1–50. Cursors bind the full filter object and return sort value/name/UUID; unknown numeric sort values come last. Financial filters still require administrator access.
+- `api_repository_views(p_action='list', p_id=null, p_name=null, p_filters={})` lists, saves or deletes personal views. Returns `{ views: [...] }`, at most 50 per actor/workspace. Save requires a client-generated UUID and a 1–80-character name; same-ID/same-intent retry succeeds and conflicting reuse fails. Names are unique case-insensitively. Delete is scoped and repeatable. Returned financial filters are redacted/marked `restricted` after administrator downgrade; clients must not apply restricted views.
+- `api_candidate_quick_context(p_candidate)` returns only `{ candidateId, owner, nextAction, token }` to current editors for an unmerged candidate in their active workspace.
+- `api_candidate_quick_edit(p_candidate, p_token, p_owner, p_next_action)` changes only owner (≤120 characters) and next action (≤1,000), with RLS, current editor access and a whole-row conflict fingerprint. Different stale updates fail with SQLSTATE `40001`; an already-satisfied desired state returns current context without another write. The existing history trigger records actual changes. Tokens are conflict checks, not authorization credentials.
+
+These RPCs use the signed-in user's existing Supabase session. Anonymous use and direct access to private saved-view storage are denied. See the [implementation and rollout contract](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md). Broader profile editing, shared legacy views, matching and exports retain their existing full-workspace route until later slices. No general machine-credential scope is introduced by these user-session RPCs.

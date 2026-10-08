@@ -20,7 +20,7 @@ const member = (over = {}) => ({
 });
 
 test('the role guide covers every role the database accepts', () => {
-  assert.deepEqual(ROLES, ['admin', 'recruiter', 'viewer']);
+  assert.deepEqual(ROLES, ['admin', 'recruiter', 'viewer', 'assessor', 'sales']);
   for (const role of ROLES) {
     assert.ok(ROLE_GUIDE[role]?.label, `${role} has a label`);
     assert.ok(ROLE_GUIDE[role]?.summary, `${role} explains what it can do`);
@@ -88,6 +88,26 @@ test('the member summary counts each role', () => {
     member({ role: 'viewer' }),
     member({ role: 'something-else' }),
   ];
-  assert.deepEqual(memberSummary(list), { total: 5, admin: 2, recruiter: 1, viewer: 1 });
-  assert.deepEqual(memberSummary([]), { total: 0, admin: 0, recruiter: 0, viewer: 0 });
+  assert.deepEqual(memberSummary(list), {
+    total: 5,
+    admin: 2,
+    recruiter: 1,
+    viewer: 1,
+    assessor: 0,
+    sales: 0,
+  });
+  assert.deepEqual(memberSummary([]), {
+    total: 0,
+    admin: 0,
+    recruiter: 0,
+    viewer: 0,
+    assessor: 0,
+    sales: 0,
+  });
+});
+
+test('assignment roles appear in membership totals', () => {
+  assert.equal(memberSummary([member({ role: 'assessor' }), member({ role: 'sales' })]).total, 2);
+  assert.equal(memberSummary([member({ role: 'assessor' })]).assessor, 1);
+  assert.equal(memberSummary([member({ role: 'sales' })]).sales, 1);
 });

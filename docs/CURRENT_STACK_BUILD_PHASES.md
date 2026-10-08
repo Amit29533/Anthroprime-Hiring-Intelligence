@@ -1,0 +1,117 @@
+# Five build phases using the existing stack
+
+Update, 8 October 2026: the five continuation stages are locally implemented and integrated. See the [Milestone for Independent Featureset Completion](INDEPENDENT_FEATURESET_COMPLETION_MILESTONE.md) for the current acceptance record. The historical findings below describe an earlier baseline or the broader original roadmap; hosted activation remains pending.
+
+
+Started: 7 October 2026. Scope: features classified as buildable in the [Netlify feature split](NETLIFY_FEATURE_SPLIT_2026_10_07.md). Keep React/Vite, Netlify, Supabase/PostgreSQL and existing private storage. Add no external provider or worker service as part of these phases. Commit locally only.
+
+These are implementation phases, not five releases already completed. Close each slice with meaningful permission/migration/UI checks and update its status. Hosted activation requires migrations and staging acceptance; local work does not imply deployment.
+
+Latest [five-phase code audit and continuation](FIVE_PHASE_IMPLEMENTATION_AUDIT_2026_10_07.md) distinguishes existing foundations from unfinished workflows and records the prioritized next build order.
+
+Continuation milestones 1 and 2 are implemented locally: [Stage 1 facts/access](STAGE_1_COMPLETION_CHECKLIST.md) and [Stage 2 demand journey](STAGE_2_COMPLETION_CHECKLIST.md). Stage 2 closes the demand-specific journey slice of original Phase 3; hosted acceptance remains separate.
+
+Stage 2 final verification: 841 Node tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (17 functions; main entry 67.6 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No push or deployment.
+
+Audit continuation verification: 803 Node tests and four OCR tests passed, with lint, changed-file formatting, documentation links and offline Netlify packaging of 17 functions (65.4 KiB main entry). Local advisors could not connect to `127.0.0.1:54322`; hosted acceptance remains pending. Changes are local only.
+
+## Phase 1 — Bounded repository and everyday workflow
+
+**Status: in progress; first slice implemented locally.**
+
+Verification: 770 Node tests, four OCR tests, lint, changed-file formatting and Netlify packaging passed. No external service, deployment or GitHub push was performed. Hosted migration/advisor/permission acceptance remains pending.
+
+- Implemented first slice: personal saved views, experience-range/tag filters, server-side name/recent-verification/experience/notice sorts, and conflict-aware owner/next-action quick editing in paged Candidate 360. See [slice contract](PHASE_N1_REPOSITORY_VIEWS_AND_QUICK_EDIT.md).
+- Continuation: bounded quality review and administrator Anthro-ID capacity warnings now appear on the cloud paged overview. Capacity uses the global sequence high-water position, accounts for burned allocations and never allocates/recycles an ID. Apply migrations through `20261007120440_repository_quality_and_identity_capacity.sql`.
+- Continuation: [candidate-scoped factual editing](PHASE_N1_CANDIDATE_PROFILE_EDIT.md) adds eight nonfinancial facts with strict server validation, row-lock/conflict checks, retry-safe no-op behavior and the existing transactional profile history. Apply migrations through `20261007124249_candidate_profile_edit.sql`. Broader sourced/dated facts and the field-permission matrix remain pending.
+- Candidate editing verification: all 806 Node tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed. Local advisors remain unavailable; hosted acceptance remains pending. Local commits only.
+- Next slices: richer paged saved filters; richer sourced candidate fact editing; bounded matching, reports, bulk previews/exports and cross-entity search; custom-field filtering/report metadata; broader action-board ownership/flows.
+- Experience: keep the common browse → filter → open → next-action workflow in paged mode, explain errors and preserve failed edit drafts.
+- Exit: these workflows operate without loading full candidate/document/history tables, preserve identity/history and obey permission projections. Large work is resumable and bounded.
+
+## Phase 2 — Verified candidate facts, data quality and access
+
+**Status: in progress; first contact slice implemented locally. Depends on Phase 1 read/write infrastructure.**
+
+- Implemented first slice: sourced alternate email/phone records, explicit recruiter confirmation, preferred confirmed contacts, retirement, primary/alternate duplicate guards, merge-preserved evidence and bounded reads in both profile layouts. See [slice contract](PHASE_N2_CANDIDATE_CONTACTS.md). All 775 Node tests, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. No new service, deployment or push; hosted acceptance remains pending.
+- Privacy integration: D7 inventories include contact records/events/receipts; recapture older checklists. D6 explicitly excludes these records from its 18-category package and needs separately approved review; regenerate previously prepared packages after the scope-notice change.
+- Next slices: broader verified facts, data-quality queues and narrower role/field scopes below. Preferred contacts currently preserve primary profile/portal identity and recruiting consent.
+
+- Continuation: six bounded quality queues now review primary contact gaps, unknown notice, old/future profile dates and actual current weighted skill evidence, with exact overlapping counts and candidate navigation. Broader duplicate/correction dispositions and verified fact/field-scope work remain pending.
+- Continuation: [sourced availability observations](PHASE_N2_SOURCED_AVAILABILITY.md) now record notice, earliest start, activity and work mode with source/date and server recording provenance, transactional current-profile updates, stale/chronology guards, durable retries and merged history in both cloud profile layouts. Apply migrations through `20261007125420_sourced_candidate_availability.sql`; refresh D6 packages and D7 inventories. Observation recording does not assert independent verification or change readiness.
+- Sourced availability verification: 811 Node regression tests, four OCR tests and final expanded migration/UI checks passed, with lint, formatting, documentation links and offline Netlify packaging. Work is local only; hosted/advisor acceptance remains pending.
+
+- Multiple normalized contacts/preferred contact; date-rich employment; compensation currency/basis/components; availability/source/verification; latest applicable verified values and preserved superseded claims.
+- Duplicate suggestions and review queues, incomplete/stale fact findings, taxonomy correction and import error resolution.
+- Assessor and Sales/Account scopes, compensation/commercial permissions, client/assignment boundaries, sensitive-read/export audit coverage and session/cache access-removal behavior.
+- Experience: show what is known, self-declared, verified and stale; let recruiters correct facts without asserting verification accidentally.
+- Exit: concurrent updates cannot silently overwrite verified facts; prohibited fields never arrive in unauthorized browser/API/report responses; review decisions and history are traceable.
+
+## Phase 3 — Complete ECOD evaluation and readiness
+
+The [Stage 2 demand journey](STAGE_2_COMPLETION_CHECKLIST.md) now implements typed constraints, independent assigned blind cards, debrief/gaps/reassessment, demand validation and shortlist/submission/client/report consumers. Earlier slice notes below describe their historical state; general candidate readiness remains a separate workflow. Other original Phase 3 scope remains as listed.
+
+**Status: in progress; general readiness review and rubric scorecard slices implemented locally. Depends on verified facts and role boundaries.**
+
+- Implemented first slice: administrator readiness decisions separate from profile status, passing general assessment/enrichment checks, evidence expiry, source/head conflict checks, actor-bound acknowledgement retries and merge-preserved history in both profile layouts. See [slice contract](PHASE_N3_READINESS_JOURNAL.md). Existing roles apply; narrower Phase 2 assessor scopes remain pending.
+- Privacy integration: D7 includes the readiness journal as its 31st category; recapture older checklists. D6 explicitly excludes decision history and requires separate approved review; regenerate prepared packages after the scope-notice change.
+- Verification: all 779 Node tests, final expanded migration/UI checks, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. No new service, deployment or push; hosted permission/advisor/concurrency acceptance remains pending.
+- Next slices: typed demand constraints, independent scorecards/debrief, assessor assignments, demand-specific validation and validated readiness consumers/analytics below. This panel does not yet change matching, submissions or existing analytics.
+
+- N3.2 continuation: [sealed candidate rubric scorecards](PHASE_N3_CANDIDATE_SCORECARDS.md) in both profile layouts, server-computed weights, frozen rubric versions, server recording provenance, replay-safe submission, UPSERT/merge preservation and same-day readiness chronology. Existing member roles apply; blind review and assigned assessor scopes remain pending. All 783 Node tests, final expanded database/UI checks, four OCR tests, lint, changed-file formatting and offline Netlify packaging passed. Work remains local only. Re-review existing readiness decisions and refresh privacy artifacts after migration because source fingerprints change.
+
+- Typed demand requirements and hard-constraint/unknown states; manual/deterministic CV entity grouping and JD review forms; permission-aware deterministic/full-text/existing private-vector retrieval.
+- Versioned interview kits, independent scorecards, assessor assignments, evidence/debrief; gap plans, enrichment, reassessment, validator decisions and an append-only readiness journal with expiry.
+- Candidate comparison; verified-ready cohorts, rediscovery, source/outcome timing, skill-gap heatmaps and historical/custom-field reports.
+- Experience: explain fit and evidence, show what closes each gap, and distinguish observed profile status from validated readiness.
+- Exit: complete demand → assess → gap → enrich → reassess → validate scenario with immutable prior evidence and accurate denominators. No model provider required.
+
+## Phase 4 — Client collaboration and integration foundations
+
+**Status: locally complete for the current-stack foundation scope; hosted activation pending.**
+
+- Implemented: [client collaboration and integration foundations](PHASE_N4_CLIENTS_AND_INTEGRATIONS.md), including expiring client/demand access, reviewed immutable versions, structured feedback/interview requests, approved demand progress, private commercial segregation, exact public-content approval for the job feed, source attribution, scoped machine credentials, versioned candidate/demand writes, incremental metadata/mapping feeds and webhook reconciliation.
+- Verification: all 793 Node regression tests passed, followed by 34 migration-chain checks on the final publication/identity protections. Focused UI/endpoint checks, four OCR tests, lint, changed-file formatting, documentation links and build checks passed. Offline Netlify packaging contains 17 functions and the client portal; final main entry is 65.4 KiB. Work is committed locally only; no new provider/service, deployment or GitHub push.
+- Activation: apply migrations through `20261007095813_phase4_privacy_scope.sql`, re-review/republish existing jobs for the new feed, provision client Auth accounts and perform hosted client/permission/concurrency/backup acceptance. Local advisors could not connect to `127.0.0.1:54322`. Recapture erasure checklists and regenerate reviewed access artifacts. Earlier incomplete readiness/field-scope work remains tracked in Phases 1–3; manual review of a submission does not establish demand-specific validated readiness.
+
+- Client-scoped portal memberships, approved immutable submission versions, structured comments/ratings/decisions, interview requests and feedback aging.
+- Account demand/placement progress with commercial segregation; submission/offer approval-change invalidation.
+- Approved public job feed and source attribution; scoped/revocable machine credentials, required API writes, mappings, incremental feeds and webhook reconciliation.
+- Experience: clients review a narrow approved shortlist and recruiters see the resulting next action. Start with manual provisioning/link sharing through existing auth rather than requiring a new email service.
+- Exit: two-client/cross-workspace negative tests, share revocation, stale approval invalidation and replay-safe decisions/API writes. No partner posting or e-sign provider is activated.
+
+## Phase 5 — Internal automation and governance operations
+
+[Stage 3 communication test workflows](STAGE_3_COMPLETION_CHECKLIST.md) now provide versioned templates, reviewed intents, scoped context, consent/preferences/hold suppression, scheduling, atomic test receipts and cancellation/recovery. This closes continuation milestone 3; live email and candidate self-service remain separate. Earlier slice statuses below describe their historical scope.
+
+Stage 3 verification: 852 full-suite Node tests, three final communication UI tests, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (18 functions; main entry 67.6 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No live send, push or deployment.
+
+**Status: in progress; recruiter worklist foundation implemented locally. Depends on prior workflow events and access controls.**
+
+- Implemented first slice: [bounded recruiter worklist](PHASE_N5_RECRUITER_WORKLIST.md) on the cloud repository overview, exact queue/overdue totals, personal display preferences, conflict-aware task completion/reopening and internal client-feedback handling with durable acknowledgement retries. Follow-up/interview updates use their existing candidate workflows. Display preferences do not change reminder workers.
+- Verification: all 799 Node tests and four OCR tests passed, together with lint, changed-file formatting, documentation links, offline Netlify packaging of 17 functions and the final frontend build (65.4 KiB main entry). Local Supabase advisors could not connect to `127.0.0.1:54322`.
+- Activation: apply all migrations through `20261007114511_recruiter_worklist.sql`; recapture D7 inventories (now 38 categories) and regenerate D6 packages after the receipt exclusion notice changes. Hosted permission/advisor/concurrency/volume acceptance remains pending. No new service, transport, destructive privacy execution, deployment or GitHub push.
+- Remaining slices: SLA/notification policies and candidate loops; test-only communication intents/suppression; further operational recovery; retention/subject-request coverage and erasure dry-run controls below.
+- Audit correction: the legacy cloud Anonymize action is disabled because its `anonymized` field is absent from the database and its profile-only scrubber cannot cover linked records. Subject-request/erasure review remains available; no destructive replacement is enabled.
+
+- Consolidated recruiter worklist, SLA/deadline/internal reminders, notification preferences, candidate self-update/review, redeployment prompts and portal feedback surveys.
+- Message templates/previews, durable communication intents, segmentation and suppression logic using a test transport only. External sends remain disabled.
+- Health/queue dashboards, retry/recovery controls, bounded load checks and redacted operational evidence.
+- Retention-policy UI, subject-request coverage review, erasure dry-run/batch framework and explicit fulfillment evidence. Keep destructive execution disabled until approved policy/authorization exists; recovery and external-copy assurance remain activation dependencies.
+- Experience: show due work, failures and recovery actions clearly; give candidates simple update/preferences forms and administrators honest completion/exclusion states.
+- Exit: task replay/cancellation, restriction/suppression, failure recovery, privacy and representative volume checks pass. Do not describe dry runs as actual erasure or an email outbox as delivered communication.
+
+Continuation [Stage 4 candidate/account feedback loops](STAGE_4_COMPLETION_CHECKLIST.md) now implements explicit candidate Auth grants, reviewed profile/alternate-contact proposals, immediate purpose preferences, scoped manual freshness/redeployment/survey links, account surveys, response triage and bounded work queues. Cloud portal direct preference writes/email matching are superseded. This closes continuation milestone 4; SLA/operational/governance acceptance remains Stage 5. Local verification and hosted activation are recorded in its checklist.
+
+Stage 4 verification: 870 full-suite Node tests, ten final focused database scenarios, four OCR tests, lint, changed-file formatting, documentation links and offline Netlify packaging passed (18 functions; main entry 67.7 KiB). Local advisors could not connect to port 54322; hosted acceptance remains pending. No live send, push or deployment.
+
+## Dependencies that remain outside this build scope
+
+Live email/mailbox/calendar, external model inference, partner boards/LinkedIn, SMS/WhatsApp, e-signing, organizational SSO, new private scan/OCR hosting and off-site backup infrastructure are deferred to separately configured integrations. Existing processing flags and production safeguards remain in place. No phase authorizes bypassing quarantine or using real candidate data without hosted safety/recovery acceptance.
+
+
+Continuation [Stage 5 operations and governance](STAGE_5_COMPLETION_CHECKLIST.md) now supplies versioned retention/SLA review policy, personal UTC notice preferences, bounded selection/report/retention jobs, explicit bulk owner/action previews and confirmation, resumable erasure dry runs, redacted queue health/export receipts, partial-cancellation/failure recovery, representative 250-profile testing and embedded private-database restore evidence. Settings and the repository overview expose these workflows. No new service, package or scheduled function is introduced. Formal erasure scope now includes 60 categories; access-package notices exclude operations review records. Recapture old privacy snapshots before reviewed closure.
+
+This closes the local implementation/tooling for continuation milestone 5. Real Auth/PostgREST, two-session concurrency, hosted advisors/workload/restore and deployed accessibility acceptance remain separate activation gates. The staged concurrency harness and runbook identify those checks. App JSON exports now disclose partial loaded-row scope and cannot replace private-schema/object/sequence backups. No destructive erasure, external delivery, GitHub push or hosted deployment was performed.
+
+Stage 5 verification: 888 full-suite Node tests, 11 final focused database scenarios, four OCR tests, lint without warnings, changed-file formatting, documentation links and offline Netlify packaging passed (18 functions; main entry 67.7 KiB). Local advisors could not connect to port 54322. Hosted acceptance and approved destructive/live-provider activation remain pending.

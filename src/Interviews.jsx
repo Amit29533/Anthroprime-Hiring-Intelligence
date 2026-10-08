@@ -1,3 +1,6 @@
+import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
+import { validateCustomValues } from './customFields.js';
+import { candidateLabel, anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import {
   CalendarClock,
@@ -48,7 +51,7 @@ import { exportSensitiveFile } from './downloads.js';
 import { icsFor, icsForInterview, parseICS, interviewDraftFromEvent } from './calendar.js';
 import { offerLetterText } from './offerLetter.js';
 import { documentTemplatesFor, mergeContext, renderTemplate } from './templates.js';
-import { canWriteForRole, getRole } from './repository.js';
+import { cloud, canWriteForRole, getRole } from './repository.js';
 
 const fmtDay = (iso) => {
   const d = new Date(iso);
@@ -95,6 +98,7 @@ export function ScheduleModal({
   candidates,
   demands,
   preselect = {},
+  settings = [],
 }) {
   const [form, setForm] = useState(() => {
     if (interview) {
@@ -111,11 +115,14 @@ export function ScheduleModal({
       durationMins: 45,
       interviewers: '',
       notes: '',
+      custom: {},
     };
   });
   const [error, setError] = useState('');
   async function submit(e) {
     e.preventDefault();
+    const problem = validateCustomValues({ settings }, 'interviews', form.custom || {});
+    if (problem) return setError(problem);
     const { date, time, interviewers, ...rest } = form;
     if (!rest.candidateId) return setError('Select the candidate being interviewed.');
     if (!date || !time) return setError('Pick a date and time for the interview.');
@@ -153,7 +160,7 @@ export function ScheduleModal({
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} · {c.title}
+                    {candidateLabel(c)} · {c.title}
                   </option>
                 ))}
             </select>
@@ -233,6 +240,12 @@ export function ScheduleModal({
               placeholder="Focus areas, CV links, logistics…"
             />
           </Field>
+          <CustomFieldInputs
+            data={{ settings }}
+            module="interviews"
+            values={form.custom || {}}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           {error && <p className="form-error wide">{error}</p>}
         </div>
         <div className="modal-actions">
@@ -416,6 +429,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
               <Avatar name={c.name} size="small" />
               <span>
                 <strong>{c.name}</strong>
+                <small className="anthro-id">{anthroIdFor(c)}</small>
                 <small>
                   {c.title}
                   {d ? ` · ${d.title}` : ''}
@@ -424,6 +438,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
             </button>
           )}
           {!c && <span className="muted">Candidate removed</span>}
+          <CustomFieldValues data={data} module="interviews" values={iv.custom} />
           <span className="iv-meta">
             <Badge>{iv.round}</Badge>
             <Badge>
@@ -582,11 +597,21 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
                 const file = e.target.files?.[0];
                 e.target.value = '';
                 if (!file) return;
-                const events = parseICS(await file.text()).filter(
-                  (ev) => ev.start && ev.status !== 'CANCELLED',
-                );
-                const drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
-                setModal({ type: 'ics', drafts });
+                try {
+                  if (file.size > 1048576)
+                    throw Error('Calendar import exceeds 1 MiB. Split the file before review.');
+                  const parsed = parseICS(await file.text()),
+                    issues = parsed.filter((ev) => ev.timeIssue);
+                  if (issues.length)
+                    notify?.(
+                      `Skipped ${issues.length} calendar event(s) with timezone issues: ${issues[0].timeIssue} Fix the source time before importing.`,
+                    );
+                  const events = parsed.filter((ev) => ev.start && ev.status !== 'CANCELLED'),
+                    drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
+                  setModal({ type: 'ics', drafts });
+                } catch (error) {
+                  notify?.(error.message);
+                }
               }}
             />
           </label>
@@ -696,6 +721,7 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
       )}
       {modal?.type === 'schedule' && !viewer && (
         <ScheduleModal
+          settings={data.settings}
           onClose={() => setModal(null)}
           onSave={onSave}
           interview={modal.interview}
@@ -756,7 +782,7 @@ function offerDraftHref(o, candidate, demand, settings) {
     demand: demand ? `${demand.title} (${demand.client})` : o.role || 'the role',
     mode: demand?.mode || '',
     location: o.location || demand?.location || '',
-    ctc: o.ctc ? `${money(o.ctc)} LPA` : 'the package in your letter',
+    ctc: o.ctc ? money(o.ctc) : 'the package in your letter',
     date: o.joining
       ? new Date(o.joining).toLocaleDateString(undefined, {
           day: 'numeric',
@@ -793,7 +819,7 @@ export function OfferModal({
   async function submit(e) {
     e.preventDefault();
     if (!form.candidateId) return setError('Select the candidate receiving the offer.');
-    if (form.ctc === '' || isNaN(Number(form.ctc)))
+    if ((!cloud || getRole() === 'admin') && (form.ctc === '' || isNaN(Number(form.ctc))))
       return setError('Enter the annual package in rupee lakh per annum.');
     const record = {
       ...form,
@@ -846,7 +872,7 @@ export function OfferModal({
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} · {c.title}
+                    {candidateLabel(c)} · {c.title}
                   </option>
                 ))}
             </select>
@@ -886,16 +912,24 @@ export function OfferModal({
               placeholder="Bengaluru"
             />
           </Field>
-          <Field label="Annual package (₹ LPA) *">
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={form.ctc}
-              onChange={(e) => setForm({ ...form, ctc: e.target.value })}
-              placeholder="31"
-            />
-          </Field>
+          {(!cloud || getRole() === 'admin') && (
+            <Field label="Annual package (₹ LPA) *">
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={form.ctc}
+                onChange={(e) => setForm({ ...form, ctc: e.target.value })}
+                placeholder="31"
+              />
+            </Field>
+          )}
+          {cloud && getRole() !== 'admin' && (
+            <p>
+              Compensation is managed by an administrator. You can draft and update nonfinancial
+              offer details.
+            </p>
+          )}
           <Field label="Joining date">
             <input
               type="date"
@@ -973,6 +1007,7 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
               <Avatar name={c.name} size="small" />
               <span>
                 <strong>{c.name}</strong>
+                <small className="anthro-id">{anthroIdFor(c)}</small>
                 <small>
                   {o.role || d?.title || 'Offer'}
                   {d ? ` · ${d.client}` : ''}
@@ -982,7 +1017,7 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
           )}
           {!c && <span className="muted">Candidate removed</span>}
           <small className="iv-notes">
-            {o.ctc != null ? `${money(o.ctc)} LPA` : 'Package in letter'}
+            {o.ctc != null ? money(o.ctc) : 'Package in letter'}
             {o.joining
               ? ` · joining ${new Date(o.joining).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
               : ''}
@@ -1113,13 +1148,15 @@ export function OffersSection({ data, onSave, onOpen, busy, notify, audit, openM
                   Submit for approval
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                className="small"
-                onClick={() => openModal && openModal({ type: 'letter', offer: o })}
-              >
-                Letter
-              </Button>
+              {(!cloud || getRole() === 'admin') && (
+                <Button
+                  variant="ghost"
+                  className="small"
+                  onClick={() => openModal && openModal({ type: 'letter', offer: o })}
+                >
+                  Letter
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -1329,7 +1366,7 @@ function IcsModal({ drafts, data, onClose, onSave, notify, audit }) {
                       <option value="">— match a candidate —</option>
                       {data.candidates.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name}
+                          {candidateLabel(c)}
                         </option>
                       ))}
                     </select>

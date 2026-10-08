@@ -10,6 +10,7 @@
 //   2. A measure with no denominator returns `null`, never 0 or 100%. An empty average is "no
 //      data", and the UI must say so rather than draw a zero.
 import { placementMargin } from './placements.js';
+import { anthroIdFor } from './anthroId.js';
 
 export const OPERATORS = {
   is: { label: 'is', types: ['text', 'enum', 'number', 'date', 'boolean'] },
@@ -32,6 +33,7 @@ const field = (key, label, type, extra = {}) => ({ key, label, type, ...extra })
  */
 export const FIELDS = {
   candidates: [
+    field('anthroId', 'Anthro-ID', 'text'),
     field('name', 'Name', 'text'),
     field('title', 'Current title', 'text'),
     field('status', 'Status', 'enum'),
@@ -97,6 +99,7 @@ export const FIELDS = {
     field('created', 'Added on', 'date'),
   ],
   placements: [
+    field('anthroId', 'Anthro-ID', 'text'),
     field('candidate', 'Candidate', 'text'),
     field('client', 'Client', 'enum'),
     field('demand', 'Demand', 'text'),
@@ -119,6 +122,8 @@ export const FIELDS = {
 };
 
 export const ENTITIES = Object.keys(FIELDS);
+for (const entity of ['submissions', 'interviews', 'offers', 'considerations'])
+  FIELDS[entity].unshift(field('anthroId', 'Anthro-ID', 'text'));
 export const ENTITY_LABELS = {
   candidates: 'Candidates',
   demands: 'Demands',
@@ -162,13 +167,21 @@ export const blankReport = (entity = 'candidates') => ({
 });
 
 export function reportRows(data, entity, { isAdmin = false } = {}) {
-  if (entity !== 'placements') return data?.[entity] || [];
+  const identity = (row) =>
+    anthroIdFor(
+      entity === 'candidates' ? row : data.candidates?.find((c) => c.id === row.candidateId),
+    );
+  if (entity !== 'placements')
+    return (data?.[entity] || []).map((row) =>
+      FIELDS[entity]?.some((f) => f.key === 'anthroId') ? { ...row, anthroId: identity(row) } : row,
+    );
   return (data.placements || []).map((placement) => {
     const row = Object.fromEntries(
       fieldsFor('placements').map(({ key }) => [key, placement[key] ?? null]),
     );
     row.candidate =
       data.candidates?.find((c) => c.id === placement.candidateId)?.name || '(unlinked)';
+    row.anthroId = identity(placement);
     row.client = data.clients?.find((c) => c.id === placement.clientId)?.name || '(unlinked)';
     row.demand = data.demands?.find((d) => d.id === placement.demandId)?.title || '(unlinked)';
     if (isAdmin) {

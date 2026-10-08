@@ -447,3 +447,25 @@
 .intelligence-panel .section-toolbar + .section-toolbar { margin-top:12px; }
 .intelligence-panel .settings-body .panel { margin-top:14px; }
 .intelligence-panel p { line-height:1.6; }
+
+/* Permanent candidate identity: full IDs remain readable in cards and narrow screens. */
+.anthro-id {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: var(--muted, #647b75);
+  user-select: text;
+}
+.anthro-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0;
+}
+.anthro-identity .anthro-id {
+  font-size: 12px;
+}

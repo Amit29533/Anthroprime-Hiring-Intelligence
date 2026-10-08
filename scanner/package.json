@@ -1,0 +1,1 @@
+{"name":"anthroprime-private-scanner","private":true,"type":"module","dependencies":{"@aws-sdk/client-s3":"3.1141.0","@supabase/supabase-js":"2.57.0","pdfjs-dist":"6.3.289"},"engines":{"node":">=22.13.0"}}

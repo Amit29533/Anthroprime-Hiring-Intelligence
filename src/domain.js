@@ -1,4 +1,5 @@
 import { meetsLevel, skillList, scanSkills, domainOf, conceptTermsFor } from './taxonomy.js';
+import { candidateIdentityText } from './anthroId.js';
 export { skillList, canonical, scanSkills } from './taxonomy.js';
 export const STAGES = [
   'Identified',
@@ -134,6 +135,7 @@ export function matchCandidate(c, d, assessments = []) {
       `Engagement mismatch: candidate is ${c.engagement}, demand needs ${engagementType}`,
   ].filter(Boolean);
   if (c.status === 'Unavailable') blockers.push('Candidate is currently unavailable');
+  if (c.processingRestricted) blockers.push('Outbound recruiting hold');
   const unknowns = [
     c.notice == null && 'Notice period unknown',
     c.expected == null && 'Expected CTC unknown',
@@ -190,10 +192,11 @@ export const setStageLabels = (map) => {
 };
 export const stageLabelsMap = () => ({ ...stageLabels });
 export const stageLabel = (s) => stageLabels[s] || s;
-export function candidateSearchText(c, documents = []) {
+export function candidateSearchText(c, documents = [], { includeIdentity = true } = {}) {
   const skills = c.skills || [];
   const conceptTerms = [...new Set(skills.flatMap((s) => [...domainOf(s), ...conceptTermsFor(s)]))];
   return [
+    includeIdentity ? candidateIdentityText(c) : '',
     c.name,
     c.title,
     c.company,
@@ -210,7 +213,16 @@ export function candidateSearchText(c, documents = []) {
     .toLowerCase();
 }
 export function searchCandidate(c, query) {
-  const text = [c.name, c.title, c.company, c.location, c.email, c.summary, ...c.skills]
+  const text = [
+    candidateIdentityText(c),
+    c.name,
+    c.title,
+    c.company,
+    c.location,
+    c.email,
+    c.summary,
+    ...c.skills,
+  ]
     .join(' ')
     .toLowerCase();
   const tokens = query.toLowerCase().match(/"[^"]+"|\S+/g) || [];

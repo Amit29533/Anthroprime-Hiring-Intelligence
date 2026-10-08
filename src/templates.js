@@ -3,8 +3,10 @@
 // left visible so a typo shows up in the preview instead of silently vanishing. Also
 // hosts the printable candidate dossier (an internal, recruiter-facing document).
 import { money } from './domain.js';
+import { anthroIdFor } from './anthroId.js';
 
 export const MERGE_FIELD_CATALOG = [
+  ['Candidate', 'anthroId'],
   ['Candidate', 'name'],
   ['Candidate', 'email'],
   ['Candidate', 'phone'],
@@ -48,6 +50,7 @@ export function mergeContext({
   workspaceName = 'AnthroPrime',
 } = {}) {
   const c = { ...candidate };
+  c.anthroId = anthroIdFor(candidate);
   if (c.notice != null) c.notice = `${c.notice} days`;
   if (c.expected != null && c.expected !== '') c.expected = money(c.expected);
   if (c.earliestStart) c.earliestStart = longDate(c.earliestStart);
@@ -145,6 +148,7 @@ th{width:170px;color:#40605c;font-weight:600;background:#f3f7f6}ul{margin:6px 0;
 <h1>${esc(c.name)}</h1><p class="small">${esc(c.title)}${c.company ? ` · ${esc(c.company)}` : ''} · ${esc(workspaceName)} internal dossier</p>
 <p><span class="badge">${esc(c.status || '')}</span><span class="badge">${esc(c.mode || '')}</span>${c.activeStatus ? `<span class="badge">${esc(c.activeStatus)}</span>` : ''}</p>
 <h2>Profile</h2><table>${rows([
+    ['Anthro-ID', anthroIdFor(c)],
     ['Email', c.email],
     ['Phone', c.phone],
     ['Location', c.location],

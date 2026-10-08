@@ -30,6 +30,7 @@ test('client upload signing requires admin access and a client visible in the wo
     authorize: async () => ({
       membership: { workspace_id: 'workspace-1', role },
       supabase: {
+        rpc: async () => ({ data: { required: false } }),
         from: (table) => {
           lookup = table;
           return {
@@ -73,6 +74,7 @@ test('upload signing requires an allowed type, bounded size and a candidate in t
     return {
       membership: { workspace_id: 'workspace-1', role: 'recruiter' },
       supabase: {
+        rpc: async () => ({ data: { required: false } }),
         from: () => ({
           select: () => ({
             eq: () => ({ maybeSingle: async () => ({ data: { id: 'candidate-1' }, error: null }) }),
@@ -128,6 +130,7 @@ test('download signing checks the RLS-visible record and workspace path', async 
   const authorize = async () => ({
     membership: { workspace_id: 'workspace-1', role: 'viewer' },
     supabase: {
+      rpc: async () => ({ data: { enforced: false } }),
       from: () => ({
         select: () => ({
           eq: () => ({ maybeSingle: async () => ({ data: document, error: null }) }),

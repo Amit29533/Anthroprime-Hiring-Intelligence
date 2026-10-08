@@ -13,6 +13,8 @@ export default [
       'src/**/*.{js,jsx}',
       'tests/**/*.{js,jsx,mjs}',
       'netlify/functions/**/*.js',
+      'scanner/**/*.{js,mjs}',
+      'scripts/recovery/**/*.mjs',
       '*.config.js',
     ],
     languageOptions: {

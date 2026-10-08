@@ -1,3 +1,4 @@
+import { AssignmentAdmin } from './AssignedWork.jsx';
 import React, { useCallback, useEffect, useState } from 'react';
 import { UserPlus, ShieldCheck, RefreshCw, Trash2, Info } from 'lucide-react';
 import { PanelHeading, Button, Field, Badge } from './ui.jsx';
@@ -103,6 +104,7 @@ export function Members({ api = membersApi, notify, audit, available = cloud }) 
             User administration needs the shared team workspace. The local demo workspace has no
             accounts to manage — every action here runs as an administrator.
           </p>
+          {cloud && state.isAdmin && <AssignmentAdmin members={state.members} />}
           <RoleReference />
         </div>
       </section>
@@ -131,8 +133,9 @@ export function Members({ api = membersApi, notify, audit, available = cloud }) 
           <>
             <p className="supporting-text">
               {counts.total} {counts.total === 1 ? 'person has' : 'people have'} access ·{' '}
-              {counts.admin} admin · {counts.recruiter} recruiter · {counts.viewer} viewer. Role
-              changes and removals are recorded in the workspace audit log.
+              {counts.admin} admin · {counts.recruiter} recruiter · {counts.viewer} viewer ·{' '}
+              {counts.assessor} assessor · {counts.sales} sales/account. Role changes and removals
+              are recorded in the workspace audit log.
             </p>
 
             <ul className="member-list">
@@ -283,6 +286,7 @@ export function Members({ api = membersApi, notify, audit, available = cloud }) 
                 <ShieldCheck size={13} /> Only an administrator can invite people or change roles.
               </p>
             )}
+            {cloud && state.isAdmin && <AssignmentAdmin members={state.members} />}
             <RoleReference />
           </>
         )}

@@ -1,7 +1,10 @@
+import { anthroIdFor } from './anthroId.js';
 // Per-table defaults, separate from workspace activation and persistence.
 const normalizers = {
   candidates: (row) => {
+    row.anthroId = anthroIdFor(row);
     row.skills = row.skills || [];
+    row.cvEvidence = row.cvEvidence || {};
     row.skillsDetail = Array.isArray(row.skillsDetail) ? row.skillsDetail : [];
     row.engagement = row.engagement || '';
     row.earliestStart = row.earliestStart || null;
@@ -212,6 +215,7 @@ const normalizers = {
     row.contactId = row.contactId || null;
   },
   publicApplications: (row) => {
+    row.source = row.source || 'Career page';
     row.name = row.name || '';
     row.email = row.email || '';
     row.phone = row.phone || '';
@@ -238,5 +242,8 @@ const normalizers = {
 export function normalizeRow(table, source) {
   const row = { ...source };
   normalizers[table]?.(row);
+  if (['interviews', 'assessments', 'enrichment', 'placements'].includes(table))
+    row.custom =
+      row.custom && typeof row.custom === 'object' && !Array.isArray(row.custom) ? row.custom : {};
   return row;
 }

@@ -25,12 +25,14 @@ import {
 import {
   loadData,
   saveRows,
+  normalizeData,
   deleteRows,
   cloud,
   getSupabase,
   getRole,
   canWriteForRole,
   resetRoleForSessionChange,
+  refreshWorkspaceAccess,
   getWorkspace,
   getWorkspaces,
   switchWorkspace,
@@ -50,6 +52,10 @@ import { serverExecutionEnabled } from './execution.js';
 import { ThemeToggle, useTheme } from './theme.jsx';
 import AccountProfile from './AccountProfile.jsx';
 
+const AssignedWork = lazy(() =>
+  import('./AssignedWork.jsx').then((module) => ({ default: module.AssignedWork })),
+);
+
 // Keep the dashboard fast: each feature area is downloaded only when it is opened. Named-export
 // modules use one shared chunk per source file, so opening a form reuses the page's existing chunk.
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })));
@@ -61,6 +67,9 @@ const referralsModule = () => import('./Referrals.jsx');
 const Candidates = lazyNamed(candidatesModule, 'Candidates');
 const CandidateForm = lazyNamed(candidatesModule, 'CandidateForm');
 const CandidateProfile = lazyNamed(candidatesModule, 'CandidateProfile');
+const PagedCandidates = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedCandidates');
+const PagedOverview = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedOverview');
+const PagedCandidate360 = lazyNamed(() => import('./PagedRepository.jsx'), 'PagedCandidate360');
 const Demands = lazyNamed(demandsModule, 'Demands');
 const DemandForm = lazyNamed(demandsModule, 'DemandForm');
 const DemandDetail = lazyNamed(demandsModule, 'DemandDetail');
@@ -148,6 +157,8 @@ function CreateWorkspaceModal({ onClose, onCreate, busy }) {
 
 export default function App() {
   const [theme, setTheme] = useTheme();
+  const mobileNav = useRef(null);
+  const mobileTrigger = useRef(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [demoSignedOut, setDemoSignedOut] = useState(false);
   const [pageFilter, setPageFilter] = useState(null);
@@ -174,7 +185,8 @@ export default function App() {
     [workspaceCreate, setWorkspaceCreate] = useState(false);
   const dataRef = useRef(data),
     saving = useRef(false),
-    activeSessionUserId = useRef(null);
+    activeSessionUserId = useRef(null),
+    reloadSequence = useRef(0);
   dataRef.current = data;
   useEffect(() => {
     if (!cloud) return;
@@ -183,6 +195,7 @@ export default function App() {
     const acceptSession = (nextSession) => {
       const nextUserId = nextSession?.user?.id || null;
       if (activeSessionUserId.current !== nextUserId) {
+        reloadSequence.current++;
         activeSessionUserId.current = nextUserId;
         resetRoleForSessionChange();
         const cleared = emptyData();
@@ -233,6 +246,45 @@ export default function App() {
       authSubscription?.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (!mobile) return;
+    const priorOverflow = document.body.style.overflow;
+    const trigger = mobileTrigger.current;
+    document.body.style.overflow = 'hidden';
+    const buttons = () => [
+      ...(mobileNav.current?.querySelectorAll('button:not(:disabled),a[href]') || []),
+    ];
+    buttons()[0]?.focus();
+    const keys = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobile(false);
+      }
+      if (event.key === 'Tab') {
+        const items = buttons(),
+          first = items[0],
+          last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    const resized = () => {
+      if (window.innerWidth > 760) setMobile(false);
+    };
+    document.addEventListener('keydown', keys);
+    window.addEventListener('resize', resized);
+    return () => {
+      document.body.style.overflow = priorOverflow;
+      document.removeEventListener('keydown', keys);
+      window.removeEventListener('resize', resized);
+      trigger?.focus();
+    };
+  }, [mobile]);
   const userId = session?.user?.id || null;
   useEffect(() => {
     if (!authReady) return;
@@ -264,6 +316,78 @@ export default function App() {
       active = false;
     };
   }, [authReady, userId]);
+  useEffect(() => {
+    if (!cloud || !userId) return undefined;
+    let active = true,
+      pending = false;
+    async function checkAccess() {
+      if (pending) return;
+      pending = true;
+      const before = getWorkspace();
+      let accessSequence = reloadSequence.current;
+      let loadingAccess = false;
+      try {
+        const next = await refreshWorkspaceAccess();
+        if (
+          !active ||
+          accessSequence !== reloadSequence.current ||
+          (before?.id === next?.id && before?.role === next?.role)
+        )
+          return;
+        accessSequence = ++reloadSequence.current;
+        const cleared = emptyData();
+        dataRef.current = cleared;
+        setData(cleared);
+        setPersonId(null);
+        setModal(null);
+        setDemandId(null);
+        setClientId(null);
+        setPageFilter(null);
+        setCandidateFilter(null);
+        setPipelineDemand(null);
+        setQuery('');
+        setPage('Overview');
+        setWorkspaces(getWorkspaces());
+        setActiveWorkspace(next);
+        loadingAccess = true;
+        setLoading(true);
+        const updated = await loadData();
+        if (active && accessSequence === reloadSequence.current) {
+          dataRef.current = updated;
+          setData(updated);
+          setError('');
+        }
+      } catch (err) {
+        if (active && accessSequence === reloadSequence.current) {
+          setLoading(false);
+          ++reloadSequence.current;
+          const cleared = emptyData();
+          dataRef.current = cleared;
+          setData(cleared);
+          setPersonId(null);
+          setModal(null);
+          setDemandId(null);
+          setClientId(null);
+          resetRoleForSessionChange();
+          setActiveWorkspace(null);
+          setWorkspaces([]);
+          setError(
+            'Access could not be verified. Cached workspace data was cleared. ' + err.message,
+          );
+        }
+      } finally {
+        pending = false;
+        if (active && loadingAccess && accessSequence === reloadSequence.current) setLoading(false);
+      }
+    }
+    const timer = setInterval(checkAccess, 60000);
+    window.addEventListener('focus', checkAccess);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener('focus', checkAccess);
+    };
+  }, [userId]);
   function openPerson(id, tab = 'Overview') {
     setPersonTab(tab);
     setPersonId(id);
@@ -276,21 +400,30 @@ export default function App() {
     }
   }, [toast]);
   async function reload() {
+    const sequence = ++reloadSequence.current;
+    const user = activeSessionUserId.current;
+    const workspace = getWorkspace()?.id;
+    const currentRequest = () =>
+      sequence === reloadSequence.current &&
+      user === activeSessionUserId.current &&
+      workspace === getWorkspace()?.id;
     setLoading(true);
     setError('');
     try {
-      const next = await loadData();
+      const next = await loadData({ forceFull: !dataRef.current.repositoryPartial });
+      if (!currentRequest()) return;
       dataRef.current = next;
       setData(next);
       setWorkspaces(getWorkspaces());
       setActiveWorkspace(getWorkspace());
     } catch (e) {
-      setError(e.message);
+      if (currentRequest()) setError(e.message);
     } finally {
-      setLoading(false);
+      if (currentRequest()) setLoading(false);
     }
   }
   function resetWorkspaceView() {
+    reloadSequence.current++;
     setPageFilter(null);
     const cleared = emptyData();
     dataRef.current = cleared;
@@ -370,7 +503,34 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
-  const navigate = (p, filter = null) => {
+  async function fullWorkspace() {
+    if (!dataRef.current.repositoryPartial) return true;
+    const user = activeSessionUserId.current,
+      workspace = getWorkspace()?.id;
+    setLoading(true);
+    setError('');
+    try {
+      const next = await loadData({ forceFull: true });
+      if (user !== activeSessionUserId.current || workspace !== getWorkspace()?.id) return false;
+      dataRef.current = next;
+      setData(next);
+      return true;
+    } catch (e) {
+      if (user === activeSessionUserId.current && workspace === getWorkspace()?.id)
+        setError(e.message);
+      return false;
+    } finally {
+      if (user === activeSessionUserId.current && workspace === getWorkspace()?.id)
+        setLoading(false);
+    }
+  }
+  const navigate = async (p, filter = null) => {
+    if (
+      dataRef.current.repositoryPartial &&
+      (!['Overview', 'Candidates'].includes(p) || filter?.ids || filter?.queue)
+    ) {
+      if (!(await fullWorkspace())) return;
+    }
     setPageFilter(filter);
     setPage(p);
     setMobile(false);
@@ -473,7 +633,7 @@ export default function App() {
     let ok = false;
     try {
       const result = await saveRows(table, rows, dataRef.current);
-      const next = {
+      let next = {
         ...dataRef.current,
         [table]: [
           ...result.rows,
@@ -481,6 +641,7 @@ export default function App() {
         ],
         history: result.history,
       };
+      if (table === 'candidates') next = normalizeData(next, { assignIdentities: !cloud });
       dataRef.current = next;
       setData(next);
       setToast(
@@ -590,9 +751,15 @@ export default function App() {
         },
       ]);
   }
-  const addCandidate = () => setModal({ type: 'candidate' }),
-    newDemand = () => setModal({ type: 'demand' }),
-    importCandidates = () => setModal({ type: 'import' }),
+  const addCandidate = async () => {
+      if (await fullWorkspace()) setModal({ type: 'candidate' });
+    },
+    newDemand = async () => {
+      if (await fullWorkspace()) setModal({ type: 'demand' });
+    },
+    importCandidates = async () => {
+      if (await fullWorkspace()) setModal({ type: 'import' });
+    },
     newAssessment = (candidateId) => setModal({ type: 'assessment', candidateId });
   const person = data.candidates.find((c) => c.id === personId),
     demand = data.demands.find((d) => d.id === demandId),
@@ -656,13 +823,37 @@ export default function App() {
       </Suspense>
     );
   let content;
-  if (page === 'Overview')
+  if (data.repositoryPartial)
+    content =
+      page === 'Candidates' ? (
+        <PagedCandidates
+          key={`${activeWorkspace?.id || ''}:${JSON.stringify(candidateFilter)}`}
+          initialFilter={candidateFilter}
+          onFull={async (id, action) => {
+            if (!(await fullWorkspace())) return;
+            setPage('Candidates');
+            if (id) openPerson(id);
+            if (action === 'add') setModal({ type: 'candidate' });
+          }}
+        />
+      ) : (
+        <PagedOverview
+          onBrowse={() => navigate('Candidates')}
+          onFull={fullWorkspace}
+          onOpenWorklist={openPerson}
+          onOpenClient={openClient}
+          onOpenDemand={openDemand}
+          onSettings={() => navigate('Settings')}
+        />
+      );
+  else if (page === 'Overview')
     content = (
       <Dashboard
         data={data}
         navigate={navigate}
         openCandidate={openPerson}
         openDemand={openDemand}
+        openClient={openClient}
         onNewDemand={newDemand}
         onAdd={addCandidate}
         onImport={importCandidates}
@@ -679,6 +870,8 @@ export default function App() {
         setQuery={setQuery}
         initialFilter={candidateFilter}
         onOpen={openPerson}
+        onOpenClient={openClient}
+        onOpenDemand={openDemand}
         onAdd={addCandidate}
         onImport={importCandidates}
         notify={setToast}
@@ -696,6 +889,7 @@ export default function App() {
         onBack={() => setDemandId(null)}
         onEdit={(d) => setModal({ type: 'demand', demand: d })}
         onOpenCandidate={openPerson}
+        onOpenDemand={openDemand}
         onShortlist={shortlist}
         onPipeline={(id) => {
           setPipelineDemand(id);
@@ -813,6 +1007,9 @@ export default function App() {
   else if (page === 'Reports')
     content = (
       <Reports
+        onOpen={openPerson}
+        onOpenClient={openClient}
+        onOpenDemand={openDemand}
         data={data}
         onSave={save}
         onDelete={remove}
@@ -834,12 +1031,60 @@ export default function App() {
         onModal={setModal}
       />
     );
+  if (cloud && data.assignedOnly)
+    return (
+      <div className="app-shell">
+        <main>
+          <Field label="Assigned workspace">
+            <select
+              aria-label="Assigned workspace"
+              disabled={loading}
+              value={activeWorkspace?.id || ''}
+              onChange={(event) =>
+                selectWorkspace(workspaces.find((workspace) => workspace.id === event.target.value))
+              }
+            >
+              {workspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name} · {workspace.role}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {error && <p role="alert">{error}</p>}
+          <Suspense fallback={featureFallback}>
+            <AssignedWork key={`${activeWorkspace?.id}:${activeWorkspace?.role}`} />
+          </Suspense>
+          <Button variant="secondary" onClick={reload}>
+            Reload workspace access
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => getSupabase().then((client) => client.auth.signOut())}
+          >
+            Sign out
+          </Button>
+        </main>
+      </div>
+    );
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <aside className={`sidebar ${mobile ? 'is-open' : ''}`}>
+      <aside
+        id="workspace-navigation"
+        ref={mobileNav}
+        className={`sidebar ${mobile ? 'is-open' : ''}`}
+      >
+        {mobile && (
+          <IconButton
+            icon={X}
+            label="Close navigation"
+            className="icon-button mobile-nav-close"
+            onClick={() => setMobile(false)}
+          />
+        )}
         <a
           className="brand"
           href="#"
@@ -906,6 +1151,7 @@ export default function App() {
                 className="workspace-create"
                 onClick={() => {
                   setWorkspaceMenu(false);
+                  setMobile(false);
                   setWorkspaceCreate(true);
                 }}
               >
@@ -916,21 +1162,24 @@ export default function App() {
           )}
         </div>
         <div className="nav-label">WORKSPACE</div>
-        <nav>
+        <nav aria-label="Main navigation">
           {nav.map(([name, Icon]) => (
             <button
               className={page === name ? 'active' : ''}
               aria-current={page === name ? 'page' : undefined}
               key={name}
               onClick={() => navigate(name)}
+              disabled={loading}
             >
               <Icon size={19} />
               <span>{name}</span>
-              {name === 'Candidates' && <b>{data.candidates.length}</b>}
-              {name === 'Demands' && (
+              {!data.repositoryPartial && name === 'Candidates' && <b>{data.candidates.length}</b>}
+              {!data.repositoryPartial && name === 'Demands' && (
                 <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
               )}
-              {name === 'Clients' && <b>{(data.clients || []).length}</b>}
+              {!data.repositoryPartial && name === 'Clients' && (
+                <b>{(data.clients || []).length}</b>
+              )}
             </button>
           ))}
         </nav>
@@ -953,7 +1202,10 @@ export default function App() {
             className="sidebar-user account-trigger"
             aria-label="Open your account from sidebar"
             aria-haspopup="dialog"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => {
+              setMobile(false);
+              setAccountOpen(true);
+            }}
           >
             <Avatar name={userName} size="small" />
             <span>
@@ -971,6 +1223,9 @@ export default function App() {
             <IconButton
               icon={Menu}
               label="Open navigation"
+              ref={mobileTrigger}
+              aria-expanded={mobile}
+              aria-controls="workspace-navigation"
               className="icon-button mobile-toggle"
               onClick={() => setMobile(!mobile)}
             />
@@ -978,24 +1233,28 @@ export default function App() {
             <span className="crumb-divider">/</span>
             <strong>{page}</strong>
           </div>
-          <GlobalSearch
-            data={data}
-            isAdmin={getRole() === 'admin'}
-            query={query}
-            setQuery={setQuery}
-            onOpen={openSearchResult}
-          />
+          {!data.repositoryPartial && (
+            <GlobalSearch
+              data={data}
+              isAdmin={getRole() === 'admin'}
+              query={query}
+              setQuery={setQuery}
+              onOpen={openSearchResult}
+            />
+          )}
           <div className="topbar-actions">
             <button className="mode-pill" onClick={() => navigate('Settings')}>
               <span />
               {cloud ? workspaceName : 'Demo workspace'}
             </button>
-            <NotificationBell
-              data={data}
-              user={{ name: userName, email: session?.user?.email || '' }}
-              isAdmin={getRole() === 'admin'}
-              navigate={navigate}
-            />
+            {!data.repositoryPartial && (
+              <NotificationBell
+                data={data}
+                user={{ name: userName, email: session?.user?.email || '' }}
+                isAdmin={getRole() === 'admin'}
+                navigate={navigate}
+              />
+            )}
             <MotionToggle />
             <ThemeToggle theme={theme} onChange={setTheme} />
             <button
@@ -1003,7 +1262,10 @@ export default function App() {
               className="profile-trigger"
               aria-label="Open your account"
               aria-haspopup="dialog"
-              onClick={() => setAccountOpen(true)}
+              onClick={() => {
+                setMobile(false);
+                setAccountOpen(true);
+              }}
             >
               <Avatar name={userName} size="small" />
             </button>
@@ -1099,15 +1361,35 @@ export default function App() {
           </button>
         </div>
       )}
-      <Suspense fallback={modal || person ? featureFallback : null}>
+      <Suspense fallback={modal || person || personId ? featureFallback : null}>
+        {data.repositoryPartial && personId && !modal && (
+          <PagedCandidate360
+            key={`${activeWorkspace?.id}:${personId}:${personTab}`}
+            candidateId={personId}
+            initialSection={
+              {
+                Employment: 'employmentHistory',
+                Availability: 'availabilityHistory',
+                Contacts: 'contacts',
+              }[personTab] || 'profile'
+            }
+            onClose={() => setPersonId(null)}
+            onUpdated={reload}
+            onFull={async (id) => {
+              if (await fullWorkspace()) openPerson(id);
+            }}
+          />
+        )}
         {person && !modal && (
           <CandidateProfile
+            key={`${activeWorkspace?.id || ''}:${getRole()}:${person.id}`}
             candidate={person}
             data={data}
             onClose={() => setPersonId(null)}
             onEdit={(c) => setModal({ type: 'candidate', candidate: c })}
             onSave={save}
             onShortlist={shortlist}
+            onReload={reload}
             onAssess={newAssessment}
             busy={busy}
             audit={audit}
@@ -1206,6 +1488,7 @@ export default function App() {
         {modal?.type === 'import' && (
           <ImportModal
             data={data}
+            onReload={reload}
             onClose={() => setModal(null)}
             onSave={save}
             busy={busy}

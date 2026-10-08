@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { load, loadApp, mount, change, screen, cleanup, stopVite, settle } from './ui-harness.js';
+import {
+  load,
+  loadApp,
+  mount,
+  change,
+  click,
+  screen,
+  cleanup,
+  stopVite,
+  settle,
+} from './ui-harness.js';
+import { within } from '@testing-library/react';
 import { byPlaceholder, navTo, press, type } from './ui-drivers.js';
 process.env.VITE_SUPABASE_URL = 'https://execution-test.supabase.co';
 process.env.VITE_SUPABASE_ANON_KEY = 'execution-public-test-key';
@@ -18,6 +29,23 @@ const json = (data, status = 200) =>
 async function fakeFetch(input, init = {}) {
   const url = new URL(typeof input === 'string' ? input : input.url),
     method = init.method || input.method || 'GET';
+  if (url.pathname === '/rest/v1/rpc/api_legacy_rows') {
+    const parameters = JSON.parse(init.body);
+    const response = await fakeFetch(new URL('/rest/v1/' + parameters.p_table, url).href, {
+      method: 'GET',
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
+  if (url.pathname === '/rest/v1/rpc/api_save_candidates') {
+    const parameters = JSON.parse(init.body);
+    const response = await fakeFetch(new URL('/rest/v1/candidates', url).href, {
+      method: 'POST',
+      body: JSON.stringify(parameters.p_rows),
+      fixtureProjection: true,
+    });
+    return json({ rows: await response.json() });
+  }
   if (url.pathname.endsWith('/auth/v1/token'))
     return json({
       access_token: 'fake-token',
@@ -42,6 +70,7 @@ async function fakeFetch(input, init = {}) {
     return mode === 'unavailable'
       ? json({ code: 'XX000', message: 'Connection failed' }, 500)
       : json(mode);
+  if (url.pathname === '/rest/v1/rpc/api_import_page') return json({ batches: [], total: 0 });
   if (url.pathname === '/rest/v1/memberships') return json({ workspace_id: ws, role: 'recruiter' });
   if (url.pathname.startsWith('/rest/v1/')) {
     const table = decodeURIComponent(url.pathname.slice('/rest/v1/'.length));
@@ -110,15 +139,16 @@ test.after(async () => {
   globalThis.fetch = realFetch;
 });
 async function importRow(name, email) {
-  await press('Import candidates');
-  await change(
-    byPlaceholder('name,email,title,skills…'),
-    `name,email,title,skills,status\n${name},${email},Engineer,React,Ready`,
-  );
-  await press('Read pasted CSV');
-  await press('Review import');
-  await settle();
-  await press('Import 1 candidates');
+  // Spreadsheet imports now use the durable worker. Exercise the shared App.save
+  // execution-mode contract through the candidate form instead.
+  await press('Add candidate');
+  await type('Full name', name);
+  await type('Email', email);
+  await type('Location', 'Delhi');
+  await type('Current title', 'Engineer');
+  await change(byPlaceholder('Databricks, Python, SQL, Azure'), 'React');
+  await type('Readiness', 'Ready');
+  await click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add candidate' }));
   await settle(12);
 }
 test('cloud saves skip duplicate browser effects in server mode, retain legacy behavior, and block uncertain mode', async () => {
@@ -133,11 +163,11 @@ test('cloud saves skip duplicate browser effects in server mode, retain legacy b
   assert.equal(writes.filter((w) => w.table === 'candidates').length, 1);
   assert.equal(writes.filter((w) => w.table === 'tasks').length, 0);
   assert.notEqual(writes.find((w) => w.table === 'candidates').rows[0].owner, 'Browser desk');
-  assert.equal(candidates[0].owner, 'Recruiter');
+  assert.equal(candidates[0].owner, 'Server desk');
   mode = false;
   await importRow('Legacy Candidate', 'legacy@example.com');
   assert.equal(writes.filter((w) => w.table === 'tasks').length, 1);
-  assert.equal(candidates[1].owner, 'Recruiter');
+  assert.equal(candidates[1].owner, 'Browser desk');
   failTasks = true;
   const beforeFailure = writes.length;
   await importRow('Partial Candidate', 'partial@example.com');

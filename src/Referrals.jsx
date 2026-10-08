@@ -1,3 +1,4 @@
+import { anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import { Plus, UserPlus, Gift, TrendingUp, ShieldCheck, ArrowRight } from 'lucide-react';
 import {
@@ -326,6 +327,11 @@ export function Referrals({
                     <tr key={r.id}>
                       <td>
                         <strong>{r.refereeName}</strong>
+                        {r.candidateId && (
+                          <small className="anthro-id">
+                            {anthroIdFor(data.candidates.find((c) => c.id === r.candidateId))}
+                          </small>
+                        )}
                         <small className="block muted">
                           {r.refereeEmail ||
                             r.refereePhone ||

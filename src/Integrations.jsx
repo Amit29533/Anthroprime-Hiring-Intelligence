@@ -1,3 +1,4 @@
+import { candidateLabel } from './anthroId.js';
 import React, { useState, useEffect } from 'react';
 import { cloud } from './repository.js';
 import { intelligenceRpc } from './intelligence.js';
@@ -229,7 +230,14 @@ export function ExternalMappingsPanel({ candidates = [], rpc = intelligenceRpc, 
           return (
             <div className="section-toolbar" key={key}>
               <span>
-                {row.source} / {row.externalId} → {row.name} · Version {row.version}
+                {row.source} / {row.externalId} → {row.name} ·{' '}
+                {candidateLabel(
+                  candidates.find((c) => c.id === row.candidateId) || {
+                    anthroId: row.anthroId,
+                    name: 'Anthro-ID',
+                  },
+                )}{' '}
+                · Version {row.version}
                 {row.mergedInto && ' · Merged candidate: reconcile link'}
               </span>
               <label>
@@ -244,7 +252,7 @@ export function ExternalMappingsPanel({ candidates = [], rpc = intelligenceRpc, 
                     .filter((c) => !c.mergedInto && c.id !== row.candidateId)
                     .map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {candidateLabel(c)}
                       </option>
                     ))}
                 </select>

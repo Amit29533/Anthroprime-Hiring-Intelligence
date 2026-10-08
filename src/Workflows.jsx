@@ -1,6 +1,26 @@
-import { CustomFieldsPanel } from './CustomFields.jsx';
+import ControlledWorkflows from './ControlledWorkflows.jsx';
+import EnterpriseOperations from './EnterpriseOperations.jsx';
+import GoogleWorkspace from './GoogleWorkspace.jsx';
+import ProcessingRecovery from './ProcessingRecovery.jsx';
+import DeliverySandbox from './DeliverySandbox.jsx';
+import { DuplicateReview } from './DuplicateReview.jsx';
+import { candidateLabel, anthroIdFor } from './anthroId.js';
+import { LifecycleAnalytics } from './LifecycleAnalytics.jsx';
+import { DocumentReputation } from './DocumentReputation.jsx';
+import { DocumentReviewQueue } from './DocumentReviewQueue.jsx';
+import { DocumentAccessAudit } from './DocumentAccessAudit.jsx';
+import { CandidateExportAudit } from './CandidateExportAudit.jsx';
+import { SubjectRequests } from './SubjectRequests.jsx';
+import { MfaPanel } from './MfaPanel.jsx';
+import { InterviewReminders } from './InterviewReminders.jsx';
+import { FreshnessReviews } from './FreshnessReviews.jsx';
+import { SavedImports } from './SavedImports.jsx';
+import { validateCustomValues } from './customFields.js';
+import { CustomFieldInputs, CustomFieldValues, CustomFieldsPanel } from './CustomFields.jsx';
 import { ExecutionJobsPanel } from './ExecutionJobs.jsx';
+import { OperationsConsole } from './OperationsConsole.jsx';
 import { IntegrationsPanel, ExternalMappingsPanel } from './Integrations.jsx';
+import MachineCredentials from './MachineCredentials.jsx';
 import { IntelligenceSettings, IndexHealthPanel } from './HostedIntelligence.jsx';
 import React, { useState, useMemo } from 'react';
 import {
@@ -64,8 +84,16 @@ import {
 } from './analytics.js';
 import { thresholdFor, DEFAULT_CRITERIA, templatesFor } from './feedback.js';
 import { changesSince } from './sync.js';
-import { exportCandidates, exportSensitiveFile } from './downloads.js';
-import { cloud, getSupabase, getRole, canWriteForRole, resetDemo } from './repository.js';
+import { exportSensitiveFile } from './downloads.js';
+import { exportCandidateData } from './candidateExports.js';
+import {
+  cloud,
+  getSupabase,
+  getRole,
+  getWorkspaceId,
+  canWriteForRole,
+  resetDemo,
+} from './repository.js';
 import { backupBundle, parseBackup, restoreBackupRows } from './backup.js';
 import { TRIGGERS, TRIGGER_VALUES, describeRule, describeActions } from './automation.js';
 import { documentTemplatesFor, MERGE_FIELD_CATALOG } from './templates.js';
@@ -90,10 +118,13 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
     date: today(),
     evidence: '',
     gap: '',
+    custom: {},
   });
   async function submit(e) {
     e.preventDefault();
     setError('');
+    const customError = validateCustomValues(data, 'assessments', form.custom);
+    if (customError) return setError(customError);
     let templateFields = {};
     try {
       if (templateId && !template)
@@ -185,7 +216,7 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
               {!data.candidates.length && <option value="">Add a candidate first</option>}
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -269,6 +300,12 @@ export function AssessmentForm({ data, candidateId, onSave, onClose, busy }) {
             Assessment scores update matching. Recruiters confirm profile readiness separately;
             earlier assessments remain in history.
           </p>
+          <CustomFieldInputs
+            data={data}
+            module="assessments"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
           {error && (
             <p className="form-error wide" role="alert">
               {error}
@@ -297,7 +334,9 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
     due: '',
     owner: '',
     status: 'Planned',
+    custom: {},
   });
+  const [error, setError] = useState('');
   const skillOptions = form.candidateId
     ? data.candidates.find((c) => c.id === form.candidateId)?.skills || []
     : [];
@@ -310,6 +349,9 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          const problem = validateCustomValues(data, 'enrichment', form.custom);
+          setError(problem);
+          if (problem) return;
           if (
             await onSave('enrichment', [
               { ...form, id: uid(), demandId: form.demandId || null, created: today() },
@@ -330,7 +372,7 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
               {!form.candidateId && <option value="">Add a candidate first</option>}
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -395,6 +437,17 @@ export function EnrichmentForm({ data, onSave, onClose, busy, preset }) {
               onChange={(e) => setForm({ ...form, due: e.target.value })}
             />
           </Field>
+          <CustomFieldInputs
+            data={data}
+            module="enrichment"
+            values={form.custom}
+            onChange={(custom) => setForm({ ...form, custom })}
+          />
+          {error && (
+            <p role="alert" className="form-error wide">
+              {error}
+            </p>
+          )}
         </div>
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -470,6 +523,7 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                         </td>
                         <td>
                           {a.title}
+                          <CustomFieldValues data={data} module="assessments" values={a.custom} />
                           {a.templateSnapshot && (
                             <small className="block">
                               {a.templateSnapshot.name} · v{a.templateSnapshot.version} ·{' '}
@@ -503,8 +557,9 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
                   </div>
                   <div>
                     <h3>{a.title}</h3>
+                    <CustomFieldValues data={data} module="enrichment" values={a.custom} />
                     <button className="inline-link" onClick={() => onOpen(c?.id)}>
-                      {c?.name}
+                      {c ? candidateLabel(c) : 'Unknown candidate'}
                     </button>
                     <p>{a.description}</p>
                     <small>
@@ -596,7 +651,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
         skillsDetail: [],
         status: 'Assessing',
         mode: 'Flexible',
-        source: 'Career page',
+        source: a.source || 'Career page',
         summary: a.message
           ? `Applied via the careers page: ${a.message}`
           : 'Applied via the careers page.',
@@ -743,7 +798,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
               <option value="">No candidate</option>
               {data.candidates.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {candidateLabel(c)}
                 </option>
               ))}
             </select>
@@ -784,7 +839,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
                 <div className="task-meta">
                   {c && (
                     <button className="text-link" onClick={() => onOpen(c.id)}>
-                      {c.name}
+                      {candidateLabel(c)}
                     </button>
                   )}
                   {d && <small>{d.title}</small>}
@@ -840,6 +895,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
                     {a.phone ? ` · ${a.phone}` : ''}
                     {a.linkedin ? ` · LinkedIn` : ''}
                     {d ? ` · applied for ${d.title}` : ''}
+                    {a.source ? ` · Source: ${a.source}` : ''}
                   </small>
                   {a.message && <p className="app-msg">{a.message}</p>}
                   <div className="app-flags">
@@ -1074,6 +1130,7 @@ export function Analytics({ data, navigate }) {
         />
       </div>
       <div className="analytics-grid">
+        <LifecycleAnalytics />
         <SkillInventoryPanel
           data={data}
           onOpenCandidate={(id) => navigate('Candidates', { personId: id })}
@@ -1520,11 +1577,31 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
             audit={audit}
           />
         )}
+        <MfaPanel key={`mfa-${getWorkspaceId()}`} />
+        {getRole() === 'admin' && (
+          <OperationsConsole key={`operations-${getWorkspaceId()}`} onHoldChange={onReload} />
+        )}
         {getRole() === 'admin' && <ExecutionJobsPanel />}
+        {getRole() === 'admin' && <InterviewReminders key={`reminders-${getWorkspaceId()}`} />}
+        {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
+        {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
+        {getRole() === 'admin' && <DeliverySandbox />}
+        {getRole() === 'admin' && <ProcessingRecovery />}
+        {getRole() === 'admin' && <GoogleWorkspace />}
+        {getRole() === 'admin' && <ControlledWorkflows />}
+        {getRole() === 'admin' && <EnterpriseOperations />}
+        {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}
         {getRole() === 'admin' && <IndexHealthPanel />}
+        {getRole() === 'admin' && <DocumentReputation documents={data.documents} />}
+        {getRole() === 'admin' && <DocumentReviewQueue onReload={onReload} />}
+        {getRole() === 'admin' && <DocumentAccessAudit />}
+        {getRole() === 'admin' && <CandidateExportAudit />}
+        {getRole() === 'admin' && (
+          <SubjectRequests key={getWorkspaceId()} onHoldChange={onReload} />
+        )}
         {getRole() === 'admin' && (
           <AdminPanel data={data} onSave={onSave} notify={notify} audit={audit} />
         )}
@@ -1544,23 +1621,24 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
               icon={Download}
               disabled={viewer}
               title={viewer ? 'Viewer role cannot export candidate data' : ''}
-              onClick={() => {
-                if (!exportCandidates(data.candidates, notify)) return;
+              onClick={async () => {
+                const exportRows = data.candidates.filter((c) => !c.mergedInto);
+                if (!(await exportCandidateData(exportRows, notify))) return;
                 notify('Candidate CSV exported.');
                 audit &&
                   audit({
                     entityType: 'candidates',
                     entityId: null,
                     action: 'exported',
-                    detail: `${data.candidates.length} candidates`,
+                    detail: `${exportRows.length} candidates`,
                   });
               }}
             >
               Export candidate CSV
             </Button>
             <p className="supporting-text">
-              Includes contact details and compensation. Store the export in an appropriate private
-              location.
+              Includes contact details. Audited candidate CSVs include compensation only for
+              administrators. Store exports in an appropriate private location.
             </p>
             <div className="backup-row">
               <Button
@@ -1582,7 +1660,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
                       entityType: 'workspace',
                       entityId: null,
                       action: 'exported',
-                      detail: 'Full workspace backup (JSON)',
+                      detail: 'Loaded application rows snapshot (JSON); partial cloud coverage',
                     });
                 }}
               >
@@ -1632,9 +1710,12 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
               )}
             </div>
             <p className="supporting-text">
-              The backup is a complete JSON snapshot of every workspace table. Restore merges rows
-              by id through the normal save path — deletions are never applied. Encrypted
-              server-side backups with tested restore (RPO/RTO) remain an operations responsibility.
+              This portability snapshot contains application rows currently loaded for your account.
+              Cloud coverage may be partial. It excludes private governance and operations records,
+              Auth, original file bytes, protected columns and database configuration. Restore
+              merges rows by id through the normal save path — deletions are never applied.
+              Encrypted server-side backups with tested restore (RPO/RTO) remain an operations
+              responsibility.
             </p>
             <div className="since-export">
               <Field label="Incremental change export (API groundwork)">
@@ -1804,6 +1885,12 @@ function DataTools({ data, onSave, onReload, notify, audit }) {
       setBusy(false);
     }
   }
+  if (cloud)
+    return (
+      <section className="panel">
+        <DuplicateReview onUpdated={() => onReload?.()} />
+      </section>
+    );
   return (
     <section className="panel">
       <PanelHeading
@@ -1841,8 +1928,8 @@ function DataTools({ data, onSave, onReload, notify, audit }) {
         <div className="merge-review">
           <p className="supporting-text">
             Surviving record: <strong>{preview.name || pair.a.name}</strong> (
-            {pair.a.name || pair.b.name} keeps its id). {pair.b.name} is flagged merged and hidden.
-            Choose a value per field:
+            {pair.a.name || pair.b.name} keeps {anthroIdFor(pair.a)}). {pair.b.name} is flagged
+            merged and hidden; its former Anthro-ID remains searchable. Choose a value per field:
           </p>
           <div className="table-scroll merge-table">
             <table>
@@ -2075,66 +2162,84 @@ function AdminPanel({ data, onSave, notify, audit }) {
       >
         Save stage labels
       </Button>
-      <h3 className="history-heading">Retention policy</h3>
-      <div className="retention-row">
-        <Field label="Review profiles unverified for (months)">
-          <input
-            type="number"
-            min="1"
-            max="120"
-            value={months}
-            onChange={(e) => setMonths(Number(e.target.value))}
-          />
-        </Field>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() => saveSettings({ retentionMonths: months })}
-        >
-          Save policy
-        </Button>
-        <span className="retention-count">
-          {due.length} profile{due.length === 1 ? '' : 's'} due for review
-        </span>
-      </div>
-      {!!due.length && (
-        <div className="retention-list">
-          {due.slice(0, 10).map((c) => (
-            <div key={c.id} className="quality-row">
-              <span>
-                <strong>{c.name}</strong>
-                <small className="block">Last verified {c.verified}</small>
-              </span>
-              <Button
-                variant="ghost"
-                className="small"
-                disabled={busy}
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Anonymize ${c.name}? Identity and contact details are erased; skills and history remain for aggregate reporting.`,
-                    )
-                  )
-                    return;
-                  setBusy(true);
-                  if (await onSave('candidates', [anonymizeCandidate(c)])) {
-                    audit &&
-                      audit({
-                        entityType: 'candidate',
-                        entityId: c.id,
-                        action: 'anonymized',
-                        detail: c.name,
-                      });
-                    notify('Profile anonymized.');
-                  }
-                  setBusy(false);
-                }}
-              >
-                Anonymize
-              </Button>
+      {!cloud && (
+        <>
+          <h3 className="history-heading">Retention policy</h3>
+          <div className="retention-row">
+            <Field label="Review profiles unverified for (months)">
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={months}
+                onChange={(e) => setMonths(Number(e.target.value))}
+              />
+            </Field>
+            <Button
+              className="small"
+              disabled={busy}
+              onClick={() => saveSettings({ retentionMonths: months })}
+            >
+              Save policy
+            </Button>
+            <span className="retention-count">
+              {due.length} profile{due.length === 1 ? '' : 's'} due for review
+            </span>
+          </div>
+          {cloud && (
+            <p className="supporting-text">
+              Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked
+              files, history or verified privacy fulfillment. Use subject-request and erasure review
+              to record scope and decisions. Destructive execution remains pending.
+            </p>
+          )}
+          {!!due.length && (
+            <div className="retention-list">
+              {due.slice(0, 10).map((c) => (
+                <div key={c.id} className="quality-row">
+                  <span>
+                    <strong>{c.name}</strong>
+                    <small className="anthro-id">{anthroIdFor(c)}</small>
+                    <small className="block">Last verified {c.verified}</small>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    className="small"
+                    disabled={busy || cloud}
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
+                        )
+                      )
+                        return;
+                      setBusy(true);
+                      if (await onSave('candidates', [anonymizeCandidate(c)])) {
+                        audit &&
+                          audit({
+                            entityType: 'candidate',
+                            entityId: c.id,
+                            action: 'anonymized',
+                            detail: c.name,
+                          });
+                        notify('Profile anonymized.');
+                      }
+                      setBusy(false);
+                    }}
+                  >
+                    Anonymize
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
+      )}
+      {cloud && (
+        <p className="supporting-text">
+          Configure cloud retention review in Operations and governance above. Selected jobs use its
+          versioned policy reference; profile and file deletion remain disabled.
+        </p>
       )}
       <h3 className="history-heading">Interview feedback bar</h3>
       <div className="retention-row">

@@ -1,3 +1,4 @@
+import { candidateLabel } from './anthroId.js';
 import React, { useState, useEffect } from 'react';
 import { cloud, canWriteForRole, getRole } from './repository.js';
 import { intelligenceRpc, intelligenceRequest, localVector } from './intelligence.js';
@@ -158,7 +159,7 @@ export function HostedIntelligence({
               matches.map((row) => (
                 <div className="section-toolbar" key={row.id}>
                   <Button variant="secondary" onClick={() => onOpen(row.id)}>
-                    {row.name}
+                    {candidateLabel(row)}
                   </Button>
                   <span>
                     {row.title} · {row.location} · Similarity {Math.round(row.similarity * 100)}%
@@ -186,7 +187,7 @@ export function HostedIntelligence({
                   .filter((c) => !c.mergedInto)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {candidateLabel(c)}
                     </option>
                   ))}
               </select>
@@ -204,25 +205,15 @@ export function HostedIntelligence({
               >
                 Index for AI search
               </Button>
-              <Button
-                disabled={busy || !candidate}
-                onClick={() =>
-                  run(async () => {
-                    await request('draft', candidate);
-                    await loadDrafts();
-                  })
-                }
-              >
-                Generate review draft
-              </Button>
               <Button variant="secondary" disabled={busy} onClick={() => run(loadDrafts)}>
                 Load drafts
               </Button>
             </div>
             <p>
-              AI receives title, skills, experience, location and work mode. Contact details, CV
-              files, employer names and notes are excluded. Review facts before approving. Approved
-              drafts stay separate from candidate profiles.
+              Create new cited highlights in the Stage 4 controlled workflows panel. Legacy AI
+              indexing receives title, skills, experience, location and work mode. Contact details,
+              CV files, employer names and notes are excluded. Review facts before approving.
+              Approved drafts stay separate from candidate profiles.
             </p>
             {drafts.map((draft) => (
               <div key={draft.id} className="panel settings-body">
