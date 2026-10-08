@@ -59,13 +59,44 @@ export function extractCvEvidence(text) {
 }
 
 export function evidenceReady(value) {
-  if (value?.items === undefined) return !value?.records;
+  if (value?.items === undefined) return value?.records === undefined;
   return (
     Array.isArray(value.items) &&
+    value.items.every(readableCvExcerpt) &&
     value.items.every((item) => item?.reviewed === true) &&
-    (!value.records ||
+    (value.records === undefined ||
       (validateCvRecords(value) === '' &&
         value.records.every((record) => record.reviewed === true)))
+  );
+}
+
+export function readableCvExcerpt(item) {
+  return Boolean(
+    item &&
+      CV_SECTIONS.includes(item.section) &&
+      ['label', 'period', 'evidence'].every((field) => typeof item[field] === 'string') &&
+      Number.isInteger(item.sourceLine) &&
+      item.sourceLine > 0,
+  );
+}
+
+// Keep date errors editable, but never render fields from a malformed imported grouping.
+export function readableCvRecords(value) {
+  return (
+    Array.isArray(value?.records) &&
+    value.records.length <= 16 &&
+    value.records.every(
+      (record) =>
+        record &&
+        CV_SECTIONS.includes(record.section) &&
+        ['label', 'organization', 'start', 'end'].every(
+          (field) => typeof record[field] === 'string',
+        ) &&
+        typeof record.ongoing === 'boolean' &&
+        typeof record.reviewed === 'boolean' &&
+        Array.isArray(record.sourceLines) &&
+        record.sourceLines.every(Number.isInteger),
+    )
   );
 }
 
@@ -153,6 +184,7 @@ export function validateCvRecords(value) {
   return '';
 }
 export function duplicateCvRecords(value) {
+  if (!readableCvRecords(value)) return [];
   const seen = new Set(),
     duplicates = [];
   for (const [index, r] of (value.records || []).entries()) {

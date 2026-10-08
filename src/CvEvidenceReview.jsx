@@ -6,15 +6,25 @@ import {
   mergeCvRecords,
   validateCvRecords,
   duplicateCvRecords,
+  readableCvExcerpt,
+  readableCvRecords,
 } from './cvEvidence.js';
 
 export function CvEvidenceReview({ value, onChange, disabled = false, label = 'CV' }) {
   if (!Array.isArray(value?.items) || !value.items.length) return null;
+  if (!value.items.every(readableCvExcerpt))
+    return (
+      <p role="alert">
+        CV excerpts have an invalid structure. Re-extract the original CV before review.
+      </p>
+    );
   const editable = Boolean(onChange);
+  const hasRecords = value.records !== undefined;
+  const recordsReadable = readableCvRecords(value);
   function update(index, patch) {
     onChange({
       ...value,
-      ...(patch.reviewed === false && value.records
+      ...(patch.reviewed === false && recordsReadable
         ? { records: value.records.map((record) => ({ ...record, reviewed: false })) }
         : {}),
       items: value.items.map((item, i) => (i === index ? { ...item, ...patch } : item)),
@@ -32,12 +42,29 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
           Only bounded excerpts were captured. Check the original for omitted lines.
         </p>
       )}
-      {editable && !value.records && (
+      {editable && !hasRecords && (
         <button type="button" disabled={disabled} onClick={() => onChange(groupCvEvidence(value))}>
           Build cited CV records
         </button>
       )}
-      {value.records && (
+      {hasRecords && !recordsReadable && (
+        <section aria-label="Invalid CV records">
+          <p role="alert">
+            CV records have an invalid structure. Rebuild the grouping from the original excerpts
+            before review.
+          </p>
+          {editable && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(groupCvEvidence(value))}
+            >
+              Rebuild cited CV records
+            </button>
+          )}
+        </section>
+      )}
+      {recordsReadable && (
         <section aria-label="Cited CV records">
           <p>
             Merge related lines, then enter only dates stated in the original. Partial dates are

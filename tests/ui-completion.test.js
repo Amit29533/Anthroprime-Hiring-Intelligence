@@ -11,7 +11,7 @@ import {
   settle,
   makeSeed,
 } from './ui-harness.js';
-import { extractCvEvidence, evidenceReady } from '../src/cvEvidence.js';
+import { extractCvEvidence, evidenceReady, groupCvEvidence } from '../src/cvEvidence.js';
 let Workbench, Enterprise, Cv, Assessment, Enrichment, Interview, Placement;
 test.before(async () => {
   Workbench = (await load('/src/CompletionWorkbench.jsx')).default;
@@ -35,6 +35,59 @@ const result = {
   notice: 'Recorded events only',
 };
 const rpc = async (name, args) => (args.p_action === 'history' ? result : context);
+
+test('malformed imported CV groupings can be rebuilt without losing excerpts or approving claims', async () => {
+  const original = extractCvEvidence('Experience\nEngineer 2020 – Present');
+  for (const records of [
+    false,
+    null,
+    0,
+    { bad: true },
+    [null],
+    [{ label: 42 }],
+    [{ ...groupCvEvidence(original).records[0], sourceLines: null }],
+  ]) {
+    let value;
+    function Host() {
+      const [state, setState] = React.useState({ ...original, records });
+      value = state;
+      return React.createElement(Cv, { value: state, onChange: setState });
+    }
+    await mount(Host);
+    assert.equal(evidenceReady(value), false);
+    assert.match(screen.getByRole('alert').textContent, /invalid structure/);
+    fireEvent.click(screen.getByText('Rebuild cited CV records'));
+    assert.deepEqual(value.items, original.items);
+    assert.deepEqual(value.records[0].sourceLines, [2]);
+    assert.equal(evidenceReady(value), false);
+    assert.equal(screen.queryByRole('alert'), null);
+    cleanup();
+  }
+  await mount(Cv, { value: { ...original, records: [null] } });
+  assert.ok(screen.getByRole('alert'));
+  assert.equal(screen.queryByText('Rebuild cited CV records'), null);
+});
+
+test('invalid dates remain editable while malformed excerpts block review safely', async () => {
+  const original = groupCvEvidence(extractCvEvidence('Experience\nEngineer 2020 – Present'));
+  function Host() {
+    const [value, onChange] = React.useState({
+      ...original,
+      records: [{ ...original.records[0], start: '2026-02-30' }],
+    });
+    return React.createElement(Cv, { value, onChange });
+  }
+  await mount(Host);
+  assert.ok(screen.getByRole('alert'));
+  assert.equal(screen.getByLabelText('CV record reviewed 1').disabled, true);
+  fireEvent.change(screen.getByLabelText('CV record start 1'), { target: { value: '2020' } });
+  assert.equal(screen.queryByRole('alert'), null);
+  assert.equal(screen.getByLabelText('CV record reviewed 1').disabled, false);
+  cleanup();
+  await mount(Cv, { value: { items: [null] } });
+  assert.match(screen.getByRole('alert').textContent, /Re-extract/);
+  assert.equal(evidenceReady({ items: [{ reviewed: true }] }), false);
+});
 
 test('completion controls respect local, external, viewer and administrator scope', async () => {
   for (const props of [
