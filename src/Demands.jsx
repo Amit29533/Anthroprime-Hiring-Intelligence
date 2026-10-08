@@ -1,3 +1,4 @@
+import FoundationWorkbench from './FoundationWorkbench.jsx';
 import { DemandJourney } from './DemandJourney.jsx';
 import { cloud } from './repository.js';
 import { candidateLabel, anthroIdFor, candidateIdentityText } from './anthroId.js';
@@ -594,6 +595,7 @@ export function DemandDetail({
   onBack,
   onEdit,
   onOpenCandidate,
+  onOpenDemand,
   onShortlist,
   onPipeline,
   onEnrich,
@@ -659,6 +661,19 @@ export function DemandDetail({
         busy={busy}
       />
       {cloud && <DemandJourney demand={d} onOpenCandidate={onOpenCandidate} />}
+      {cloud && (
+        <details>
+          <summary>Bounded demand discovery</summary>
+          <FoundationWorkbench
+            key={d.id}
+            initialTab="discovery"
+            initialDemandId={d.id}
+            onOpen={onOpenCandidate}
+            onOpenClient={onOpenClient}
+            onOpenDemand={onOpenDemand}
+          />
+        </details>
+      )}
       {cloud && (
         <p className="supporting-text">
           The fit scores below describe general profile matching. Use the demand journey above for

@@ -15,7 +15,11 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   );
   const path = new URL('../supabase/migrations/', import.meta.url);
   for (const file of (await readdir(path)).filter((n) => /^\d+.*\.sql$/.test(n)).sort())
-    if (file !== '039_operations.sql' && !file.endsWith('_stage5_operations_governance.sql'))
+    if (
+      file !== '039_operations.sql' &&
+      !file.endsWith('_stage5_operations_governance.sql') &&
+      !file.endsWith('_foundation_milestone.sql')
+    )
       await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(
     `insert into auth.users values('${id(1)}','a@e.com'),('${id(2)}','b@e.com'),('${id(3)}','c@e.com'),('${id(4)}','d@e.com');insert into workspaces(id,name) values('${id(11)}','Team'),('${id(12)}','Other');insert into memberships values('${id(1)}','${id(11)}','admin'),('${id(2)}','${id(11)}','recruiter'),('${id(3)}','${id(11)}','viewer'),('${id(4)}','${id(12)}','admin');`,
@@ -51,6 +55,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(new URL('20261007190524_stage5_operations_governance.sql', path), 'utf8'),
   );
+  await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
   await act(1);
   assert.equal((await rpc('api_index_health')).pending, 2);
   await act(0);
@@ -146,6 +151,7 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(
     await readFile(new URL('20261007190524_stage5_operations_governance.sql', path), 'utf8'),
   );
+  await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
   await act(0);
   assert.equal(
     await rpc('worker_finish_index', [

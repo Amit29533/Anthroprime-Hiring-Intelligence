@@ -261,7 +261,7 @@ test('client review isolates clients and demands, projects approved versions and
     ).count > 0,
   );
   const inventory = await rpc('ecod_private.erasure_inventory', [id(11), id(101)]);
-  assert.equal(inventory.counts.length, 60);
+  assert.equal(inventory.counts.length, 63);
   for (const category of ['duplicateDecisions', 'evaluationAssignments', 'assignmentReceipts'])
     assert.ok(inventory.counts.some((row) => row.category === category));
   assert.ok(inventory.counts.find((c) => c.category === 'clientPacks').count >= 3);

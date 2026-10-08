@@ -4,7 +4,7 @@ Started 8 October 2026, baseline `ad3b7eb`. This is the next build foundation af
 
 Working interpretation: independent features are capabilities that use the existing React/Vite, Netlify, Supabase and configured private storage without introducing another service. The modules share identity and security infrastructure. Making them separate products would require an additional tenancy, packaging and provisioning design; that is not implied by this foundation.
 
-Status: architecture and acceptance contracts prepared. The new capabilities below are **planned**, not shipped. Existing workflows remain the baseline; no deployment, migration, provider activation or GitHub push accompanies this document.
+Status: all five tracks are locally implemented in the [Foundation Milestone](FOUNDATION_MILESTONE.md). The contracts below are retained as the original plan; the milestone records exact delivered scope, limits, tests and hosted activation gates. No GitHub push or hosted deployment accompanies local completion.
 
 ## Shared boundaries
 

@@ -1,3 +1,4 @@
+import FoundationWorkbench from './FoundationWorkbench.jsx';
 import React, { useMemo, useState } from 'react';
 import { Plus, Save, Trash2, Download, BarChart3, Info } from 'lucide-react';
 import { PageHeader, PanelHeading, Button, Field, Badge } from './ui.jsx';
@@ -28,7 +29,18 @@ const show = (value) => (value === null ? 'No data' : String(value));
  * Custom report builder (Zoho K2). Definitions are saved; results never are, so a report always
  * reflects the repository as it is now. Everything renders through the reader's own permissions.
  */
-export function Reports({ data, onSave, onDelete, notify, audit, busy, role = getRole() }) {
+export function Reports({
+  onOpen,
+  onOpenClient,
+  onOpenDemand,
+  data,
+  onSave,
+  onDelete,
+  notify,
+  audit,
+  busy,
+  role = getRole(),
+}) {
   const isAdmin = role === 'admin';
   const canEdit = canWriteForRole(role);
   const saved = useMemo(
@@ -115,6 +127,17 @@ export function Reports({ data, onSave, onDelete, notify, audit, busy, role = ge
         </Button>
       </PageHeader>
 
+      {cloud && (
+        <details>
+          <summary>Bounded foundation analytics</summary>
+          <FoundationWorkbench
+            initialTab="report"
+            onOpen={onOpen}
+            onOpenClient={onOpenClient}
+            onOpenDemand={onOpenDemand}
+          />
+        </details>
+      )}
       {cloud && <DemandReadinessReport demands={data.demands || []} role={role} />}
 
       <div className="report-layout">

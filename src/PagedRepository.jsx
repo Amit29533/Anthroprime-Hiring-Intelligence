@@ -121,6 +121,7 @@ export function PagedOverview({
   onFull,
   onOpenWorklist,
   onOpenClient,
+  onOpenDemand,
   onSettings,
 }) {
   const [stats, setStats] = useState(null),
@@ -187,6 +188,7 @@ export function PagedOverview({
         <IndependentWorkHub
           onOpen={onOpenWorklist}
           onOpenClient={onOpenClient}
+          onOpenDemand={onOpenDemand}
           onSettings={onSettings}
         />
       )}

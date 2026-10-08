@@ -1321,3 +1321,15 @@ dialog.drawer {
     border: 1px solid CanvasText;
   }
 }
+
+/* Foundation tools share existing workspace styling and remain usable on small screens. */
+.foundation-workbench { padding: 20px; min-width: 0; }
+.foundation-workbench > h2, .foundation-workbench > p { margin-bottom: 12px; }
+.foundation-workbench fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 12px 0; min-width: 0; }
+.foundation-workbench label { display: grid; gap: 6px; margin: 8px 0; min-width: 0; }
+.foundation-workbench input:not([type="checkbox"]), .foundation-workbench select, .foundation-workbench textarea { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: inherit; color: inherit; }
+.foundation-workbench button { padding: 8px 12px; margin: 4px; border: 1px solid var(--border); border-radius: 6px; background: inherit; color: inherit; }
+.foundation-workbench button[aria-pressed="true"] { border-color: var(--teal); color: var(--teal); font-weight: 600; }
+.foundation-workbench .section-toolbar { display: flex; flex-wrap: wrap; }
+.foundation-workbench article, .foundation-workbench p { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .foundation-workbench { padding: 12px; } .foundation-workbench .form-grid { grid-template-columns: 1fr; } .foundation-workbench .pagination { flex-wrap: wrap; } }

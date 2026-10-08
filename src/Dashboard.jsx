@@ -99,6 +99,7 @@ export default function Dashboard({
           <IndependentWorkHub
             onOpen={openCandidate}
             onOpenClient={openClient}
+            onOpenDemand={openDemand}
             onSettings={() => navigate('Settings')}
           />
         </Suspense>

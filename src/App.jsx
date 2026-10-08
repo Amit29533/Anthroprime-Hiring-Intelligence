@@ -801,6 +801,7 @@ export default function App() {
           onFull={fullWorkspace}
           onOpenWorklist={openPerson}
           onOpenClient={openClient}
+          onOpenDemand={openDemand}
           onSettings={() => navigate('Settings')}
         />
       );
@@ -828,6 +829,8 @@ export default function App() {
         setQuery={setQuery}
         initialFilter={candidateFilter}
         onOpen={openPerson}
+        onOpenClient={openClient}
+        onOpenDemand={openDemand}
         onAdd={addCandidate}
         onImport={importCandidates}
         notify={setToast}
@@ -845,6 +848,7 @@ export default function App() {
         onBack={() => setDemandId(null)}
         onEdit={(d) => setModal({ type: 'demand', demand: d })}
         onOpenCandidate={openPerson}
+        onOpenDemand={openDemand}
         onShortlist={shortlist}
         onPipeline={(id) => {
           setPipelineDemand(id);
@@ -962,6 +966,9 @@ export default function App() {
   else if (page === 'Reports')
     content = (
       <Reports
+        onOpen={openPerson}
+        onOpenClient={openClient}
+        onOpenDemand={openDemand}
         data={data}
         onSave={save}
         onDelete={remove}

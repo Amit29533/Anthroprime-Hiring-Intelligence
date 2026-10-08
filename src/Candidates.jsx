@@ -1,5 +1,6 @@
 import { AttachmentProcessing } from './AttachmentProcessing.jsx';
 import { CandidateContacts } from './CandidateContacts.jsx';
+import FoundationWorkbench from './FoundationWorkbench.jsx';
 import { CandidateFacts } from './CandidateFacts.jsx';
 import { CandidateCommunications } from './CandidateCommunications.jsx';
 import { FeedbackReview } from './FeedbackLoops.jsx';
@@ -103,6 +104,8 @@ export function Candidates({
   setQuery,
   initialFilter,
   onOpen,
+  onOpenClient,
+  onOpenDemand,
   onAdd,
   onImport,
   notify,
@@ -257,6 +260,16 @@ export function Candidates({
           </>
         )}
       </PageHeader>
+      {cloud && (
+        <details>
+          <summary>Advanced repository tools</summary>
+          <FoundationWorkbench
+            onOpen={onOpen}
+            onOpenClient={onOpenClient}
+            onOpenDemand={onOpenDemand}
+          />
+        </details>
+      )}
       <HostedIntelligence candidates={data.candidates} onOpen={onOpen} />
       <div className="repository-tabs">
         {['All candidates', 'Ready', 'Near-ready', 'Assessing', 'Stale'].map((s) => (
