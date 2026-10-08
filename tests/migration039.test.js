@@ -19,7 +19,8 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
       file !== '039_operations.sql' &&
       !file.endsWith('_stage5_operations_governance.sql') &&
       !file.endsWith('_foundation_milestone.sql') &&
-      !file.endsWith('_dependent_stage1_delivery.sql')
+      !file.endsWith('_dependent_stage1_delivery.sql') &&
+      !file.endsWith('_dependent_stage2_processing_recovery.sql')
     )
       await db.exec(await readFile(new URL(file, path), 'utf8'));
   await db.exec(
@@ -59,6 +60,12 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
   await db.exec(
     await readFile(new URL('20261008050701_dependent_stage1_delivery.sql', path), 'utf8'),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
   );
   await act(1);
   assert.equal((await rpc('api_index_health')).pending, 2);
@@ -158,6 +165,12 @@ test('index maintenance recovers leases, rejects stale completion and isolates a
   await db.exec(await readFile(new URL('20261008035834_foundation_milestone.sql', path), 'utf8'));
   await db.exec(
     await readFile(new URL('20261008050701_dependent_stage1_delivery.sql', path), 'utf8'),
+  );
+  await db.exec(
+    await readFile(
+      new URL('20261008055723_dependent_stage2_processing_recovery.sql', path),
+      'utf8',
+    ),
   );
   await act(0);
   assert.equal(

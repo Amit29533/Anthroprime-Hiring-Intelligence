@@ -1,5 +1,7 @@
 # Phase C2/C3: private attachment processing and OCR
 
+Operational continuation: [Stage 2 Dependent Milestone](STAGE_2_DEPENDENT_MILESTONE.md) adds generation-bound native health, strict claim/completion gates and encrypted recovery tooling. Apply the complete chain through Stage 2; retain this guide for scanner/OCR behavior and original deployment prerequisites.
+
 Implemented locally on 6 October 2026, following [Phase C1](PHASE_C_PRIVATE_SCANNING.md). These slices have not been deployed. Docker and a local Supabase server are unavailable on this computer; real ClamAV, Poppler/Tesseract, hosted database advisors and representative CV acceptance remain required.
 
 ## C2: the existing cloud attachment routes

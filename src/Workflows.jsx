@@ -1,3 +1,4 @@
+import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import { DuplicateReview } from './DuplicateReview.jsx';
 import { candidateLabel, anthroIdFor } from './anthroId.js';
@@ -1555,6 +1556,7 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
         {!viewer && <SavedImports onReload={onReload} notify={notify} />}
         {getRole() === 'admin' && <IntegrationsPanel />}
         {getRole() === 'admin' && <DeliverySandbox />}
+        {getRole() === 'admin' && <ProcessingRecovery />}
         {getRole() === 'admin' && <MachineCredentials />}
         {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
         {getRole() === 'admin' && <IntelligenceSettings />}

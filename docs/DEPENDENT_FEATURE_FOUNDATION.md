@@ -1,6 +1,6 @@
 # Dependent feature foundations
 
-Stage 1 is now locally sandbox-complete: [Stage 1 Dependent Milestone](STAGE_1_DEPENDENT_MILESTONE.md). The catalog, leased fictional outbox, verified callback intake and recovery workflows are implemented. Stages 2–5 and live provider activation remain pending. The original plan below records the build contract; it is superseded for Stage 1 implementation status by the milestone checklist.
+Stage 1 is now locally sandbox-complete: [Stage 1 Dependent Milestone](STAGE_1_DEPENDENT_MILESTONE.md). The catalog, leased fictional outbox, verified callback intake and recovery workflows are implemented. Stage 2 is now locally implemented: [Stage 2 Dependent Milestone](STAGE_2_DEPENDENT_MILESTONE.md), with native/private-host and off-site acceptance pending. Stages 3–5 and live provider activation remain pending. The original plan below records the build contract; it is superseded for Stage 1 implementation status by the milestone checklist.
 
 Started 8 October 2026. Baseline: local Foundation Milestone `f18ccbe` on `codex/technical-improvements`. User preference: **provider-neutral** email/calendar contracts; no provider has been chosen or connected.
 

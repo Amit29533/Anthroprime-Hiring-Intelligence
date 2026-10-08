@@ -2,6 +2,11 @@ import unittest
 import importlib.util
 from pathlib import Path
 import tempfile
+import threading
+import http.client
+import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 spec=importlib.util.spec_from_file_location('private_ocr',Path(__file__).resolve().parents[1]/'scanner/ocr/server.py')
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -36,5 +41,31 @@ class OcrBounds(unittest.TestCase):
             if args[0]=='pdftoppm':(cwd/'page-1.png').write_bytes(b'fake');return ''
             return 'x'*50000
         self.assertEqual(len(module.process_pdf(b'%PDF-1.4',run=large)),40000)
+
+class OcrHealth(unittest.TestCase):
+    def test_authenticated_health_and_native_smoke_boundaries(self):
+        class Handler(module.Handler):
+            token='t'*32
+            engine='Fictional native fixture'
+        server=module.HTTPServer(('127.0.0.1',0),Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        def request(method,path,headers=None,body=None):
+            conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=3)
+            conn.request(method,path,body=body,headers=headers or {})
+            response=conn.getresponse();result=(response.status,response.read());conn.close();return result
+        try:
+            self.assertEqual(request('GET','/health')[0],403)
+            headers={'Authorization':'Bearer '+Handler.token}
+            self.assertEqual(request('GET','/health',headers)[0],200)
+            self.assertEqual(request('POST','/smoke')[0],403)
+            with patch.dict(sys.modules,{'smoke':SimpleNamespace(run_smoke=lambda:True)}):
+                self.assertEqual(request('POST','/smoke',headers)[0],200)
+                self.assertEqual(request('POST','/smoke',headers,b'x')[0],413)
+            def fail():raise ValueError('Secret internal path')
+            with patch.dict(sys.modules,{'smoke':SimpleNamespace(run_smoke=fail)}):
+                status,body=request('POST','/smoke',headers)
+                self.assertEqual(status,422);self.assertNotIn(b'Secret',body)
+        finally:
+            server.shutdown();server.server_close();thread.join(timeout=3)
 
 if __name__=='__main__':unittest.main()

@@ -12,7 +12,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test --test-concurrency=4 --test-force-exit tests/*.test.js",
     "test:unit": "node --test --test-concurrency=4 --test-force-exit tests/*.test.js",
-    "lint": "eslint src tests netlify/functions scanner",
+    "lint": "eslint src tests netlify/functions scanner scripts/recovery",
     "format": "prettier --write \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"scanner/**/*.{js,mjs}\" \"*.{js,mjs}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx}\" \"tests/**/*.js\" \"netlify/functions/**/*.js\" \"scripts/**/*.mjs\" \"scanner/**/*.{js,mjs}\" \"*.{js,mjs}\""
   },

@@ -1,5 +1,7 @@
 # Phase C1: private antivirus gate for durable CV imports
 
+Operational continuation: [Stage 2 Dependent Milestone](STAGE_2_DEPENDENT_MILESTONE.md) adds generation-bound native health, strict claim/completion gates and encrypted recovery tooling. Apply the complete chain through Stage 2; retain this guide for scanner/OCR behavior and original deployment prerequisites.
+
 For the current deployment, follow [C2/C3 attachment processing and private OCR](PHASE_C_ATTACHMENTS_AND_OCR.md). It extends this slice, increases worker memory to 512 MiB and requires the C2/C3 migrations after C1. The instructions below describe the original C1 slice.
 
 Implemented locally on 6 October 2026. Covers saved CV import originals and their resulting R2 documents. This has not been deployed or tested against a live ClamAV instance. Keep `settings.custom.durableCvImports` off in production until hosted acceptance passes.

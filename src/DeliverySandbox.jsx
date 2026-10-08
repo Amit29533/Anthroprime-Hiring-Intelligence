@@ -17,9 +17,13 @@ export const dependencyCatalog = Object.freeze([
   [
     'processing',
     'Private scanning / OCR',
-    'Existing worker deployment and operational acceptance; Stage 2',
+    'Private native health and acceptance; use Stage 2 controls',
   ],
-  ['recovery', 'Off-site recovery', 'Backup destination, key custody and restore drill; Stage 2'],
+  [
+    'recovery',
+    'Off-site recovery',
+    'Encrypted backup, key custody and isolated drill; use Stage 2 controls',
+  ],
   [
     'intelligence',
     'AI intelligence',
@@ -301,6 +305,7 @@ function Console({ role, candidateId, rpc = repositoryRead, diagnose = diagnoseD
                         </p>
                       )}
                       <button
+                        disabled={['processing', 'recovery'].includes(id)}
                         onClick={() => {
                           setKind(id);
                           setBody(

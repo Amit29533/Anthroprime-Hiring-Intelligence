@@ -1,3 +1,4 @@
+import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { lazy, Suspense } from 'react';
 const FoundationWorkbench = lazy(() => import('./FoundationWorkbench.jsx'));
@@ -41,6 +42,12 @@ export default function IndependentWorkHub({
         <summary>Dependent delivery sandbox</summary>
         <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
       </details>
+      {role === 'admin' && (
+        <details>
+          <summary>Private processing and recovery</summary>
+          <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
+        </details>
+      )}
       <CandidateCommunications rpc={rpc} role={role} />
       <FeedbackQueue rpc={rpc} onOpen={onOpen} onOpenClient={onOpenClient} />
       <RecruiterWorklist rpc={rpc} editable={canWriteForRole(role)} onOpen={onOpen} />

@@ -79,8 +79,25 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def do_GET(self):
+        self.connection.settimeout(10)
+        if self.path != '/health' or not self.token or not hmac.compare_digest(self.headers.get('Authorization', ''), 'Bearer ' + self.token):
+            self.reply(403, {'error': 'OCR access denied'})
+            return
+        self.reply(200, {'engine': self.engine, 'ready': bool(self.engine)})
+
     def do_POST(self):
         self.connection.settimeout(10)
+        if self.path == '/smoke' and self.token and hmac.compare_digest(self.headers.get('Authorization', ''), 'Bearer ' + self.token):
+            if self.headers.get('Transfer-Encoding') or self.headers.get('Content-Length', '0') != '0':
+                self.reply(413, {'error': 'Empty smoke request required'})
+                return
+            try:
+                from smoke import run_smoke
+                self.reply(200, {'fixture': run_smoke(), 'engine': self.engine})
+            except Exception:
+                self.reply(422, {'error': 'Native smoke acceptance incomplete'})
+            return
         if self.path != '/extract' or not self.token or not hmac.compare_digest(self.headers.get('Authorization', ''), 'Bearer ' + self.token):
             self.reply(403, {'error': 'OCR access denied'})
             return

@@ -1,9 +1,11 @@
+import { reportProcessingHealth } from './health.js';
 import { setTimeout } from 'node:timers/promises';
 import { createOcrWorker } from './ocr.js';
 import { createScanWorker } from './worker.js';
 const run = createScanWorker();
 const extract = createOcrWorker();
 let stopping = false;
+let nextHealth = 0;
 process.on('SIGTERM', () => {
   stopping = true;
 });
@@ -13,6 +15,14 @@ process.on('SIGINT', () => {
 while (!stopping) {
   let processed = false;
   try {
+    if (process.env.PROCESSING_WORKSPACES && Date.now() >= nextHealth) {
+      nextHealth = Date.now() + 300000;
+      try {
+        await reportProcessingHealth();
+      } catch {
+        console.error('Private processing health evidence unavailable.');
+      }
+    }
     const result = await run();
     processed = result.processed > 0;
     const extracted = await extract();
