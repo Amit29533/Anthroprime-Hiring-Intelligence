@@ -1,6 +1,21 @@
 import { scanSkills } from './taxonomy.js';
 import { extractCvEvidence } from './cvEvidence.js';
 
+// Keep phone candidates on one line and exclude date ranges and calendar dates.
+export function cvPhone(text) {
+  for (const line of String(text || '').split(/\r?\n/)) {
+    for (const match of line.matchAll(/\+?\(?\d[\d \t().-]{5,}\d/g)) {
+      const value = match[0].trim();
+      const digits = value.replace(/\D/g, '');
+      if (digits.length < 7 || digits.length > 15) continue;
+      if (/^(?:19|20)\d{2}\s*-\s*(?:19|20)\d{2}$/.test(value)) continue;
+      if (/^(?:19|20)\d{2}-\d{1,2}-\d{1,2}$/.test(value)) continue;
+      return value;
+    }
+  }
+  return '';
+}
+
 // Blueprint §11 — heuristic parse into a reviewable draft. Never auto-saved.
 export function parseCVText(text) {
   const clean = String(text || '').replace(/\r/g, '');
@@ -20,7 +35,7 @@ export function parseCVText(text) {
     .map((l) => l.trim())
     .filter(Boolean);
   const email = (clean.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [''])[0];
-  const phone = (clean.match(/\+?\d[\d\s().-]{7,}\d/) || [''])[0].trim();
+  const phone = cvPhone(clean);
   const linkedin = (clean.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[A-Za-z0-9._-]+/i) || [
     '',
   ])[0];

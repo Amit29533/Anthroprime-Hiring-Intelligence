@@ -284,6 +284,11 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
         docs.push(record);
       }
       if (docs.length) await onSave('documents', docs);
+      const failedOriginals = docs.filter((doc) => doc.storageError).length;
+      if (failedOriginals)
+        notify?.(
+          `Profiles saved, but ${failedOriginals} original CV upload${failedOriginals === 1 ? '' : 's'} failed. Review Documents on the candidate profile for details.`,
+        );
       onClose();
     }
   }

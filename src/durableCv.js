@@ -1,4 +1,4 @@
-import { classifyFile, sha256, storageFunction } from './documents.js';
+import { classifyFile, sha256, storageFunction, sendOriginal } from './documents.js';
 import { importRpc } from './durableImports.js';
 
 export async function cvManifest(files) {
@@ -35,11 +35,15 @@ export async function uploadSavedCv(
   const signed = await prepare('cv-upload-url', { batch, row });
   if (!signed.uploadUrl || signed.headers?.['If-None-Match'] !== '*')
     throw new Error('CV storage returned an invalid upload instruction.');
-  const response = await send(signed.uploadUrl, {
-    method: 'PUT',
-    headers: signed.headers,
-    body: file,
-  });
+  const response = await sendOriginal(
+    signed.uploadUrl,
+    {
+      method: 'PUT',
+      headers: signed.headers,
+      body: file,
+    },
+    send,
+  );
   // Lost upload acknowledgments are recoverable: the worker verifies the already stored bytes.
   if (!response.ok && response.status !== 412)
     throw new Error(`CV upload failed (${response.status}). Retry with the original file.`);

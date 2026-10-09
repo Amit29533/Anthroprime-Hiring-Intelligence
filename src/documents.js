@@ -210,6 +210,16 @@ export async function storageFunction(name, body) {
 
 // Cloud mode: originals go to private Cloudflare R2 through an authenticated, five-minute
 // presigned URL. Demo mode keeps small files inline in this browser.
+export async function sendOriginal(uploadUrl, options, send = fetch) {
+  try {
+    return await send(uploadUrl, options);
+  } catch {
+    throw new Error(
+      'Could not reach private file storage. Check the storage endpoint, network connection and R2 bucket CORS for this app origin, including Content-Type and If-None-Match. Retry with the original file after correcting the configuration.',
+    );
+  }
+}
+
 export async function persistBinary(record, file) {
   if (!cloud) {
     if (file.size <= DEMO_INLINE_LIMIT) record.dataUrl = await fileToDataUrl(file);
@@ -231,7 +241,7 @@ export async function persistBinary(record, file) {
     },
   );
   if (!uploadUrl || !storagePath) throw new Error('Document storage did not return an upload URL.');
-  const upload = await fetch(uploadUrl, {
+  const upload = await sendOriginal(uploadUrl, {
     method: 'PUT',
     headers: headers || {
       'Content-Type': record.mime || 'application/octet-stream',

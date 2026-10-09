@@ -956,6 +956,7 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
                 'Career page',
                 'Community',
                 'CSV import',
+                'CV upload',
               ].map((s) => (
                 <option key={s}>{s}</option>
               ))}
