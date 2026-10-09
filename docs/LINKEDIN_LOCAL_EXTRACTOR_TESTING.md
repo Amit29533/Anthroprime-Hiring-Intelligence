@@ -16,9 +16,11 @@ be installed; the command handles the remaining first-time setup.
 
 The command downloads the reviewed ZIP from the production portal, verifies
 its embedded SHA-256 checksum before unpacking, creates a local virtual
-environment, installs Playwright 1.63.0 from PyPI and its Chromium browser,
-and starts normal `--login` extraction. Later runs reuse the runtime and
-browser. The package is checked and unpacked again before each execution.
+environment, installs Playwright 1.63.0 from PyPI, prefers installed Edge or Chrome,
+and starts normal `--login` extraction. Chromium is downloaded only when
+neither supported installed browser is found. Later runs reuse the runtime and
+browser. Windows PowerShell 5.1 and PowerShell 7 are supported; setup errors
+print the failed stage in plain text. The package is checked and unpacked again before each execution.
 It does not require admin access, an extension or execution-policy changes.
 
 Sign in to LinkedIn in the opened temporary browser and press Enter in
@@ -74,7 +76,7 @@ python tools/package_linkedin_extractor.py
 
 The automated suite uses fake browser objects and fictional profile sections.
 It does not log into LinkedIn, launch Chromium, or transmit cookies.
-There are 22 Python checks plus five DOM fixture checks:
+There are 23 Python checks plus five DOM fixture checks:
 
 Run fixture checks:
 

@@ -164,6 +164,17 @@ class ExtractorTests(unittest.TestCase):
             extractor.scrape(URL, login=True, playwright_factory=factory_for(browser), login_prompt=lambda _: "")
         self.assertTrue(browser.context_closed and browser.browser_closed)
 
+    def test_installed_browser_channel_is_explicit_and_keeps_a_temporary_context(self):
+        for channel in ("chrome", "msedge"):
+            browser = Browser(Page())
+            extractor.scrape(URL, login=True, browser_channel=channel,
+                playwright_factory=factory_for(browser), login_prompt=lambda _: "")
+            self.assertEqual(browser.launch_options, {"headless": False, "channel": channel})
+            self.assertFalse(hasattr(browser, "cookies"))
+            self.assertTrue(browser.context_closed and browser.browser_closed)
+        with self.assertRaises(extractor.ExtractionError):
+            extractor.scrape(URL, login=True, browser_channel="unexpected")
+
     def test_rejects_unsafe_or_wrong_urls(self):
         for url in (
             "http://www.linkedin.com/in/test-candidate/",

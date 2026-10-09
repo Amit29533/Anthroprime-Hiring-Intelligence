@@ -11,6 +11,7 @@ export function linkedinCommand(profile, archiveHash) {
   // Only a normalized member URL and a hexadecimal release checksum enter code.
   return `& {
   $ErrorActionPreference = 'Stop'
+  $anthroStage = 'starting setup'
   try {
     $anthroProfile = '${url}/'
     $anthroHash = '${archiveHash}'
@@ -19,6 +20,7 @@ export function linkedinCommand(profile, archiveHash) {
     New-Item -ItemType Directory -Force -Path $anthroPackage | Out-Null
     $anthroZip = Join-Path $anthroPackage 'extractor.zip'
     if (-not (Test-Path -LiteralPath $anthroZip)) {
+      $anthroStage = 'downloading the extractor'
       Write-Host 'Downloading the reviewed AnthroPrime extractor...'
       Invoke-WebRequest -UseBasicParsing -Uri 'https://hiringintelligence.netlify.app/linkedin-local-extractor.zip' -OutFile $anthroZip
     }
@@ -26,6 +28,7 @@ export function linkedinCommand(profile, archiveHash) {
       throw 'Download checksum mismatch. Remove extractor.zip from the printed folder, refresh the portal and copy a new command.'
     }
     Expand-Archive -LiteralPath $anthroZip -DestinationPath $anthroPackage -Force
+    $anthroStage = 'creating the Python runtime'
     $anthroPython = Join-Path $anthroRoot 'runtime\\Scripts\\python.exe'
     if (-not (Test-Path -LiteralPath $anthroPython)) {
       $anthroBase = $null
@@ -40,19 +43,37 @@ export function linkedinCommand(profile, archiveHash) {
       & $anthroBase -m venv (Join-Path $anthroRoot 'runtime')
       if ($LASTEXITCODE -ne 0) { throw 'Could not create the local Python runtime.' }
     }
-    & $anthroPython -c 'import importlib.util, importlib.metadata; raise SystemExit(0 if importlib.util.find_spec("playwright") and importlib.metadata.version("playwright") == "1.63.0" else 1)' 2>$null
+    $anthroStage = 'checking Playwright'
+    & $anthroPython -c 'import importlib.util, importlib.metadata; raise SystemExit(0 if importlib.util.find_spec(''playwright'') and importlib.metadata.version(''playwright'') == ''1.63.0'' else 1)' 2>$null
     if ($LASTEXITCODE -ne 0) {
+      $anthroStage = 'installing Playwright'
       & $anthroPython -m pip install --index-url https://pypi.org/simple 'playwright==1.63.0'
       if ($LASTEXITCODE -ne 0) { throw 'Playwright installation failed. Check your connection and run again.' }
     }
+    $anthroBrowser = 'chromium'
+    $anthroBrowserPaths = @(
+      @{Channel='msedge'; Path=(Join-Path \${env:ProgramFiles(x86)} 'Microsoft\\Edge\\Application\\msedge.exe')},
+      @{Channel='msedge'; Path=(Join-Path $env:ProgramFiles 'Microsoft\\Edge\\Application\\msedge.exe')},
+      @{Channel='chrome'; Path=(Join-Path $env:ProgramFiles 'Google\\Chrome\\Application\\chrome.exe')},
+      @{Channel='chrome'; Path=(Join-Path $env:LOCALAPPDATA 'Google\\Chrome\\Application\\chrome.exe')}
+    )
+    foreach ($anthroInstalled in $anthroBrowserPaths) {
+      if (Test-Path -LiteralPath $anthroInstalled.Path) { $anthroBrowser = $anthroInstalled.Channel; break }
+    }
+    if ($anthroBrowser -eq 'chromium') {
+    $anthroStage = 'checking the Chromium browser'
     & $anthroPython -c 'from playwright.sync_api import sync_playwright; from pathlib import Path; p=sync_playwright().start(); exists=Path(p.chromium.executable_path).exists(); p.stop(); raise SystemExit(0 if exists else 1)' 2>$null
     if ($LASTEXITCODE -ne 0) {
+      $anthroStage = 'installing the Chromium browser'
       & $anthroPython -m playwright install chromium
       if ($LASTEXITCODE -ne 0) { throw 'Browser installation failed. Check your connection and run again.' }
     }
+    }
+    Write-Host ('Using browser: ' + $anthroBrowser)
     $anthroOutput = Join-Path $anthroRoot ('profile-' + [guid]::NewGuid().ToString('N') + '.json')
+    $anthroStage = 'signing in and extracting the profile'
     Write-Host 'Sign in to LinkedIn in the window that opens, then press Enter here.'
-    & $anthroPython (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile --login --no-raw --out $anthroOutput
+    & $anthroPython (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile --login --browser $anthroBrowser --no-raw --out $anthroOutput
     if ($LASTEXITCODE -ne 0) { throw 'Extraction stopped. No new result was copied. Check the message above.' }
     $anthroJson = Get-Content -LiteralPath $anthroOutput -Raw -Encoding UTF8
     $anthroCheck = $anthroJson | ConvertFrom-Json
@@ -62,6 +83,11 @@ export function linkedinCommand(profile, archiveHash) {
       Write-Host 'Done! Return to AnthroPrime and click Paste extracted profile.' -ForegroundColor Green
     } catch { Write-Host 'Clipboard was unavailable. Choose the saved JSON using LinkedIn JSON export in the portal.' }
     Write-Host ('Saved locally: ' + $anthroOutput)
-  } catch { Write-Host $_.Exception.Message -ForegroundColor Red; Write-Host ('Local folder: ' + $anthroPackage) }
+  } catch {
+    $anthroFailure = [string]$_.Exception.Message
+    if (-not $anthroFailure.Trim()) { $anthroFailure = 'The command could not complete. Run it again to retry.' }
+    Write-Output ('ERROR during ' + $anthroStage + ': ' + $anthroFailure)
+    Write-Output ('Local folder: ' + $anthroPackage)
+  }
 }`;
 }

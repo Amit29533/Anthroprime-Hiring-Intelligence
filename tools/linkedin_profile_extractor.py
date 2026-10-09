@@ -194,7 +194,7 @@ def extract_profile(page, expected):
     return data
 
 
-def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None, login=False, login_prompt=None):
+def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None, login=False, login_prompt=None, browser_channel="chromium"):
     expected = profile_url(url)
     if not login and (not isinstance(li_at, str) or not li_at.strip() or any(c.isspace() for c in li_at)):
         raise ExtractionError("Set LI_AT locally to a valid session cookie; never paste it into chat.")
@@ -202,6 +202,8 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
         raise ExtractionError("Invalid JSESSIONID cookie.")
     if not 5000 <= timeout_ms <= 120000:
         raise ExtractionError("Timeout must be between 5,000 and 120,000 milliseconds.")
+    if browser_channel not in {"chromium", "chrome", "msedge"}:
+        raise ExtractionError("Choose chromium, chrome or msedge for the local browser.")
     if playwright_factory is None:
         try:
             from playwright.sync_api import sync_playwright
@@ -212,7 +214,10 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
     try:
         with playwright_factory() as runtime:
             try:
-                browser = runtime.chromium.launch(headless=not (headful or login))
+                launch_options = {"headless": not (headful or login)}
+                if browser_channel != "chromium":
+                    launch_options["channel"] = browser_channel
+                browser = runtime.chromium.launch(**launch_options)
                 context = browser.new_context(locale="en-US")
                 if not login:
                     cookies = [{"name": "li_at", "value": li_at, "url": "https://www.linkedin.com/", "httpOnly": True, "secure": True}]
@@ -262,11 +267,12 @@ def main():
     parser.add_argument("--out", help="New JSON output file (existing files are never overwritten)")
     parser.add_argument("--headful", action="store_true")
     parser.add_argument("--login", action="store_true", help="Open a temporary browser for normal LinkedIn sign-in; no cookie copying")
+    parser.add_argument("--browser", choices=["chromium", "chrome", "msedge"], default="chromium", help="Use installed Chrome/Edge, or the Playwright Chromium download")
     parser.add_argument("--no-raw", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=30000)
     args = parser.parse_args()
     try:
-        result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login)
+        result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login, browser_channel=args.browser)
         if args.no_raw:
             result.pop("raw_text", None)
         output = json.dumps(result, ensure_ascii=False, indent=2)

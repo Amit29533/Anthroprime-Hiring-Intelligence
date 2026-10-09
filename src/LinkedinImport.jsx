@@ -334,10 +334,10 @@ export function LinkedinImport({
             <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noreferrer">
               Python 3.10 or newer
             </a>{' '}
-            on Windows. First run downloads Playwright and Chromium; later runs reuse them. No
-            extension or administrator access is needed. Sign-in happens in the extractor’s
-            temporary browser, even if another browser is already logged in. The login closes after
-            each run.
+            on Windows. First run installs Playwright and uses installed Edge or Chrome. Chromium is
+            downloaded only if neither is found; later runs reuse the setup. No extension or
+            administrator access is needed. Sign-in happens in the extractor’s temporary browser,
+            even if another browser is already logged in. The login closes after each run.
           </p>
           <p>
             The command copies the extracted profile JSON to your clipboard. “Paste extracted
