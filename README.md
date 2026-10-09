@@ -1,6 +1,6 @@
 # ECOD Talent Intelligence
 
-Current visual release: [UI/UX experience milestone](docs/UI_UX_MILESTONE_2026_10_08.md). Shared light/dark design, responsive tables and forms, smooth motion, profile layout repairs and keyboard-friendly mobile navigation cover all four entry points. No new service or migration; changes remain local.
+Current visual release: [UI/UX experience milestone](docs/UI_UX_MILESTONE_2026_10_08.md). Shared light/dark design, responsive tables and forms, smooth motion, profile layout repairs and keyboard-friendly mobile navigation cover all four entry points. The visual refresh needs no new service; it is now published from main, with subsequent hosted fixes documented below.
 
 Current release: [Completion workflows milestone](docs/COMPLETION_MILESTONE_2026_10_08.md), following all five dependent stages and their integrity audit, plus the [hosted deployment follow-up](docs/HOSTED_RELEASE_2026_10_08.md) and [authenticated live smoke test](docs/LIVE_SMOKE_TEST_2026_10_09.md). Apply all 95 migrations through `20261009060419_live_smoke_demand_stages_and_search_identity.sql` and deploy the frontend with all **28 Netlify functions**. Use the [current deployment guide](docs/NETLIFY_DEPLOYMENT.md); older migration endpoints and function counts below describe historical releases.
 
