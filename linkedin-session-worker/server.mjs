@@ -29,15 +29,6 @@ const clean = (text, limit = 400) => {
   if (typeof text !== 'string') return '';
   return text.replace(/\s+/g, ' ').trim().slice(0, limit);
 };
-const dedupeLines = (raw) => {
-  const out = [];
-  for (const line of String(raw || '')
-    .split('\n')
-    .map((l) => clean(l))
-    .filter(Boolean))
-    if (out[out.length - 1] !== line) out.push(line);
-  return out;
-};
 async function firstText(page, selectors) {
   for (const selector of selectors) {
     try {
@@ -52,6 +43,25 @@ async function firstText(page, selectors) {
   }
   return '';
 }
+// Visible text of an element as de-duplicated leaf strings. LinkedIn repeats each
+// value in a hidden accessibility span, and inline spans do not produce newlines,
+// so we collect leaf text nodes instead of relying on innerText line breaks.
+const leafTexts = (el) => {
+  const out = [];
+  const walk = (node) => {
+    if (node.nodeType === 3) {
+      const t = node.textContent.replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const cls = String(node.className || '');
+    if (/visually-hidden|a11y-text|sr-only/.test(cls) || node.hidden) return;
+    node.childNodes.forEach(walk);
+  };
+  walk(el);
+  return [...new Set(out)];
+};
 async function sectionItems(page, anchor, max = 8) {
   try {
     const section = page.locator(`section:has(div#${anchor})`).first();
@@ -61,7 +71,10 @@ async function sectionItems(page, anchor, max = 8) {
     const out = [];
     const total = Math.min(await items.count(), max * 3);
     for (let i = 0; i < total && out.length < max; i++) {
-      const lines = dedupeLines(await items.nth(i).innerText({ timeout: 1500 })).slice(0, 4);
+      const lines = (await items.nth(i).evaluate(leafTexts))
+        .map((l) => clean(l))
+        .filter(Boolean)
+        .slice(0, 4);
       const key = lines.join('|');
       if (key && !seen.has(key)) {
         seen.add(key);
@@ -71,6 +84,21 @@ async function sectionItems(page, anchor, max = 8) {
     return out;
   } catch {
     return [];
+  }
+}
+async function aboutText(page) {
+  try {
+    const section = page.locator('section:has(div#about)').first();
+    if (!(await section.count())) return '';
+    const texts = await section.evaluate(leafTexts);
+    return (
+      texts
+        .map((t) => clean(t, 1500))
+        .filter((t) => t && t.toLowerCase() !== 'about')
+        .sort((x, y) => y.length - x.length)[0] || ''
+    );
+  } catch {
+    return '';
   }
 }
 export class WorkerError extends Error {
@@ -123,7 +151,6 @@ export async function scrapeProfile(
     const finalUrl = new URL(page.url());
     const finalProfile =
       `https://www.linkedin.com${finalUrl.pathname.replace(/\/+$/, '')}`.toLowerCase();
-    const about = await sectionItems(page, 'about', 1);
     return {
       profile: finalProfile,
       name: await firstText(page, ['main h1', 'h1']),
@@ -135,7 +162,7 @@ export async function scrapeProfile(
         'span.text-body-small.inline.t-black--light.break-words',
         'main section span.text-body-small',
       ]),
-      about: about[0] ? about[0].join(' ').slice(0, 1500) : '',
+      about: await aboutText(page),
       experience: await sectionItems(page, 'experience'),
       education: await sectionItems(page, 'education', 4),
       skills: (await sectionItems(page, 'skills', 20)).map((lines) => lines[0]).filter(Boolean),
