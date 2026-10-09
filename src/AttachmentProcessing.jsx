@@ -42,13 +42,15 @@ export function AttachmentProcessing({
       active = false;
     };
   }, [isCloud, record.id, record.scanRequired, read]);
-  if (!isCloud || !record.scanRequired) return null;
+  const recoverOriginal =
+    !record.scanRequired && record.stored === false && Boolean(record.storageError && record.hash);
+  if (!isCloud || (!record.scanRequired && !recoverOriginal)) return null;
   async function run(work) {
     setBusy(true);
     setError('');
     try {
       await work();
-      await refresh();
+      if (record.scanRequired) await refresh();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -73,9 +75,16 @@ export function AttachmentProcessing({
       {state?.scan === 'infected' && (
         <small className="block">File blocked. Archive it and upload a corrected original.</small>
       )}
-      <Button variant="ghost" className="small" disabled={busy} onClick={() => run(async () => {})}>
-        Refresh processing {record.name}
-      </Button>
+      {record.scanRequired && (
+        <Button
+          variant="ghost"
+          className="small"
+          disabled={busy}
+          onClick={() => run(async () => {})}
+        >
+          Refresh processing {record.name}
+        </Button>
+      )}
       {!readOnly && state && (state.retryable || state.parse === 'failed') && (
         <Button
           disabled={busy}
@@ -84,7 +93,7 @@ export function AttachmentProcessing({
           Retry processing {record.name}
         </Button>
       )}
-      {!readOnly && state && !state.uploaded && (
+      {!readOnly && ((state && !state.uploaded) || recoverOriginal) && (
         <label>
           Resume original upload{' '}
           <input

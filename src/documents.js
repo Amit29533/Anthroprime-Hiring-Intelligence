@@ -254,6 +254,7 @@ export async function persistBinary(record, file) {
   record.storagePath = storagePath;
   record.storageProvider = 'r2';
   record.stored = true;
+  record.storageError = '';
   if (quarantined) {
     const supabase = await getSupabase();
     const { error } = await supabase.rpc('api_attachment_uploaded', { p_id: record.id });
