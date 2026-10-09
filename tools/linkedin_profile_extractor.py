@@ -194,11 +194,11 @@ def extract_profile(page, expected):
     return data
 
 
-def scrape(url, li_at, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None):
+def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None, login=False, login_prompt=None):
     expected = profile_url(url)
-    if not isinstance(li_at, str) or not li_at.strip() or any(c.isspace() for c in li_at):
+    if not login and (not isinstance(li_at, str) or not li_at.strip() or any(c.isspace() for c in li_at)):
         raise ExtractionError("Set LI_AT locally to a valid session cookie; never paste it into chat.")
-    if jsessionid and any(c in jsessionid for c in "\r\n"):
+    if not login and jsessionid and any(c in jsessionid for c in "\r\n"):
         raise ExtractionError("Invalid JSESSIONID cookie.")
     if not 5000 <= timeout_ms <= 120000:
         raise ExtractionError("Timeout must be between 5,000 and 120,000 milliseconds.")
@@ -212,14 +212,24 @@ def scrape(url, li_at, jsessionid=None, headful=False, timeout_ms=30000, *, play
     try:
         with playwright_factory() as runtime:
             try:
-                browser = runtime.chromium.launch(headless=not headful)
+                browser = runtime.chromium.launch(headless=not (headful or login))
                 context = browser.new_context(locale="en-US")
-                cookies = [{"name": "li_at", "value": li_at, "url": "https://www.linkedin.com/", "httpOnly": True, "secure": True}]
-                if jsessionid:
-                    cookies.append({"name": "JSESSIONID", "value": jsessionid, "url": "https://www.linkedin.com/", "secure": True})
-                context.add_cookies(cookies)
+                if not login:
+                    cookies = [{"name": "li_at", "value": li_at, "url": "https://www.linkedin.com/", "httpOnly": True, "secure": True}]
+                    if jsessionid:
+                        cookies.append({"name": "JSESSIONID", "value": jsessionid, "url": "https://www.linkedin.com/", "secure": True})
+                    context.add_cookies(cookies)
                 page = context.new_page()
                 page.set_default_timeout(timeout_ms)
+                if login:
+                    # The user signs in directly to LinkedIn. The ephemeral browser
+                    # manages its own cookies; never inspect or export its session.
+                    page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded", timeout=timeout_ms)
+                    answer = (login_prompt or input)(
+                        "Sign in to LinkedIn in the opened browser. When finished, press Enter here (or type cancel): "
+                    )
+                    if answer.strip():
+                        raise ExtractionError("Sign-in cancelled. No profile was extracted.")
                 page.goto(expected, wait_until="domcontentloaded", timeout=timeout_ms)
                 check_page(page, expected)
                 page.locator('main h1, main a[componentkey^="ProfileVerificationTriggerRef-"] h2').first.wait_for(state="visible", timeout=15000)
@@ -237,6 +247,8 @@ def scrape(url, li_at, jsessionid=None, headful=False, timeout_ms=30000, *, play
                 finally:
                     if browser is not None:
                         browser.close()
+    except (EOFError, KeyboardInterrupt):
+        raise ExtractionError("Sign-in cancelled. No profile was extracted.") from None
     except ExtractionError:
         raise
     except Exception:
@@ -249,11 +261,12 @@ def main():
     parser.add_argument("url")
     parser.add_argument("--out", help="New JSON output file (existing files are never overwritten)")
     parser.add_argument("--headful", action="store_true")
+    parser.add_argument("--login", action="store_true", help="Open a temporary browser for normal LinkedIn sign-in; no cookie copying")
     parser.add_argument("--no-raw", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=30000)
     args = parser.parse_args()
     try:
-        result = scrape(args.url, os.environ.get("LI_AT"), os.environ.get("JSESSIONID"), args.headful, args.timeout_ms)
+        result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login)
         if args.no_raw:
             result.pop("raw_text", None)
         output = json.dumps(result, ensure_ascii=False, indent=2)

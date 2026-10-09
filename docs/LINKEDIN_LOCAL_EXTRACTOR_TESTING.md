@@ -39,7 +39,7 @@ python tools/package_linkedin_extractor.py
 
 The automated suite uses fake browser objects and fictional profile sections.
 It does not log into LinkedIn, launch Chromium, or transmit cookies.
-There are 19 Python checks plus five DOM fixture checks:
+There are 22 Python checks plus five DOM fixture checks:
 
 Run fixture checks:
 
@@ -94,6 +94,35 @@ python -m venv .venv-linkedin
 .\.venv-linkedin\Scripts\python.exe -m playwright install chromium
 ```
 
+### Recommended: normal local sign-in (no cookie copying)
+
+From the unzipped folder containing `tools`, run:
+
+```powershell
+.\.venv-linkedin\Scripts\python.exe tools/linkedin_profile_extractor.py `
+  'https://www.linkedin.com/in/YOUR-TEST-HANDLE/' `
+  --login --out profile.json
+```
+
+Sign in directly to LinkedIn in the opened Chromium window, then return to
+the terminal and press Enter. Type `cancel` or press Ctrl+C to stop. The tool
+then opens the requested profile and creates `profile.json`; choose that
+file in the website's **LinkedIn JSON export** control. Use a new filename
+for each run; existing output files are never overwritten.
+
+The browser manages the login session automatically. The tool does not read,
+export, or persist cookies, passwords, or browser storage. This temporary
+browser session closes after success, cancellation, or failure. Sign in
+again on your next run. `--login` ignores `LI_AT` and `JSESSIONID` environment
+variables. This is local browser sign-in, not LinkedIn OAuth on the website.
+Account verification is handled by you during normal sign-in; extraction
+still stops at login/checkpoint/CAPTCHA gates or unexpected profile redirects.
+
+The local sign-in flow has automated fixture coverage; successful live
+LinkedIn login still requires a user-run check. Do not send credentials in chat.
+
+### Optional: existing local session cookie
+
 Keep the cookie in a local process environment. Do not put it in chat, Git,
 Netlify, browser storage belonging to the portal, or an output JSON file.
 On PowerShell 7, this avoids typing a literal cookie into shell history:
@@ -134,4 +163,6 @@ automated scraping under its platform rules. Account restrictions and markup
 changes remain possible. See the official guidance:
 https://www.linkedin.com/help/linkedin/answer/a1341543
 
-No standalone live cookie test, deployment, or provider activation was performed.
+No standalone live cookie or local sign-in test has been performed. The
+website file import is deployed separately and has been tested with a
+fictional candidate; it does not receive the LinkedIn login session.

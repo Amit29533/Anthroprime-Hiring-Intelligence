@@ -243,8 +243,8 @@ export function LinkedinImport({
         <section aria-label="Import local LinkedIn export" className="linkedin-export-import">
           <h3>Import a local LinkedIn export</h3>
           <p>
-            Run the extractor on your computer, then choose its JSON file here. Your LinkedIn
-            session cookie stays on your computer.
+            Sign in to LinkedIn in the local extractor’s browser, then choose its JSON file here. No
+            cookie copying is needed. Your LinkedIn login stays on your computer.
           </p>
           <a className="button secondary" href="/linkedin-local-extractor.zip" download>
             Download local LinkedIn extractor
@@ -255,7 +255,17 @@ export function LinkedinImport({
               <li>
                 Download and unzip the tool. Follow its README to install Python and Playwright.
               </li>
-              <li>Run it locally with the profile URL and your locally entered session cookie.</li>
+              <li>
+                Run the command below with the profile URL. Sign in directly to LinkedIn in the
+                opened browser, then press Enter in your terminal.
+                <pre>
+                  <code>
+                    {
+                      '.\\.venv-linkedin\\Scripts\\python.exe tools/linkedin_profile_extractor.py "https://www.linkedin.com/in/YOUR-HANDLE/" --login --out profile.json'
+                    }
+                  </code>
+                </pre>
+              </li>
               <li>
                 Choose the exported JSON below. Review warnings and evidence, add a known contact,
                 then save.

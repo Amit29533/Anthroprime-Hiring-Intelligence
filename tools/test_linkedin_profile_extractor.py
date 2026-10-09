@@ -113,6 +113,7 @@ def factory_for(browser):
         chromium = None
 
         def launch(self, **kwargs):
+            browser.launch_options = kwargs
             return browser
 
     runtime = Runtime()
@@ -123,6 +124,45 @@ def factory_for(browser):
 class ExtractorTests(unittest.TestCase):
     def test_normalizes_handle_and_tracking_query(self):
         self.assertEqual(extractor.profile_url("https://linkedin.com/in/Test-Candidate?trk=example#about"), URL)
+
+    def test_normal_login_uses_ephemeral_browser_without_injecting_cookies(self):
+        page = Page()
+        browser = Browser(page)
+        navigations = []
+        page.goto = lambda url, **kwargs: navigations.append(url)
+        prompts = []
+        result = extractor.scrape(URL, "IGNORED_COOKIE", login=True,
+            playwright_factory=factory_for(browser),
+            login_prompt=lambda prompt: prompts.append(prompt) or "")
+        self.assertEqual(navigations, ["https://www.linkedin.com/login", URL])
+        self.assertEqual(len(prompts), 1)
+        self.assertFalse(browser.launch_options["headless"])
+        self.assertFalse(hasattr(browser, "cookies"))
+        self.assertNotIn("IGNORED_COOKIE", json.dumps(result))
+        self.assertTrue(browser.context_closed and browser.browser_closed)
+
+    def test_login_cancel_and_closed_terminal_clean_up_before_profile_navigation(self):
+        for answer in ("cancel", EOFError(), KeyboardInterrupt()):
+            with self.subTest(answer=type(answer).__name__):
+                page = Page()
+                browser = Browser(page)
+                navigations = []
+                page.goto = lambda url, **kwargs: navigations.append(url)
+                def prompt(_):
+                    if isinstance(answer, BaseException):
+                        raise answer
+                    return answer
+                with self.assertRaisesRegex(extractor.ExtractionError, "cancelled"):
+                    extractor.scrape(URL, login=True, playwright_factory=factory_for(browser), login_prompt=prompt)
+                self.assertEqual(navigations, ["https://www.linkedin.com/login"])
+                self.assertTrue(browser.context_closed and browser.browser_closed)
+
+    def test_login_still_refuses_unauthenticated_profile(self):
+        page = Page("https://www.linkedin.com/login")
+        browser = Browser(page)
+        with self.assertRaisesRegex(extractor.ExtractionError, "manual verification"):
+            extractor.scrape(URL, login=True, playwright_factory=factory_for(browser), login_prompt=lambda _: "")
+        self.assertTrue(browser.context_closed and browser.browser_closed)
 
     def test_rejects_unsafe_or_wrong_urls(self):
         for url in (
