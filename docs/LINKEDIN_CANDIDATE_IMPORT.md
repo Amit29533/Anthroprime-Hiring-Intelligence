@@ -1,10 +1,14 @@
 # Candidate import through LinkedIn ID
 
-Implemented locally; no deployment, provider key, live paid lookup or hosted migration has been performed.
+The deployed import supports pasted profile text and optional People Data Labs
+lookup. A local-extractor JSON file path adds key-free reviewed imports; the
+session cookie stays on the user's computer. See
+[local extractor setup and verification](LINKEDIN_LOCAL_EXTRACTOR_TESTING.md).
 
-Open **Candidates → Import → Import from LinkedIn**. The option accepts a public member profile URL, public handle (such as `priya-sharma`) or a numeric LinkedIn ID. It offers two paths:
+Open **Candidates → Import → Import from LinkedIn**. The option accepts a public member profile URL, public handle (such as `priya-sharma`) or a numeric LinkedIn ID. It offers these paths:
 
 - **Extract pasted LinkedIn profile:** enter a profile URL/handle and paste profile text. This runs locally without a provider account. Numeric IDs need a provider lookup because pasted text alone cannot establish the ID-to-profile relationship. Heuristic extraction suggests name, email, phone, title, skills and a short summary; company/location can be filled in during review.
+- **Import a local LinkedIn export:** download the local tool from the import panel, run it on your computer, then choose its JSON output (maximum 200 KiB). The importer accepts original and version-1 extractor formats, validates URL agreement and shape, rejects credential fields and duplicates, shows completeness warnings, and requires evidence/profile review before saving. Employment, education and certification excerpts remain visible in Candidate 360. This does not run a scraper inside Netlify or accept a LinkedIn cookie in the website.
 - **Look up LinkedIn ID:** use the server-side People Data Labs Person Enrichment adapter after configuration and workspace activation. It requests only name, work email, mobile phone, current title/company, location, skills and LinkedIn URL/ID. Numeric IDs use the provider's `lid` parameter; URLs/handles use `profile`. No arbitrary URL is fetched. The provider path does not scrape LinkedIn or use a session cookie; the separate, optional test-account session option below does.
 
 Results are editable drafts. Provider responses must score at least 6/10, report matching the requested input and return the same normalized URL (or exact numeric ID with a valid public profile URL). These checks reduce mismatches; they are not proof of accuracy. A recruiter must review identity, contact and profile information and explicitly confirm before saving. An email or phone is required by the existing candidate model; add it manually if the provider/profile text does not contain one.

@@ -440,6 +440,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
               <input
                 type="file"
                 accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                aria-label="Candidate spreadsheet file"
                 onChange={fileChanged}
               />
             </label>

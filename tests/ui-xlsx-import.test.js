@@ -81,8 +81,8 @@ async function openImport() {
   return { data, writes };
 }
 
-/** The spreadsheet input is the first file input on the import screen. */
-const sheetInput = () => document.querySelectorAll('input[type="file"]')[0];
+/** Select the intended import route; LinkedIn and CVs also have file pickers. */
+const sheetInput = () => screen.getByLabelText('Candidate spreadsheet file');
 
 async function upload(file) {
   await act(async () => {

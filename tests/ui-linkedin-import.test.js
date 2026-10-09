@@ -82,6 +82,112 @@ test('duplicate canonical LinkedIn profiles are refused before provider lookup',
   assert.match(screen.getByRole('alert').textContent, /Already in your repository/);
   assert.equal(lookups, 0);
 });
+test('local JSON import needs evidence/contact review, saves bounded claims and resets confirmation after edits', async () => {
+  const saves = [];
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: true,
+    onSave: async (table, rows) => {
+      saves.push(rows[0]);
+      return true;
+    },
+  });
+  const exported = {
+    url: 'https://www.linkedin.com/in/mira-testcandidate/',
+    name: 'Mira Testcandidate',
+    headline: 'Developer',
+    company: 'Example Labs',
+    about: 'Fictional summary',
+    experience: [['Developer', 'Example Labs', '2022–2026']],
+    skills: [['React']],
+    warnings: ['Additional entries collapsed'],
+  };
+  fireEvent.change(screen.getByLabelText('LinkedIn JSON export'), {
+    target: {
+      files: [{ name: 'profile.json', size: 800, text: async () => JSON.stringify(exported) }],
+    },
+  });
+  await settle();
+  assert.equal(screen.getByLabelText('LinkedIn draft company').value, 'Example Labs');
+  assert.match(screen.getByLabelText('LinkedIn extraction warnings').textContent, /collapsed/);
+  assert.equal(
+    screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }).disabled,
+    true,
+  );
+  fireEvent.change(screen.getByLabelText('LinkedIn draft email'), {
+    target: { value: 'mira@example.invalid' },
+  });
+  fireEvent.click(screen.getByText(/Structured LinkedIn evidence/));
+  for (const box of screen.getAllByRole('checkbox', { name: /LinkedIn confirm evidence/ }))
+    fireEvent.click(box);
+  fireEvent.click(screen.getByLabelText('Confirm LinkedIn profile review'));
+  fireEvent.change(screen.getByLabelText('LinkedIn draft summary'), {
+    target: { value: 'Reviewed fictional summary' },
+  });
+  assert.equal(screen.getByLabelText('Confirm LinkedIn profile review').checked, false);
+  fireEvent.click(screen.getByLabelText('Confirm LinkedIn profile review'));
+  fireEvent.click(screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }));
+  await settle();
+  assert.equal(saves.length, 1);
+  assert.equal(saves[0].summary, 'Reviewed fictional summary');
+  assert.ok(saves[0].cvEvidence.items.every((item) => item.reviewed));
+  assert.equal(saves[0].custom.linkedinImport.provider, 'Local LinkedIn export');
+  assert.equal(saves[0].experience, null);
+});
+test('wrong-profile or failed replacement file clears stale draft and duplicate local files cannot be saved', async () => {
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: true,
+    onSave: async () => assert.fail('No save expected'),
+  });
+  const choose = (data) =>
+    fireEvent.change(screen.getByLabelText('LinkedIn JSON export'), {
+      target: {
+        files: [{ name: 'profile.json', size: 100, text: async () => JSON.stringify(data) }],
+      },
+    });
+  choose({ url: 'https://linkedin.com/in/mira-testcandidate', name: 'Mira' });
+  await settle();
+  assert.ok(screen.getByLabelText('LinkedIn draft name'));
+  choose({ url: 'https://linkedin.com/in/another-person', name: 'Other' });
+  await settle();
+  assert.match(screen.getByRole('alert').textContent, /different/);
+  assert.equal(screen.queryByLabelText('LinkedIn draft name'), null);
+  cleanup();
+  await mount(Panel, {
+    data: {
+      candidates: [
+        {
+          id: 'existing',
+          name: 'Existing Mira',
+          linkedin: 'https://www.linkedin.com/in/mira-testcandidate',
+        },
+      ],
+    },
+    isCloud: false,
+    canImport: true,
+    onSave: async () => assert.fail('No save expected'),
+  });
+  choose({ url: 'https://linkedin.com/in/mira-testcandidate', name: 'Mira' });
+  await settle();
+  assert.match(screen.getByRole('alert').textContent, /Already in your repository/);
+});
+test('viewer cannot import local exports or pasted profiles', async () => {
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: false,
+    onSave: async () => assert.fail('Viewer cannot save'),
+  });
+  assert.equal(screen.getByLabelText('LinkedIn JSON export').disabled, true);
+  assert.equal(
+    screen.getByRole('button', { name: 'Extract pasted LinkedIn profile' }).disabled,
+    true,
+  );
+});
+
 test('test-account session lookup is a separate, disclosed option and still requires review before saving', async () => {
   const requests = [];
   await mount(Panel, {

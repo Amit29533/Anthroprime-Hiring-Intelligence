@@ -957,6 +957,7 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
                 'Community',
                 'CSV import',
                 'CV upload',
+                'LinkedIn import',
               ].map((s) => (
                 <option key={s}>{s}</option>
               ))}
@@ -1479,7 +1480,10 @@ export function CandidateProfile({
                   readOnly={viewer}
                 />
               )}
-              <CvEvidenceReview value={c.cvEvidence} />
+              <CvEvidenceReview
+                value={c.cvEvidence}
+                label={c.source === 'LinkedIn import' ? 'LinkedIn' : 'CV'}
+              />
             </>
           )}
           {tab === 'Documents' && (

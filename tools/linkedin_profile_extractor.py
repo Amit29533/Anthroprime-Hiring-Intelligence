@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Single-profile local experiment. No credential storage, retries or challenge bypass.
+
+Playwright is loaded only for a live run; fixture tests need only Python's stdlib.
+This is not a Netlify function or an officially supported LinkedIn integration.
+"""
+
+import argparse
+import json
+import os
+import pathlib
+import re
+import sys
+from urllib.parse import urlsplit
+
+
+class ExtractionError(RuntimeError):
+    pass
+
+
+def profile_url(value):
+    if not isinstance(value, str) or len(value) > 500:
+        raise ExtractionError("Enter a valid HTTPS LinkedIn member profile URL.")
+    if any(ord(c) < 32 or ord(c) == 127 for c in value) or "\\" in value:
+        raise ExtractionError("Invalid profile URL.")
+    value = value.strip()
+    if " " in value:
+        raise ExtractionError("Invalid profile URL.")
+    try:
+        url = urlsplit(value)
+        valid = (
+            url.scheme == "https"
+            and url.hostname in {"linkedin.com", "www.linkedin.com"}
+            and not url.username
+            and not url.password
+            and url.port is None
+            and re.fullmatch(r"/in/([A-Za-z0-9][A-Za-z0-9._-]{2,99})/?", url.path)
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ExtractionError("Use https://www.linkedin.com/in/<handle>/ with no extra path.")
+    handle = re.fullmatch(r"/in/([^/]+)/?", url.path).group(1)
+    if handle in {".", ".."}:
+        raise ExtractionError("Invalid profile handle.")
+    return f"https://www.linkedin.com/in/{handle.lower()}/"
+
+
+def clean_lines(text):
+    """Preserve paragraph boundaries; remove adjacent accessibility duplicates."""
+    lines = []
+    for raw in (text or "").splitlines():
+        line = re.sub(r"[ \t\r\f\v]+", " ", raw).strip()
+        if line and (not lines or line != lines[-1]):
+            lines.append(line)
+    return lines
+
+
+def check_page(page, expected):
+    # URL-based gates plus visible challenge elements. Never log redirect URLs.
+    current = page.url
+    path = urlsplit(current).path.lower()
+    if any(x in path for x in ("authwall", "/login", "/checkpoint", "/uas/", "captcha")):
+        raise ExtractionError("LinkedIn requires login or manual verification. Extraction stopped.")
+    challenges = page.locator(
+        'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], #captcha, '
+        'form[action*="checkpoint"], input[name="captchaUserResponse"]'
+    )
+    for item in challenges.all():
+        if item.is_visible():
+            raise ExtractionError("A verification challenge is visible. Extraction stopped.")
+    try:
+        actual = profile_url(current)
+    except ExtractionError:
+        raise ExtractionError("LinkedIn left the requested profile. Extraction stopped.") from None
+    if actual != expected:
+        raise ExtractionError("The loaded profile does not match the requested profile.")
+
+
+def first_visible_text(page, selectors):
+    for selector in selectors:
+        # Hidden first matches must not suppress later visible matches.
+        for loc in page.locator(selector).all()[:20]:
+            if loc.is_visible():
+                lines = clean_lines(loc.inner_text(timeout=2000))
+                if lines:
+                    return " ".join(lines)
+    return None
+
+
+def section_items(page, anchor, warnings, max_items=15):
+    try:
+        section = page.locator(f"section:has(div#{anchor})").first
+        if not section.count():
+            warnings.append(f"{anchor}: section absent or not loaded")
+            return []
+        section.scroll_into_view_if_needed(timeout=3000)
+        # Only outer list entries; nested entries otherwise duplicate job groups.
+        entries = section.locator("li").all()[:100]
+        result, seen = [], set()
+        for entry in entries:
+            nested = entry.evaluate("el => Boolean(el.parentElement.closest('li'))")
+            if nested or not entry.is_visible():
+                continue
+            lines = clean_lines(entry.inner_text(timeout=2000))
+            if not lines or re.fullmatch(r"Show all.*|Show more|Show less", " ".join(lines), re.I):
+                continue
+            key = tuple(lines)
+            if key not in seen:
+                seen.add(key)
+                result.append(lines)
+            if len(result) >= max_items:
+                warnings.append(f"{anchor}: output capped at {max_items} entries")
+                break
+        if not result:
+            warnings.append(f"{anchor}: no visible list entries; markup may have changed")
+        return result
+    except Exception:
+        warnings.append(f"{anchor}: extraction failed; review this section manually")
+        return []
+
+
+def extract_about(page, warnings):
+    try:
+        section = page.locator("section:has(div#about)").first
+        if not section.count():
+            warnings.append("about: section absent or not loaded")
+            return None
+        section.scroll_into_view_if_needed(timeout=3000)
+        texts = []
+        for item in section.locator("span[aria-hidden='true']").all()[:50]:
+            if item.is_visible():
+                lines = clean_lines(item.inner_text(timeout=2000))
+                lines = [x for x in lines if x.lower() not in {"about", "see more", "show more", "show less"}]
+                if lines:
+                    texts.append("\n".join(lines))
+        if not texts:
+            warnings.append("about: no visible content; markup may have changed")
+            return None
+        return max(texts, key=len)[:10000]
+    except Exception:
+        warnings.append("about: extraction failed; review manually")
+        return None
+
+
+def extract_profile(page, expected):
+    check_page(page, expected)
+    dom_script = pathlib.Path(__file__).with_name("linkedin_visible_profile.js").read_text(encoding="utf-8").rstrip()
+    if dom_script.endswith(";"):
+        dom_script = dom_script[:-1]
+    modern = page.evaluate("(" + dom_script + "\n)()")
+    name = modern.get("name") if modern else first_visible_text(page, ["main h1"])
+    if not name or len(name) > 200:
+        raise ExtractionError("No valid profile name found. The page may be blocked or changed.")
+    warnings = list(modern.get("warnings", [])) if modern else []
+    data = {
+        "format": "anthro-linkedin-profile",
+        "version": 1,
+        "url": expected,
+        "name": name,
+        "headline": modern.get("headline") if modern else first_visible_text(page, ["main section div.text-body-medium.break-words"]),
+        "company": modern.get("company") if modern else None,
+        "location": modern.get("location") if modern else first_visible_text(page, ["main section span.text-body-small.inline.t-black--light.break-words"]),
+        "about": modern.get("about") if modern else extract_about(page, warnings),
+    }
+    if modern and not data["about"]:
+        warnings.append("about: section absent or not loaded")
+    for key, anchor in (
+        ("experience", "experience"), ("education", "education"),
+        ("skills", "skills"), ("certifications", "licenses_and_certifications"),
+    ):
+        check_page(page, expected)
+        if modern and anchor in modern.get("sections", {}):
+            data[key] = modern["sections"][anchor]
+            if not data[key]:
+                warnings.append(f"{anchor}: no visible entries; review manually")
+        else:
+            data[key] = section_items(page, anchor, warnings)
+    check_page(page, expected)
+    # Only extracted profile fields, not the full main region (recommendations,
+    # notifications and unrelated people can appear there). Keep line breaks.
+    blocks = [data[k] for k in ("name", "headline", "company", "location", "about") if data[k]]
+    for key in ("experience", "education", "skills", "certifications"):
+        if data[key]:
+            blocks.append(key.title())
+            blocks.extend("\n".join(item) for item in data[key])
+    text = "\n\n".join(blocks)
+    data["raw_text"] = text[:50000]
+    if len(text) > 50000:
+        warnings.append("raw_text: truncated at 50,000 characters")
+    data["warnings"] = warnings
+    data["requires_review"] = True
+    data["completeness"] = "visible sections only; not a complete-profile guarantee"
+    return data
+
+
+def scrape(url, li_at, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None):
+    expected = profile_url(url)
+    if not isinstance(li_at, str) or not li_at.strip() or any(c.isspace() for c in li_at):
+        raise ExtractionError("Set LI_AT locally to a valid session cookie; never paste it into chat.")
+    if jsessionid and any(c in jsessionid for c in "\r\n"):
+        raise ExtractionError("Invalid JSESSIONID cookie.")
+    if not 5000 <= timeout_ms <= 120000:
+        raise ExtractionError("Timeout must be between 5,000 and 120,000 milliseconds.")
+    if playwright_factory is None:
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            raise ExtractionError("Install Playwright and its Chromium browser in a local virtual environment.") from None
+        playwright_factory = sync_playwright
+    browser = context = None
+    try:
+        with playwright_factory() as runtime:
+            try:
+                browser = runtime.chromium.launch(headless=not headful)
+                context = browser.new_context(locale="en-US")
+                cookies = [{"name": "li_at", "value": li_at, "url": "https://www.linkedin.com/", "httpOnly": True, "secure": True}]
+                if jsessionid:
+                    cookies.append({"name": "JSESSIONID", "value": jsessionid, "url": "https://www.linkedin.com/", "secure": True})
+                context.add_cookies(cookies)
+                page = context.new_page()
+                page.set_default_timeout(timeout_ms)
+                page.goto(expected, wait_until="domcontentloaded", timeout=timeout_ms)
+                check_page(page, expected)
+                page.locator('main h1, main a[componentkey^="ProfileVerificationTriggerRef-"] h2').first.wait_for(state="visible", timeout=15000)
+                # Bounded rendering pass, not random delays or detection evasion.
+                for _ in range(4):
+                    page.mouse.wheel(0, 800)
+                    page.wait_for_timeout(350)
+                    check_page(page, expected)
+                return extract_profile(page, expected)
+            finally:
+                # A context close failure must not prevent browser cleanup.
+                try:
+                    if context is not None:
+                        context.close()
+                finally:
+                    if browser is not None:
+                        browser.close()
+    except ExtractionError:
+        raise
+    except Exception:
+        # Browser exceptions may contain URLs or other session-derived details.
+        raise ExtractionError("Browser loading or extraction failed. Check installation, connectivity and manual sign-in.") from None
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("url")
+    parser.add_argument("--out", help="New JSON output file (existing files are never overwritten)")
+    parser.add_argument("--headful", action="store_true")
+    parser.add_argument("--no-raw", action="store_true")
+    parser.add_argument("--timeout-ms", type=int, default=30000)
+    args = parser.parse_args()
+    try:
+        result = scrape(args.url, os.environ.get("LI_AT"), os.environ.get("JSESSIONID"), args.headful, args.timeout_ms)
+        if args.no_raw:
+            result.pop("raw_text", None)
+        output = json.dumps(result, ensure_ascii=False, indent=2)
+        if args.out:
+            fd = os.open(args.out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as file:
+                file.write(output + "\n")
+            print("Saved reviewed-draft output. Inspect warnings before importing.")
+        else:
+            print(output)
+        return 0
+    except ExtractionError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+    except OSError:
+        print("Error: Could not write output. Choose a writable, new file path.", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

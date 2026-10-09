@@ -15,7 +15,7 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
   if (!value.items.every(readableCvExcerpt))
     return (
       <p role="alert">
-        CV excerpts have an invalid structure. Re-extract the original CV before review.
+        {label} excerpts have an invalid structure. Re-extract the original before review.
       </p>
     );
   const editable = Boolean(onChange);
@@ -32,7 +32,9 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
   }
   return (
     <details className="cv-record-review">
-      <summary>Structured CV evidence ({value.items.length})</summary>
+      <summary>
+        Structured {label} evidence ({value.items.length})
+      </summary>
       <p>
         These are section excerpts, not verified employment or credentials. Check each against the
         original. Edit its label or period, then confirm it, or remove it before import.
@@ -44,14 +46,14 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
       )}
       {editable && !hasRecords && (
         <button type="button" disabled={disabled} onClick={() => onChange(groupCvEvidence(value))}>
-          Build cited CV records
+          Build cited {label} records
         </button>
       )}
       {hasRecords && !recordsReadable && (
         <section aria-label="Invalid CV records">
           <p role="alert">
-            CV records have an invalid structure. Rebuild the grouping from the original excerpts
-            before review.
+            {label} records have an invalid structure. Rebuild the grouping from the original
+            excerpts before review.
           </p>
           {editable && (
             <button
@@ -59,16 +61,16 @@ export function CvEvidenceReview({ value, onChange, disabled = false, label = 'C
               disabled={disabled}
               onClick={() => onChange(groupCvEvidence(value))}
             >
-              Rebuild cited CV records
+              Rebuild cited {label} records
             </button>
           )}
         </section>
       )}
       {recordsReadable && (
-        <section aria-label="Cited CV records">
+        <section aria-label={`Cited ${label} records`}>
           <p>
             Merge related lines, then enter only dates stated in the original. Partial dates are
-            supported. These remain recruiter-reviewed CV claims.
+            supported. These remain recruiter-reviewed {label} claims.
           </p>
           {validateCvRecords(value) && <p role="alert">{validateCvRecords(value)}</p>}
           {duplicateCvRecords(value).length > 0 && (

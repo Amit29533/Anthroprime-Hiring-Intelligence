@@ -8,6 +8,7 @@ artifacts/
 releases/
 __pycache__/
 *.py[cod]
+.venv-linkedin/
 supabase/.temp/
 .codex-push-*.log
 .codex-push-*.json

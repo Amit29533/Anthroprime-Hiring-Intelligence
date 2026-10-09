@@ -63,7 +63,7 @@ test('profile editing exposes a read-only Anthro-ID', async () => {
   const data = normalizeData(makeSeed());
   const c = data.candidates[0];
   await mount(CandidateForm, {
-    candidate: c,
+    candidate: { ...c, source: 'LinkedIn import' },
     data,
     onSave: async () => true,
     onClose: () => {},
@@ -71,4 +71,5 @@ test('profile editing exposes a read-only Anthro-ID', async () => {
   });
   const field = screen.getByDisplayValue(anthroIdFor(c));
   assert.equal(field.readOnly, true);
+  assert.equal(screen.getByLabelText('Source').value, 'LinkedIn import');
 });

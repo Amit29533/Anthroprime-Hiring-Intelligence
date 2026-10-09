@@ -1,0 +1,28 @@
+.linkedin-export-import {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.linkedin-export-import .button {
+  justify-self: start;
+  text-decoration: none;
+}
+.linkedin-export-import details {
+  line-height: 1.65;
+}
+.linkedin-export-import ol {
+  padding-left: 22px;
+}
+.linkedin-export-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+  line-height: 1.65;
+}
