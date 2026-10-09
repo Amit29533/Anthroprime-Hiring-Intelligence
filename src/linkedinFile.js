@@ -38,7 +38,7 @@ function string(value, field, max = 254) {
     })
   )
     throw new Error(`Export ${field} contains invalid control characters.`);
-  if (/\b(?:li_at|JSESSIONID|Authorization)\s*[:=]/i.test(value))
+  if (/\b(?:li_at|JSESSIONID)\s*[:=]|\bAuthorization\s*:\s*(?:Bearer|Basic)\s+/i.test(value))
     throw new Error(
       'This export may contain session credentials. Remove them locally before importing.',
     );

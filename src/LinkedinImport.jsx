@@ -330,6 +330,7 @@ export function LinkedinImport({
         <Button
           disabled={
             busy ||
+            !canImport ||
             !isCloud ||
             !config?.sessionWorker ||
             !config?.enabled ||

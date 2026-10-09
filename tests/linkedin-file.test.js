@@ -74,6 +74,12 @@ test('invalid, conflicting, overlarge and wrong-profile exports fail closed', ()
   assert.throws(() => localLinkedinDraft('x'.repeat(LINKEDIN_EXPORT_LIMIT + 1)), /200 KiB/);
 });
 test('session credentials and prototype fields cannot enter the import', () => {
+  assert.equal(
+    localLinkedinDraft(
+      JSON.stringify({ ...fixture, about: 'Authorization: RBAC design and access control.' }),
+    ).draft.summary,
+    'Authorization: RBAC design and access control.',
+  );
   for (const data of [
     { ...fixture, li_at: 'secret' },
     { ...fixture, sections: { experience: [{ cookies: 'secret' }] } },

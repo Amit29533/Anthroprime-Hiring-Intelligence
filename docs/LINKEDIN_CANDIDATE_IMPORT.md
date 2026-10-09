@@ -28,6 +28,7 @@ Duplicate checks use email, phone and canonical LinkedIn URLs against the candid
    ```
 
    Use the existing Supabase URL/anon-key configuration for authenticated API access. Never prefix the provider key with `VITE_` or put it in the frontend. No additional npm dependency is needed.
+
 3. Use a People Data Labs account/plan permitted to return the requested fields for your recruitment use. Credits, coverage and field availability depend on the account. The application does not assume a free quota or guarantee email/phone availability. The pasted-text path requires no enrichment provider credits.
 4. In the import dialog, a workspace administrator selects **Enable workspace LinkedIn lookup**. The database stores `settings.custom.linkedinEnrichment=true`. If administrator MFA is active, verify the authenticator first. Recruiters can use enabled lookup; viewers/anonymous users cannot. Neither the migration nor a configured key automatically activates workspaces.
 5. Lookup transmits the entered profile URL or numeric ID to People Data Labs. The UI states this before use. No CV bytes, internal candidate notes, database history or additional candidate fields are sent. Each workspace has a locked reservation counter capped at 20 attempts per UTC day, shared across editors; failures and no-match attempts consume reservations. This application cap is separate from provider billing/quotas. Browser users cannot edit counters. Retries can use another provider credit; there is no automatic provider retry or paid-response cache.
