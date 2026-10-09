@@ -7,6 +7,81 @@ test.before(async () => {
 });
 afterEach(cleanup);
 test.after(stopVite);
+
+test('quick extraction copies a profile-bound command and clipboard import requires review without automatic saving', async () => {
+  const copied = [],
+    saves = [];
+  const payload = JSON.stringify({
+    url: 'https://www.linkedin.com/in/mira-testcandidate/',
+    name: 'Mira Testcandidate',
+    headline: 'Developer',
+  });
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: true,
+    readClipboard: async () => payload,
+    writeClipboard: async (value) => copied.push(value),
+    onSave: async (_, rows) => {
+      saves.push(rows);
+      return true;
+    },
+  });
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: 'mira-testcandidate' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy extraction command' }));
+  await settle();
+  assert.equal(copied.length, 1);
+  assert.match(copied[0], /https:\/\/www.linkedin.com\/in\/mira-testcandidate\//);
+  assert.equal(screen.getByLabelText('LinkedIn extraction command').value, copied[0]);
+  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  await settle();
+  assert.equal(screen.getByLabelText('LinkedIn draft name').value, 'Mira Testcandidate');
+  assert.equal(
+    screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }).disabled,
+    true,
+  );
+  assert.equal(saves.length, 0);
+});
+
+test('clipboard denial or wrong-profile data clears stale drafts and viewer cannot copy or import', async () => {
+  let content = JSON.stringify({
+    url: 'https://www.linkedin.com/in/mira-testcandidate',
+    name: 'Mira',
+  });
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: true,
+    readClipboard: async () => {
+      if (content instanceof Error) throw content;
+      return content;
+    },
+    onSave: async () => assert.fail('No save expected'),
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  await settle();
+  assert.ok(screen.getByLabelText('LinkedIn draft name'));
+  content = JSON.stringify({ url: 'https://www.linkedin.com/in/another-person', name: 'Other' });
+  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  await settle();
+  assert.match(screen.getByRole('alert').textContent, /different/);
+  assert.equal(screen.queryByLabelText('LinkedIn draft name'), null);
+  content = new Error('Clipboard permission denied');
+  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  await settle();
+  assert.match(screen.getByRole('alert').textContent, /permission denied/);
+  cleanup();
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: false,
+    canImport: false,
+    onSave: async () => assert.fail('No save'),
+  });
+  assert.equal(screen.getByRole('button', { name: 'Copy extraction command' }).disabled, true);
+  assert.equal(screen.getByRole('button', { name: 'Paste extracted profile' }).disabled, true);
+});
 test('pasted LinkedIn profiles require contact/review and save through normal candidate persistence with stable retry identity', async () => {
   const saves = [];
   const data = { candidates: [] };

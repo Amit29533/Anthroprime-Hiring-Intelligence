@@ -26,3 +26,16 @@
   font: inherit;
   line-height: 1.65;
 }
+.linkedin-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.linkedin-command-text {
+  width: 100%;
+  min-height: 210px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}

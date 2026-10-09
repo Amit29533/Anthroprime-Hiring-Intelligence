@@ -7,6 +7,41 @@ worker. No credentials are bundled or sent to the website.
 
 ## Website workflow
 
+### Quick Windows command
+
+In Candidates → Import candidates, enter the candidate's public LinkedIn URL
+or handle, then click **Copy extraction command**. Open Windows PowerShell,
+paste the entire command and press Enter. Python 3.10 or newer must already
+be installed; the command handles the remaining first-time setup.
+
+The command downloads the reviewed ZIP from the production portal, verifies
+its embedded SHA-256 checksum before unpacking, creates a local virtual
+environment, installs Playwright 1.63.0 from PyPI and its Chromium browser,
+and starts normal `--login` extraction. Later runs reuse the runtime and
+browser. The package is checked and unpacked again before each execution.
+It does not require admin access, an extension or execution-policy changes.
+
+Sign in to LinkedIn in the opened temporary browser and press Enter in
+PowerShell. An existing login in another browser is not reused. After a
+successful extraction, the new JSON is copied to your clipboard. Return to
+the portal and click **Paste extracted profile**, review and save. This
+clipboard read happens only on that explicit button click, and does not save
+a candidate automatically. Contact details still need manual entry.
+
+The command leaves the result file under `%LOCALAPPDATA%\AnthroPrime\LinkedIn`
+with a unique name. If clipboard access fails, choose that file using the
+existing **LinkedIn JSON export** control. No cookie or password enters the
+clipboard or the portal. Clipboard managers/history may retain the profile
+JSON; clear it after importing if needed. The temporary login closes after
+each run. There is no persistent session to refresh or revoke.
+
+If a portal deployment changes the ZIP while an old command is open, the
+checksum check refuses to execute it. Refresh the portal and copy a fresh
+command. A failed extraction never copies a new result. No browser challenge
+is solved automatically.
+
+### Manual download fallback
+
 Open Candidates → Import → Import from LinkedIn → **Import a local LinkedIn
 export**. Download the packaged tool, unzip it, and follow the local-run
 instructions below. Choose its JSON output in **LinkedIn JSON export**.

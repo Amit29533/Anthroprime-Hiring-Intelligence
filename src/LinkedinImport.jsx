@@ -5,7 +5,9 @@ import { Button, Field, PanelHeading } from './ui.jsx';
 import { duplicate, skillList, today, uid, validateCandidate } from './domain.js';
 import { candidateLabel } from './anthroId.js';
 import { linkedinProfile, linkedinLookup, pastedLinkedinDraft } from './linkedin.js';
-import { readLinkedinExport } from './linkedinFile.js';
+import { readLinkedinExport, localLinkedinDraft } from './linkedinFile.js';
+import { linkedinCommand } from './linkedinCommand.js';
+import extractorManifest from '../public/linkedin-local-extractor-manifest.json';
 import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { evidenceReady } from './cvEvidence.js';
 
@@ -44,6 +46,8 @@ export function LinkedinImport({
   request = linkedinRequest,
   setEnabled = setWorkspaceEnabled,
   readExport = readLinkedinExport,
+  readClipboard = () => navigator.clipboard.readText(),
+  writeClipboard = (value) => navigator.clipboard.writeText(value),
   canImport = ['admin', 'recruiter'].includes(getRole()),
 }) {
   const [profile, setProfile] = useState(''),
@@ -55,6 +59,8 @@ export function LinkedinImport({
     [error, setError] = useState(''),
     [confirmed, setConfirmed] = useState(false);
   const candidateId = useRef(null);
+  const [commandNotice, setCommandNotice] = useState('');
+  const [command, setCommand] = useState('');
   const generation = useRef(0);
   useEffect(
     () => () => {
@@ -94,6 +100,46 @@ export function LinkedinImport({
     candidateId.current = uid();
   }
   const [evidenceText, setEvidenceText] = useState('');
+  async function copyCommand() {
+    setCommandNotice('');
+    try {
+      const value = linkedinCommand(profile, extractorManifest.archiveSha256);
+      setCommand(value);
+      try {
+        await writeClipboard(value);
+        setCommandNotice('Command copied. Open PowerShell, paste it and press Enter.');
+      } catch {
+        setCommandNotice(
+          'Clipboard access was unavailable. Select and copy the displayed command manually.',
+        );
+      }
+    } catch (failure) {
+      setCommandNotice(failure.message);
+    }
+  }
+  async function pasteExport() {
+    if (!canImport || busy) return;
+    resetDraft();
+    setEvidenceText('');
+    setBusy(true);
+    const current = generation.current;
+    try {
+      const content = await readClipboard();
+      if (generation.current !== current) return;
+      const result = localLinkedinDraft(content, profile);
+      acceptDraft(result);
+      setProfile(result.draft.linkedin);
+      setEvidenceText(result.evidenceText || '');
+    } catch (failure) {
+      if (generation.current === current)
+        setError(
+          failure.message ||
+            'Clipboard access failed. Use LinkedIn JSON export to choose the saved result file.',
+        );
+    } finally {
+      if (generation.current === current) setBusy(false);
+    }
+  }
   async function importExport(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -240,6 +286,65 @@ export function LinkedinImport({
         {!canImport && (
           <p role="status">Candidate import requires an administrator or recruiter role.</p>
         )}
+        <Field label="LinkedIn profile URL or ID">
+          <input
+            aria-label="LinkedIn profile URL or ID"
+            value={profile}
+            maxLength={500}
+            disabled={busy || !canImport}
+            placeholder="https://www.linkedin.com/in/priya-sharma"
+            onChange={(event) => {
+              setProfile(event.target.value);
+              setCommand('');
+              setCommandNotice('');
+              resetDraft();
+              setEvidenceText('');
+            }}
+          />
+        </Field>
+        <section className="linkedin-export-import" aria-label="Quick LinkedIn extraction">
+          <h3>Extract with one command</h3>
+          <p>
+            Enter the candidate’s LinkedIn URL above, copy the command, and run it in Windows
+            PowerShell. It sets up the extractor once and opens LinkedIn for normal sign-in. Then
+            return here and paste the result.
+          </p>
+          <div className="linkedin-command-actions">
+            <Button disabled={busy || !canImport} onClick={copyCommand}>
+              Copy extraction command
+            </Button>
+            <Button variant="secondary" disabled={busy || !canImport} onClick={pasteExport}>
+              Paste extracted profile
+            </Button>
+          </div>
+          {commandNotice && <p role="status">{commandNotice}</p>}
+          {command && (
+            <details open>
+              <summary>Your PowerShell command</summary>
+              <textarea
+                aria-label="LinkedIn extraction command"
+                className="linkedin-command-text"
+                value={command}
+                readOnly
+              />
+            </details>
+          )}
+          <p>
+            Requires{' '}
+            <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noreferrer">
+              Python 3.10 or newer
+            </a>{' '}
+            on Windows. First run downloads Playwright and Chromium; later runs reuse them. No
+            extension or administrator access is needed. Sign-in happens in the extractor’s
+            temporary browser, even if another browser is already logged in. The login closes after
+            each run.
+          </p>
+          <p>
+            The command copies the extracted profile JSON to your clipboard. “Paste extracted
+            profile” reads it for review; it does not save a candidate automatically. A local JSON
+            file remains available as a fallback. No password or cookie is sent to this portal.
+          </p>
+        </section>
         <section aria-label="Import local LinkedIn export" className="linkedin-export-import">
           <h3>Import a local LinkedIn export</h3>
           <p>
@@ -290,20 +395,6 @@ export function LinkedinImport({
             One profile per file · maximum 200 KiB. An entered profile URL must match the export.
           </p>
         </section>
-        <Field label="LinkedIn profile URL or ID">
-          <input
-            aria-label="LinkedIn profile URL or ID"
-            value={profile}
-            maxLength={500}
-            disabled={busy || !canImport}
-            placeholder="https://www.linkedin.com/in/priya-sharma"
-            onChange={(e) => {
-              setProfile(e.target.value);
-              resetDraft();
-              setEvidenceText('');
-            }}
-          />
-        </Field>
         <Field label="LinkedIn profile text">
           <textarea
             aria-label="LinkedIn profile text"
