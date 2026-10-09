@@ -143,13 +143,40 @@ def extract_about(page, warnings):
         return None
 
 
-def extract_profile(page, expected):
-    check_page(page, expected)
+def visible_snapshot(page):
     dom_script = pathlib.Path(__file__).with_name("linkedin_visible_profile.js").read_text(encoding="utf-8").rstrip()
     if dom_script.endswith(";"):
         dom_script = dom_script[:-1]
-    modern = page.evaluate("(" + dom_script + "\n)()")
-    name = modern.get("name") if modern else first_visible_text(page, ["main h1"])
+    return page.evaluate("(" + dom_script + "\n)()")
+
+
+def merge_snapshots(previous, current):
+    """Retain visible rows across lazy/virtual rendering; never infer absent facts."""
+    if not current:
+        return previous
+    if not previous:
+        previous = {"sections": {}, "warnings": []}
+    for field in ("name", "headline", "company", "location", "about"):
+        if current.get(field) and not previous.get(field):
+            previous[field] = current[field]
+    for key, rows in current.get("sections", {}).items():
+        combined = previous["sections"].setdefault(key, [])
+        for row in rows:
+            if row not in combined:
+                if len(combined) < 15:
+                    combined.append(row)
+                else:
+                    previous["warnings"].append(f"{key}: output capped at 15 entries")
+    previous["warnings"] = list(dict.fromkeys(previous["warnings"] + current.get("warnings", [])))
+    if all(previous.get(field) for field in ("headline", "company", "location")):
+        previous["warnings"] = [warning for warning in previous["warnings"] if not warning.startswith("intro:")]
+    return previous
+
+
+def extract_profile(page, expected, captured=None):
+    check_page(page, expected)
+    modern = merge_snapshots(captured, visible_snapshot(page))
+    name = (modern or {}).get("name") or first_visible_text(page, ["main h1"])
     if not name or len(name) > 200:
         raise ExtractionError("No valid profile name found. The page may be blocked or changed.")
     warnings = list(modern.get("warnings", [])) if modern else []
@@ -158,13 +185,11 @@ def extract_profile(page, expected):
         "version": 1,
         "url": expected,
         "name": name,
-        "headline": modern.get("headline") if modern else first_visible_text(page, ["main section div.text-body-medium.break-words"]),
+        "headline": (modern or {}).get("headline") or first_visible_text(page, ["main section div.text-body-medium.break-words"]),
         "company": modern.get("company") if modern else None,
-        "location": modern.get("location") if modern else first_visible_text(page, ["main section span.text-body-small.inline.t-black--light.break-words"]),
-        "about": modern.get("about") if modern else extract_about(page, warnings),
+        "location": (modern or {}).get("location") or first_visible_text(page, ["main section span.text-body-small.inline.t-black--light.break-words"]),
+        "about": (modern or {}).get("about") or extract_about(page, warnings),
     }
-    if modern and not data["about"]:
-        warnings.append("about: section absent or not loaded")
     for key, anchor in (
         ("experience", "experience"), ("education", "education"),
         ("skills", "skills"), ("certifications", "licenses_and_certifications"),
@@ -238,12 +263,14 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
                 page.goto(expected, wait_until="domcontentloaded", timeout=timeout_ms)
                 check_page(page, expected)
                 page.locator('main h1, main a[componentkey^="ProfileVerificationTriggerRef-"] h2').first.wait_for(state="visible", timeout=15000)
-                # Bounded rendering pass, not random delays or detection evasion.
-                for _ in range(4):
+                # Capture before every scroll so virtualized sections are retained.
+                captured = visible_snapshot(page)
+                for _ in range(12):
                     page.mouse.wheel(0, 800)
-                    page.wait_for_timeout(350)
+                    page.wait_for_timeout(500)
                     check_page(page, expected)
-                return extract_profile(page, expected)
+                    captured = merge_snapshots(captured, visible_snapshot(page))
+                return extract_profile(page, expected, captured)
             finally:
                 # A context close failure must not prevent browser cleanup.
                 try:
@@ -281,6 +308,8 @@ def main():
             with os.fdopen(fd, "w", encoding="utf-8") as file:
                 file.write(output + "\n")
             print("Saved reviewed-draft output. Inspect warnings before importing.")
+            if not any(result.get(key) for key in ("experience", "education", "skills", "certifications")):
+                print("WARNING: No professional sections captured. Do not treat this as a complete profile; review it manually.")
         else:
             print(output)
         return 0

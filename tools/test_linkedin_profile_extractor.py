@@ -258,6 +258,23 @@ class ExtractorTests(unittest.TestCase):
         page.sections["section:has(div#about)"] = Locator(children={"span[aria-hidden='true']": [Locator("About"), Locator("React developer\nFour years\nsee more")]})
         self.assertEqual(extractor.extract_about(page, []), "React developer\nFour years")
 
+    def test_scroll_snapshots_retain_sections_removed_by_virtual_rendering(self):
+        page = Page(name="")
+        page.modern = {"name": "Mira", "headline": "Engineer", "sections": {}, "warnings": []}
+        def wheel(x, y):
+            page.modern = {"name": None, "sections": {"skills": [["React"]]}, "warnings": []}
+        page.wheel = wheel
+        result = extractor.scrape(URL, "SECRET", playwright_factory=factory_for(Browser(page)))
+        self.assertEqual(result["name"], "Mira")
+        self.assertEqual(result["headline"], "Engineer")
+        self.assertEqual(result["skills"], [["React"]])
+
+    def test_merged_rows_are_unique_bounded_and_preserve_warning(self):
+        first = {"name": "Mira", "sections": {"skills": [[str(i)] for i in range(15)]}, "warnings": []}
+        result = extractor.merge_snapshots(first, {"sections": {"skills": [["0"], ["16"]]}, "warnings": []})
+        self.assertEqual(len(result["sections"]["skills"]), 15)
+        self.assertEqual(result["warnings"], ["skills: output capped at 15 entries"])
+
     def test_fixture_end_to_end_cleans_up_and_omits_secret(self):
         browser = Browser(Page())
         result = extractor.scrape(URL, "SECRET_COOKIE", playwright_factory=factory_for(browser))

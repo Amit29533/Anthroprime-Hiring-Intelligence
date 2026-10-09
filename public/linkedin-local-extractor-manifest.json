@@ -1,8 +1,8 @@
 {
-  "archiveSha256": "3baf73cf2ff38719db69ff0d5a7812ab24d1692b4a5226923fd544d4e936f690",
+  "archiveSha256": "4336399d9a8bdfa4a518b78c2a2f2a27ff4a8ad7478369d5e3b66c182751e9ec",
   "files": {
-    "tools/linkedin_profile_extractor.py": "7bff52a8e8204a1d547f788bf50c537ec92376107c0862ab9d69accd00b2b5ea",
-    "tools/linkedin_visible_profile.js": "dfacfccea985bbf59a8fdeb558f5cbd4f04bfca04423e42f39abc55b7479dce8",
-    "docs/LINKEDIN_LOCAL_EXTRACTOR_TESTING.md": "3c7a934bd58a7904b8b09d90549506217152464751174f1d39417ec3feea67e3"
+    "tools/linkedin_profile_extractor.py": "62999563eea589c6056992b00f3e0c63591e053bd25ba1e5a92207092b0d1387",
+    "tools/linkedin_visible_profile.js": "ef147382e8dfaec7099b7b6bab22848c114ae92b61ccf10c9bf60da84e7e4bb9",
+    "docs/LINKEDIN_LOCAL_EXTRACTOR_TESTING.md": "a90b6991601c5f7dbe890dbf517ca836471c15b882618fa68804baa20640cdf3"
   }
 }

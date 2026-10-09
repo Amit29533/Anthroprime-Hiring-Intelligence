@@ -42,6 +42,16 @@ checksum check refuses to execute it. Refresh the portal and copy a fresh
 command. A failed extraction never copies a new result. No browser challenge
 is solved automatically.
 
+The extractor captures the intro before scrolling and merges visible section
+rows during a bounded 12-step rendering pass. It supports semantic section
+headings and outer list rows as well as the observed component-key layout.
+Hidden rows and unrelated sidebar content are excluded. Collapsed entries
+still require manual review; the tool does not guarantee a complete profile.
+If no professional sections are captured, the terminal prints an explicit
+warning. Existing exports are snapshots: refresh the portal, copy a new command
+and extract again to use parser fixes. Reimporting an old JSON cannot recover
+content that was never captured.
+
 ### Manual download fallback
 
 Open Candidates → Import → Import from LinkedIn → **Import a local LinkedIn

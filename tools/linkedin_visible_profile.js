@@ -14,31 +14,41 @@
       .map((x) => x.replace(/[ \t]+/g, ' ').trim())
       .filter((x, i, all) => x && x !== all[i - 1]);
   const trigger = document.querySelector('main a[componentkey^="ProfileVerificationTriggerRef-"]');
-  const name = trigger?.querySelector('h2');
-  if (!visible(name)) return null;
-  let header = name.parentElement;
+  const name = trigger?.querySelector('h2') || document.querySelector('main h1');
+  if (!document.querySelector('main')) return null;
+  let header = visible(name) ? name.parentElement : null;
   for (let i = 0; header && i < 12; i++, header = header.parentElement) {
-    if (header.querySelectorAll('h2').length !== 1) {
+    if (header.querySelectorAll('h1, h2').length !== 1) {
       header = null;
       break;
     }
-    if (header.querySelectorAll('p').length >= 4) break;
+    if (
+      Array.from(header.querySelectorAll('a, button, p')).some(
+        (el) => visible(el) && /^Contact info$/i.test(el.innerText.trim()),
+      )
+    )
+      break;
   }
   const paragraphs = header
     ? Array.from(header.querySelectorAll('p'))
         .filter(visible)
         .map((x) => x.innerText.trim())
     : [];
-  const contact = paragraphs.findIndex((x) => x === 'Contact info');
-  const intro = (contact >= 0 ? paragraphs.slice(0, contact) : []).filter(
-    (x) => x !== '·' && !/^(He\/Him|She\/Her|They\/Them)(\/\w+)?$/i.test(x),
+  const contact = paragraphs.findIndex((x) => /^Contact info$/i.test(x));
+  const intro = (contact >= 0 ? paragraphs.slice(0, contact) : paragraphs).filter(
+    (x) =>
+      x !== '·' &&
+      x !== name?.innerText.trim() &&
+      !/^(He\/Him|She\/Her|They\/Them)(\/\w+)?$|^Contact info$|^\d[\d,+.]* (connections|followers)$/i.test(
+        x,
+      ),
   );
   // Require the observed three-field header shape; leave uncertain values blank.
   const data = {
     format: 'anthro-linkedin-profile',
     version: 1,
     url: window.location.href,
-    name: name.innerText.trim(),
+    name: visible(name) ? name.innerText.trim() : null,
     headline: intro.length === 3 ? intro[0] : null,
     company: intro.length === 3 ? intro[1] : null,
     location: intro.length === 3 ? intro[2] : null,
@@ -46,34 +56,60 @@
     sections: {},
     warnings: [],
   };
-  if (intro.length !== 3)
+  if (visible(name) && intro.length !== 3)
     data.warnings.push('intro: unfamiliar header shape; fill headline/company/location manually');
+  // Explicit legacy field selectors remain useful when the modern header varies.
+  const field = (selector) =>
+    Array.from((header || name?.parentElement)?.querySelectorAll(selector) || [])
+      .find(visible)
+      ?.innerText.trim() || null;
+  data.headline ||= field('.text-body-medium.break-words');
+  data.location ||= field('.text-body-small.inline.t-black--light.break-words');
   const labels = {
     experience: /^Experience$/i,
     education: /^Education$/i,
     skills: /^Skills(?:\s*\(\d+\))?$/i,
-    licenses_and_certifications: /^Licenses\s*&\s*certifications(?:\s*\(\d+\))?$/i,
+    licenses_and_certifications: /^Licenses\s*(?:&|and)\s*certifications(?:\s*\(\d+\))?$/i,
+  };
+  const headings = () =>
+    Array.from(document.querySelectorAll('main h2, main h3, main [role="heading"]')).filter(
+      visible,
+    );
+  const isSectionHeading = (el) =>
+    /^About$/i.test(el.innerText.trim()) ||
+    Object.values(labels).some((label) => label.test(el.innerText.trim()));
+  const cardFor = (heading) => {
+    let card = heading.parentElement;
+    for (let i = 0; card && card.tagName !== 'MAIN' && i < 12; i++, card = card.parentElement) {
+      if (
+        Array.from(card.querySelectorAll('h2, h3, [role="heading"]')).filter(isSectionHeading)
+          .length > 1
+      )
+        return null;
+      if (
+        card.tagName === 'SECTION' ||
+        card.querySelector('li, [componentkey^="entity-collection-item"]')
+      )
+        return card;
+      if (Array.from(card.children).some((el) => !el.contains(heading) && el.querySelector('p')))
+        return card;
+    }
+    return null;
   };
   for (const [key, label] of Object.entries(labels)) {
-    const heading = Array.from(document.querySelectorAll('main h2')).find(
-      (x) => visible(x) && label.test(x.innerText.trim()),
-    );
+    const heading = headings().find((x) => label.test(x.innerText.trim()));
     if (!heading) continue;
-    let card = heading.parentElement;
-    for (let i = 0; card && i < 10; i++, card = card.parentElement) {
-      if (card.querySelectorAll('h2').length !== 1) {
-        card = null;
-        break;
-      }
-      if (Array.from(card.children).some((x) => !x.querySelector('h2') && x.querySelector('p')))
-        break;
-    }
+    const card = cardFor(heading);
     if (!card) continue;
     let entries = Array.from(
       card.querySelectorAll('[componentkey^="entity-collection-item"]'),
     ).filter(
       (el) => visible(el) && !el.parentElement.closest('[componentkey^="entity-collection-item"]'),
     );
+    if (!entries.length)
+      entries = Array.from(card.querySelectorAll('li')).filter(
+        (el) => visible(el) && !el.parentElement.closest('li'),
+      );
     if (!entries.length && key === 'education') {
       const candidates = Array.from(card.querySelectorAll('div[componentkey]')).filter(
         (el) => visible(el) && el.querySelector('p'),
@@ -111,9 +147,10 @@
     const seen = new Set();
     const result = [];
     for (const el of entries) {
-      const item = lines(el.innerText).filter(
-        (x) => !/^Show credential$|^Show all\b|^Show more$|^Show less$/i.test(x),
-      );
+      const item = lines(el.innerText)
+        .filter((x) => !/^Show credential$|^Show all\b|^Show more$|^Show less$/i.test(x))
+        .slice(0, 40)
+        .map((line) => line.slice(0, 2000));
       const fingerprint = JSON.stringify(item);
       if (item.length && !seen.has(fingerprint)) {
         seen.add(fingerprint);
@@ -125,19 +162,15 @@
     if (/Show all\b/i.test(card.innerText))
       data.warnings.push(`${key}: additional entries are collapsed; visible entries only`);
   }
-  const aboutHeading = Array.from(document.querySelectorAll('main h2')).find(
-    (x) => visible(x) && /^About$/i.test(x.innerText.trim()),
-  );
-  let aboutCard = aboutHeading?.parentElement;
-  for (let i = 0; aboutCard && i < 10; i++, aboutCard = aboutCard.parentElement) {
-    if (aboutCard.querySelectorAll('h2').length !== 1) break;
-    const text = Array.from(aboutCard.querySelectorAll('p'))
+  const aboutHeading = headings().find((x) => /^About$/i.test(x.innerText.trim()));
+  const aboutCard = aboutHeading && cardFor(aboutHeading);
+  if (aboutCard) {
+    const text = Array.from(aboutCard.querySelectorAll('p, span[aria-hidden="true"]'))
       .filter(visible)
       .map((x) => x.innerText.trim())
       .filter(Boolean);
     if (text.length) {
       data.about = text.join('\n\n').slice(0, 10000);
-      break;
     }
   }
   return data;
