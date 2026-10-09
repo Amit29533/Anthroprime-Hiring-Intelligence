@@ -64,6 +64,13 @@ use Ctrl+C to cancel and retry with a fresh command. Do not paste a previously
 copied profile result after a failed extraction. Sign-in must be completed in
 the temporary browser opened by the command, not a different browser window.
 
+Header loading uses the same semantic profile parser as extraction. Besides
+`h1` and the observed verification header, it accepts a level-one ARIA heading
+or a single visible intro heading scoped by the Contact info control. Arbitrary
+experience or recommendation headings are not used as candidate names. If the
+name remains unrecognized, the error recommends pasted profile text rather
+than implying that sign-in necessarily failed.
+
 ### Manual download fallback
 
 Open Candidates → Import → Import from LinkedIn → **Import a local LinkedIn

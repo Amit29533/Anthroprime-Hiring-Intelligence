@@ -14,11 +14,44 @@
       .map((x) => x.replace(/[ \t]+/g, ' ').trim())
       .filter((x, i, all) => x && x !== all[i - 1]);
   const trigger = document.querySelector('main a[componentkey^="ProfileVerificationTriggerRef-"]');
-  const name = trigger?.querySelector('h2') || document.querySelector('main h1');
+  let name =
+    Array.from(document.querySelectorAll('main h1, main [role="heading"][aria-level="1"]')).find(
+      visible,
+    ) || trigger?.querySelector('h2');
+  // Component keys are unstable. A visible contact control scopes the intro
+  // card without selecting arbitrary headings from jobs or recommendations.
+  if (!visible(name)) {
+    const contacts = Array.from(document.querySelectorAll('main a, main button')).filter(
+      (el) => visible(el) && /^Contact info$/i.test(el.innerText.trim()),
+    );
+    for (const contact of contacts.slice(0, 5)) {
+      let card = contact.parentElement;
+      for (
+        let depth = 0;
+        card && card.tagName !== 'MAIN' && depth < 8;
+        depth++, card = card.parentElement
+      ) {
+        const candidates = Array.from(card.querySelectorAll('h1, h2, h3, [role="heading"]')).filter(
+          (el) =>
+            visible(el) &&
+            Boolean(el.compareDocumentPosition(contact) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+            !/^(About|Experience|Education|Skills|Licenses.*certifications|Activity|Contact info|People also viewed)$/i.test(
+              el.innerText.trim(),
+            ),
+        );
+        if (candidates.length === 1) {
+          name = candidates[0];
+          break;
+        }
+        if (candidates.length > 1) break;
+      }
+      if (visible(name)) break;
+    }
+  }
   if (!document.querySelector('main')) return null;
   let header = visible(name) ? name.parentElement : null;
   for (let i = 0; header && i < 12; i++, header = header.parentElement) {
-    if (header.querySelectorAll('h1, h2').length !== 1) {
+    if (header.querySelectorAll('h1, h2, h3, [role="heading"]').length !== 1) {
       header = null;
       break;
     }

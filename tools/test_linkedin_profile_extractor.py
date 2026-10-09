@@ -192,6 +192,16 @@ class ExtractorTests(unittest.TestCase):
             extractor.scrape(URL, "SECRET_COOKIE", playwright_factory=factory_for(browser))
         self.assertTrue(browser.context_closed and browser.browser_closed)
 
+    def test_header_wait_uses_semantic_snapshot_without_old_css_gate(self):
+        page = Page(name="")
+        snapshots = [None, {"name": "Mira", "sections": {}, "warnings": []}]
+        with patch.object(extractor, "visible_snapshot", side_effect=snapshots):
+            self.assertEqual(extractor.wait_for_profile_intro(page, URL)["name"], "Mira")
+
+    def test_unrecognized_header_fails_with_specific_fallback_and_no_guess(self):
+        with self.assertRaisesRegex(extractor.ExtractionError, "pasted profile text"):
+            extractor.wait_for_profile_intro(Page(name=""), URL)
+
     def test_login_still_refuses_unauthenticated_profile(self):
         page = Page("https://www.linkedin.com/login")
         browser = Browser(page)

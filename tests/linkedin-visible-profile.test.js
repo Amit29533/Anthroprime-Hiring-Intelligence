@@ -27,6 +27,28 @@ function extract(html) {
 }
 const header =
   '<section><a componentkey="ProfileVerificationTriggerRef-test"><h2>Mira Testcandidate</h2></a><p>Developer</p><p>Example Labs</p><p>Example City</p><a>Contact info</a></section>';
+
+test('contact-scoped heading works without verification keys or h1', () => {
+  const result = extract(
+    '<main><section><h2>Mira Testcandidate</h2><p>Developer</p><p>Example Labs</p><p>Example City</p><button>Contact info</button></section><section><h2>Experience</h2><ul><li>Engineer</li></ul></section></main>',
+  );
+  assert.equal(result.name, 'Mira Testcandidate');
+  assert.equal(result.headline, 'Developer');
+});
+test('semantic level-one heading is accepted and unrelated headings are not names', () => {
+  assert.equal(
+    extract(
+      '<main><section><div role="heading" aria-level="1">Mira</div><a>Contact info</a></section></main>',
+    ).name,
+    'Mira',
+  );
+  assert.equal(
+    extract(
+      '<main><section><h2>Experience</h2><a>Contact info</a></section><section><h2>Other person</h2></section></main>',
+    ).name,
+    null,
+  );
+});
 test('contact link instead of paragraph preserves modern header fields', () => {
   const result = extract(`<main>${header}</main>`);
   assert.equal(result.headline, 'Developer');

@@ -169,6 +169,18 @@ def visible_snapshot(page):
     return page.evaluate("(" + dom_script + "\n)()")
 
 
+def wait_for_profile_intro(page, expected):
+    """Wait for the same semantic extractor used later, not a separate CSS gate."""
+    for _ in range(30):
+        check_page(page, expected)
+        captured = visible_snapshot(page)
+        name = (captured or {}).get("name") or first_visible_text(page, ["main h1"])
+        if name and len(name) <= 200:
+            return merge_snapshots(captured, {"name": name, "sections": {}, "warnings": []})
+        page.wait_for_timeout(500)
+    raise ExtractionError("The requested profile opened, but its name could not be recognized within 15 seconds. The page may still be loading or use an unsupported layout. No result was saved; use pasted profile text as a fallback.")
+
+
 def merge_snapshots(previous, current):
     """Retain visible rows across lazy/virtual rendering; never infer absent facts."""
     if not current:
@@ -293,11 +305,10 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
                 check_page(page, expected)
                 stage = "waiting for the profile header"
                 report("Profile opened; waiting for the profile header (up to 15 seconds)...")
-                page.locator('main h1:visible, main a[componentkey^="ProfileVerificationTriggerRef-"] h2:visible').first.wait_for(state="visible", timeout=15000)
+                captured = wait_for_profile_intro(page, expected)
                 stage = "reading visible profile sections"
                 deadline = time.monotonic() + 25
                 # Capture before every scroll so virtualized sections are retained.
-                captured = visible_snapshot(page)
                 for step in range(12):
                     remaining_timeout(deadline)
                     report(f"Loading visible sections {step + 1}/12...")
