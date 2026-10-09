@@ -138,7 +138,9 @@ export function localLinkedinDraft(input, expectedProfile = '') {
     ['Certifications', sections.licenses_and_certifications],
   ]
     .flatMap(([heading, entries]) =>
-      entries.length ? [heading, ...entries.map((lines) => lines.join('\n'))] : [],
+      // LinkedIn already supplies entry boundaries. Keep one cited excerpt per
+      // entry so a role, its employer and dates do not become separate records.
+      entries.length ? [heading, ...entries.map((lines) => lines.join(' · '))] : [],
     )
     .join('\n\n');
   if (evidenceText.length > 50000)

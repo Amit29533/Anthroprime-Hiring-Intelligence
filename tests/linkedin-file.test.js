@@ -32,6 +32,11 @@ test('local export maps only professional fields, retains reviewable evidence an
   assert.equal(result.draft.phone, '');
   assert.deepEqual(result.draft.skills, ['React', 'Node.js']);
   assert.ok(result.draft.cvEvidence.items.some((item) => item.section === 'employment'));
+  assert.equal(result.draft.cvEvidence.items.length, 3);
+  const job = result.draft.cvEvidence.items.find((item) => item.section === 'employment');
+  assert.equal(job.evidence, 'Developer · Example Labs · 2022–2026');
+  assert.equal(job.period, '2022–2026');
+  assert.equal(result.evidenceText.split('\n')[job.sourceLine - 1], job.evidence);
   assert.ok(result.draft.cvEvidence.items.every((item) => item.reviewed === false));
   assert.ok(!JSON.stringify(result).includes('other@example.invalid'));
   assert.match(result.warnings[0], /collapsed/);
@@ -97,6 +102,10 @@ test('bounded evidence omissions are disclosed rather than silently accepted', (
     JSON.stringify({
       ...fixture,
       sections: {
+        experience: [
+          ['Engineer', 'Example Labs'],
+          ['Analyst', 'Another Lab'],
+        ],
         education: Array.from({ length: 15 }, (_, index) => [
           `School ${index}`,
           'Qualification',
