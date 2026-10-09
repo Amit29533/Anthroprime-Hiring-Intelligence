@@ -63,7 +63,7 @@ export function LinkedinImport({
       active = false;
     };
   }, [isCloud, request]);
-  async function extract(provider) {
+  async function extract(provider, via = 'provider') {
     setBusy(true);
     setError('');
     setDraft(null);
@@ -84,7 +84,10 @@ export function LinkedinImport({
           `Already in your repository: ${candidateLabel(existing)}. Open that candidate to update it.`,
         );
       const result = provider
-        ? await request({ action: 'lookup', profile: input.id || normalized })
+        ? await request({
+            action: via === 'session' ? 'session-lookup' : 'lookup',
+            profile: input.id || normalized,
+          })
         : {
             draft: pastedLinkedinDraft(profile, text),
             provider: 'Pasted LinkedIn text',
@@ -211,12 +214,33 @@ export function LinkedinImport({
         >
           Look up LinkedIn ID
         </Button>
+        <Button
+          disabled={
+            busy ||
+            !isCloud ||
+            !config?.sessionWorker ||
+            !config?.enabled ||
+            !profile.trim() ||
+            /^\d{5,20}$/.test(profile.trim())
+          }
+          onClick={() => extract(true, 'session')}
+        >
+          Look up with LinkedIn test-account session
+        </Button>
+        {isCloud && config?.sessionWorker && (
+          <p>
+            The session option reads the profile page through a self-hosted worker signed in with a
+            dedicated test LinkedIn account. It is not a LinkedIn-approved integration, may break or
+            get that account restricted, and uses the same workspace limit of 20 attempts per UTC
+            day. Contact details are not returned; add an email or phone during review.
+          </p>
+        )}
         <p>
           {isCloud && config?.configured
             ? 'Provider lookup sends the profile URL to People Data Labs and may use billable credits. Workspace limit: 20 attempts per UTC day, including unsuccessful attempts.'
             : 'Automatic lookup needs a configured enrichment provider in the shared Netlify workspace. Pasted text works without a key.'}
         </p>
-        {isCloud && isAdmin && config?.configured && (
+        {isCloud && isAdmin && (config?.configured || config?.sessionWorker) && (
           <Button
             disabled={busy}
             onClick={async () => {

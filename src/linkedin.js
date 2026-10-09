@@ -88,3 +88,40 @@ export function pdlCandidateDraft(data, profile) {
     summary: '',
   };
 }
+// Draft from the self-hosted session worker. The worker returns only profile text
+// fields; contact details are not on the public profile view, so email/phone stay
+// blank for the recruiter to supply during review.
+export function sessionCandidateDraft(data, profile) {
+  const linkedin = linkedinProfile(profile);
+  if (!data || typeof data !== 'object' || Array.isArray(data))
+    throw new Error('Session worker returned an invalid profile.');
+  if (!data.profile || linkedinProfile(data.profile) !== linkedin)
+    throw new Error('Session worker returned a different LinkedIn profile.');
+  const name = value(data.name);
+  if (!name) throw new Error('Session worker returned no candidate name.');
+  const headline = value(data.headline);
+  const split = headline.split(/\s+(?:at|@)\s+/i);
+  const latest =
+    Array.isArray(data.experience) && Array.isArray(data.experience[0]) ? data.experience[0] : [];
+  const experienceCompany = typeof latest[1] === 'string' ? latest[1].split('·')[0] : '';
+  return {
+    name,
+    email: '',
+    phone: '',
+    title: value(split.length > 1 ? split[0] : headline || latest[0]),
+    company: value(split.length > 1 ? split.slice(1).join(' at ') : experienceCompany),
+    location: value(data.location),
+    skills: Array.isArray(data.skills)
+      ? [
+          ...new Set(
+            data.skills
+              .filter((s) => typeof s === 'string')
+              .map((s) => value(s, 80))
+              .filter(Boolean),
+          ),
+        ].slice(0, 50)
+      : [],
+    linkedin,
+    summary: value(data.about, 1500),
+  };
+}

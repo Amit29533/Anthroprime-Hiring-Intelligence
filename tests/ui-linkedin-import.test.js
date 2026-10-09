@@ -82,3 +82,53 @@ test('duplicate canonical LinkedIn profiles are refused before provider lookup',
   assert.match(screen.getByRole('alert').textContent, /Already in your repository/);
   assert.equal(lookups, 0);
 });
+test('test-account session lookup is a separate, disclosed option and still requires review before saving', async () => {
+  const requests = [];
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: true,
+    isAdmin: false,
+    onSave: async () => true,
+    request: async (body) => {
+      requests.push(body);
+      if (body.action === 'status')
+        return { enabled: true, configured: false, sessionWorker: true };
+      return {
+        provider: 'LinkedIn test-account session',
+        lookedUpAt: new Date().toISOString(),
+        draft: {
+          name: 'Priya Sharma',
+          email: '',
+          phone: '',
+          title: 'Engineer',
+          company: 'Example',
+          location: 'Pune',
+          skills: ['Python'],
+          linkedin: 'https://www.linkedin.com/in/priya-sharma',
+          summary: '',
+        },
+      };
+    },
+  });
+  await settle();
+  assert.match(document.body.textContent, /not a LinkedIn-approved integration/);
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: '123456789' },
+  });
+  assert.equal(
+    screen.getByRole('button', { name: 'Look up with LinkedIn test-account session' }).disabled,
+    true,
+  );
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: 'priya-sharma' },
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Look up with LinkedIn test-account session' }),
+  );
+  await settle();
+  assert.equal(requests.at(-1).action, 'session-lookup');
+  assert.equal(
+    screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }).disabled,
+    true,
+  );
+});

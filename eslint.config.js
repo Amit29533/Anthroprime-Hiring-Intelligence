@@ -14,6 +14,7 @@ export default [
       'tests/**/*.{js,jsx,mjs}',
       'netlify/functions/**/*.js',
       'scanner/**/*.{js,mjs}',
+      'linkedin-session-worker/**/*.mjs',
       'scripts/recovery/**/*.mjs',
       '*.config.js',
     ],

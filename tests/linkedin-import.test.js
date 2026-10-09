@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { linkedinProfile, pastedLinkedinDraft, pdlCandidateDraft } from '../src/linkedin.js';
-import { enrichLinkedin } from '../netlify/functions/_shared/linkedin.js';
+import {
+  linkedinProfile,
+  pastedLinkedinDraft,
+  pdlCandidateDraft,
+  sessionCandidateDraft,
+} from '../src/linkedin.js';
+import { enrichLinkedin, scrapeLinkedinSession } from '../netlify/functions/_shared/linkedin.js';
 import { createLinkedinHandler } from '../netlify/functions/linkedin-candidate.js';
 const profile = 'https://www.linkedin.com/in/priya-sharma';
 const config = { key: 'private-key', enabled: true };
@@ -142,4 +147,113 @@ test('numeric LinkedIn IDs use the provider lid parameter and require the return
     () => pastedLinkedinDraft('123456789', 'Priya Sharma\nSoftware Engineer'),
     /Numeric IDs require/,
   );
+});
+
+const scraped = {
+  profile: 'https://www.linkedin.com/in/priya-sharma',
+  name: 'Priya Sharma',
+  headline: 'Software Engineer at Example',
+  location: 'Pune',
+  about: 'Builds things.',
+  experience: [['Software Engineer', 'Example · Full-time']],
+  skills: ['Python', 'Python', 'SQL'],
+  password: 'must-not-leak',
+};
+test('session worker drafts are minimal, deduplicated, contact-free and refuse a different profile', () => {
+  const draft = sessionCandidateDraft(scraped, profile);
+  assert.equal(draft.name, 'Priya Sharma');
+  assert.equal(draft.title, 'Software Engineer');
+  assert.equal(draft.company, 'Example');
+  assert.deepEqual(draft.skills, ['Python', 'SQL']);
+  assert.equal(draft.email, '');
+  assert.equal(draft.password, undefined);
+  assert.throws(
+    () =>
+      sessionCandidateDraft(
+        { ...scraped, profile: 'https://www.linkedin.com/in/someone' },
+        profile,
+      ),
+    /different/,
+  );
+});
+test('session lookup calls only the configured worker with a bearer token and rejects numeric IDs or mismatches', async () => {
+  const configuration = { url: 'https://worker.example', token: 'x'.repeat(32), enabled: true };
+  const result = await scrapeLinkedinSession('priya-sharma', {
+    configuration,
+    fetcher: async (url, options) => {
+      assert.equal(url, 'https://worker.example/profile');
+      assert.equal(options.headers.Authorization, `Bearer ${configuration.token}`);
+      assert.equal(options.redirect, 'error');
+      assert.deepEqual(JSON.parse(options.body), { profile });
+      return { ok: true, status: 200, json: async () => scraped };
+    },
+  });
+  assert.equal(result.provider, 'LinkedIn test-account session');
+  await assert.rejects(scrapeLinkedinSession('123456789', { configuration }), /numeric/);
+  await assert.rejects(
+    scrapeLinkedinSession(profile, { configuration: { ...configuration, enabled: false } }),
+    /not configured/,
+  );
+  await assert.rejects(
+    scrapeLinkedinSession(profile, {
+      configuration,
+      fetcher: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ ...scraped, profile: 'https://www.linkedin.com/in/other-person' }),
+      }),
+    }),
+    /mismatched/,
+  );
+  for (const [status, pattern] of [
+    [429, /rate limited/],
+    [409, /refreshed manually/],
+  ])
+    await assert.rejects(
+      scrapeLinkedinSession(profile, {
+        configuration,
+        fetcher: async () => ({ ok: false, status }),
+      }),
+      pattern,
+    );
+});
+test('session-lookup action reuses role, workspace enablement and quota checks before calling the worker', async () => {
+  let calls = 0,
+    role = 'recruiter',
+    allowed = { enabled: false, allowed: true };
+  const handler = createLinkedinHandler({
+    configuration: () => ({ key: '', enabled: false }),
+    sessionConfiguration: () => ({
+      url: 'https://worker.example',
+      token: 'x'.repeat(32),
+      enabled: true,
+    }),
+    service: () => ({ rpc: async () => ({ data: { allowed: true, generation: 1 } }) }),
+    authorize: async () => ({
+      membership: { role, workspace_id: 'workspace' },
+      user: { id: 'user' },
+      supabase: { rpc: async () => ({ data: allowed, error: null }) },
+    }),
+    sessionLookup: async () => {
+      calls++;
+      return { draft: sessionCandidateDraft(scraped, profile) };
+    },
+  });
+  const event = (action, p = profile) => ({
+    httpMethod: 'POST',
+    body: JSON.stringify({ action, profile: p }),
+  });
+  assert.equal((await handler(event('session-lookup'))).statusCode, 409);
+  allowed = { enabled: true, allowed: false };
+  assert.equal((await handler(event('session-lookup'))).statusCode, 429);
+  allowed.allowed = true;
+  assert.equal((await handler(event('session-lookup', '123456789'))).statusCode, 400);
+  role = 'viewer';
+  assert.equal((await handler(event('session-lookup'))).statusCode, 403);
+  assert.equal(calls, 0);
+  role = 'recruiter';
+  assert.equal((await handler(event('session-lookup'))).statusCode, 200);
+  assert.equal(calls, 1);
+  const status = await handler(event('status'));
+  assert.equal(JSON.parse(status.body).sessionWorker, true);
 });
