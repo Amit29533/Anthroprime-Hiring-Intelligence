@@ -46,6 +46,38 @@ const render = async (name, props = {}) => {
 const noop = () => {};
 const save = async () => true;
 
+test('Candidate 360 renders saved LinkedIn provenance without treating objects as profile facts', async () => {
+  await init();
+  const candidate = {
+    ...data.candidates[0],
+    source: 'LinkedIn import',
+    custom: {
+      legacyField: 'Retained scalar',
+      internalRecord: { token: 'Internal metadata must not render' },
+      linkedinImport: {
+        provider: 'Local LinkedIn export',
+        reviewedAt: '2026-10-09T17:00:00.000Z',
+        completeness: 'Visible sections only',
+        warnings: ['Additional education is collapsed'],
+      },
+    },
+  };
+  const html = await render('CandidateProfile', {
+    candidate,
+    onClose: noop,
+    onEdit: noop,
+    onSave: save,
+    onShortlist: noop,
+    onAssess: noop,
+    notify: noop,
+  });
+  assert.ok(html.includes('LinkedIn import review'));
+  assert.ok(html.includes('Local LinkedIn export'));
+  assert.ok(html.includes('Additional education is collapsed'));
+  assert.ok(html.includes('Retained scalar'));
+  assert.ok(!html.includes('Internal metadata must not render'));
+});
+
 test('Candidate portal renders its gate and, with a profile, the curated view', async () => {
   await init();
   const gate = renderToString(React.createElement(M.PortalApp, {}));

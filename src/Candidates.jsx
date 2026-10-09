@@ -1327,7 +1327,11 @@ export function CandidateProfile({
                   ['Last verified', c.verified],
                   ['Source', c.source],
                   ['Profile owner', c.owner],
-                  ...Object.entries(c.custom || {}),
+                  // Internal provenance lives alongside scalar custom fields. React
+                  // cannot render those objects, and they are not profile facts.
+                  ...Object.entries(c.custom || {})
+                    .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+                    .map(([label, value]) => [label, String(value)]),
                 ].map(([l, v]) => (
                   <div key={l}>
                     <span>{l}</span>
@@ -1335,6 +1339,31 @@ export function CandidateProfile({
                   </div>
                 ))}
               </div>
+              {c.custom?.linkedinImport && typeof c.custom.linkedinImport === 'object' && (
+                <div className="profile-section" aria-label="LinkedIn import provenance">
+                  <h3>LinkedIn import review</h3>
+                  <p>
+                    {typeof c.custom.linkedinImport.provider === 'string'
+                      ? c.custom.linkedinImport.provider
+                      : 'LinkedIn import'}
+                    {typeof c.custom.linkedinImport.reviewedAt === 'string' &&
+                      ` · Reviewed ${c.custom.linkedinImport.reviewedAt}`}
+                  </p>
+                  {typeof c.custom.linkedinImport.completeness === 'string' && (
+                    <p>{c.custom.linkedinImport.completeness}</p>
+                  )}
+                  {Array.isArray(c.custom.linkedinImport.warnings) && (
+                    <ul>
+                      {c.custom.linkedinImport.warnings
+                        .filter((warning) => typeof warning === 'string')
+                        .slice(0, 16)
+                        .map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+              )}
               <div className="profile-section">
                 <h3>Core expertise</h3>
                 <div className="skill-tags large-tags">
