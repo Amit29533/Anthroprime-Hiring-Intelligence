@@ -52,6 +52,18 @@ warning. Existing exports are snapshots: refresh the portal, copy a new command
 and extract again to use parser fixes. Reimporting an old JSON cannot recover
 content that was never captured.
 
+After Enter, the terminal immediately prints `Sign-in confirmed; loading the
+requested profile`, then header, scroll and section progress. Output is
+unbuffered. Navigation and header waits have individual timeouts; the rendering
+and legacy section reads share a 25-second budget. Failures identify the stage
+without exposing browser diagnostics or credentials.
+
+If Enter appears to do nothing, press Esc in PowerShell to leave text-selection
+mode, then press Enter there again. If it still stays at the sign-in prompt,
+use Ctrl+C to cancel and retry with a fresh command. Do not paste a previously
+copied profile result after a failed extraction. Sign-in must be completed in
+the temporary browser opened by the command, not a different browser window.
+
 ### Manual download fallback
 
 Open Candidates → Import → Import from LinkedIn → **Import a local LinkedIn

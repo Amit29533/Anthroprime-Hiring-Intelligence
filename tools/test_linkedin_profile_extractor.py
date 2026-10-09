@@ -157,6 +157,41 @@ class ExtractorTests(unittest.TestCase):
                 self.assertEqual(navigations, ["https://www.linkedin.com/login"])
                 self.assertTrue(browser.context_closed and browser.browser_closed)
 
+    def test_progress_acknowledges_enter_before_navigation_and_has_no_session_data(self):
+        page = Page()
+        events = []
+        page.goto = lambda url, **kwargs: events.append("navigate-login" if url.endswith("login") else "navigate-profile")
+        extractor.scrape(URL, "SECRET_COOKIE", login=True,
+            playwright_factory=factory_for(Browser(page)), login_prompt=lambda _: "",
+            progress=events.append)
+        confirmation = next(i for i, event in enumerate(events) if event.startswith("Sign-in confirmed"))
+        self.assertLess(confirmation, events.index("navigate-profile"))
+        self.assertIn("Loading visible sections 12/12...", events)
+        self.assertIn("Reading skills...", events)
+        self.assertNotIn("SECRET_COOKIE", " ".join(events))
+
+    def test_navigation_failure_names_the_stage_without_private_diagnostics(self):
+        page = Page()
+        page.goto_error = True
+        with self.assertRaisesRegex(extractor.ExtractionError, "loading the requested profile") as error:
+            extractor.scrape(URL, "SECRET_COOKIE", playwright_factory=factory_for(Browser(page)))
+        self.assertNotIn("SECRET_COOKIE", str(error.exception))
+
+    def test_expired_read_budget_fails_without_saving_partial_success(self):
+        for read in (
+            lambda: extractor.section_items(Page(), "experience", [], deadline=5),
+            lambda: extractor.extract_about(Page(), [], deadline=5),
+            lambda: extractor.extract_profile(Page(), URL, deadline=5),
+        ):
+            with patch.object(extractor.time, "monotonic", return_value=6), self.assertRaisesRegex(extractor.ExtractionError, "took too long"):
+                read()
+
+    def test_render_budget_expiry_closes_browser(self):
+        browser = Browser(Page())
+        with patch.object(extractor.time, "monotonic", side_effect=[0, 26]), self.assertRaisesRegex(extractor.ExtractionError, "took too long"):
+            extractor.scrape(URL, "SECRET_COOKIE", playwright_factory=factory_for(browser))
+        self.assertTrue(browser.context_closed and browser.browser_closed)
+
     def test_login_still_refuses_unauthenticated_profile(self):
         page = Page("https://www.linkedin.com/login")
         browser = Browser(page)

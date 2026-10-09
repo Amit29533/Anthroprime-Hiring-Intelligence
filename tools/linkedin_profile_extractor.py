@@ -11,6 +11,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 from urllib.parse import urlsplit
 
 
@@ -77,32 +78,44 @@ def check_page(page, expected):
         raise ExtractionError("The loaded profile does not match the requested profile.")
 
 
-def first_visible_text(page, selectors):
+def remaining_timeout(deadline, maximum=2000):
+    if deadline is None:
+        return maximum
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if remaining <= 0:
+        raise ExtractionError("Profile extraction took too long. No result was saved. Retry after the profile finishes loading.")
+    return min(maximum, remaining)
+
+
+def first_visible_text(page, selectors, deadline=None):
     for selector in selectors:
         # Hidden first matches must not suppress later visible matches.
         for loc in page.locator(selector).all()[:20]:
+            remaining_timeout(deadline)
             if loc.is_visible():
-                lines = clean_lines(loc.inner_text(timeout=2000))
+                lines = clean_lines(loc.inner_text(timeout=remaining_timeout(deadline)))
                 if lines:
                     return " ".join(lines)
     return None
 
 
-def section_items(page, anchor, warnings, max_items=15):
+def section_items(page, anchor, warnings, max_items=15, deadline=None):
     try:
+        remaining_timeout(deadline)
         section = page.locator(f"section:has(div#{anchor})").first
         if not section.count():
             warnings.append(f"{anchor}: section absent or not loaded")
             return []
-        section.scroll_into_view_if_needed(timeout=3000)
+        section.scroll_into_view_if_needed(timeout=remaining_timeout(deadline, 3000))
         # Only outer list entries; nested entries otherwise duplicate job groups.
         entries = section.locator("li").all()[:100]
         result, seen = [], set()
         for entry in entries:
+            remaining_timeout(deadline)
             nested = entry.evaluate("el => Boolean(el.parentElement.closest('li'))")
             if nested or not entry.is_visible():
                 continue
-            lines = clean_lines(entry.inner_text(timeout=2000))
+            lines = clean_lines(entry.inner_text(timeout=remaining_timeout(deadline)))
             if not lines or re.fullmatch(r"Show all.*|Show more|Show less", " ".join(lines), re.I):
                 continue
             key = tuple(lines)
@@ -115,22 +128,26 @@ def section_items(page, anchor, warnings, max_items=15):
         if not result:
             warnings.append(f"{anchor}: no visible list entries; markup may have changed")
         return result
+    except ExtractionError:
+        raise
     except Exception:
         warnings.append(f"{anchor}: extraction failed; review this section manually")
         return []
 
 
-def extract_about(page, warnings):
+def extract_about(page, warnings, deadline=None):
     try:
+        remaining_timeout(deadline)
         section = page.locator("section:has(div#about)").first
         if not section.count():
             warnings.append("about: section absent or not loaded")
             return None
-        section.scroll_into_view_if_needed(timeout=3000)
+        section.scroll_into_view_if_needed(timeout=remaining_timeout(deadline, 3000))
         texts = []
         for item in section.locator("span[aria-hidden='true']").all()[:50]:
+            remaining_timeout(deadline)
             if item.is_visible():
-                lines = clean_lines(item.inner_text(timeout=2000))
+                lines = clean_lines(item.inner_text(timeout=remaining_timeout(deadline)))
                 lines = [x for x in lines if x.lower() not in {"about", "see more", "show more", "show less"}]
                 if lines:
                     texts.append("\n".join(lines))
@@ -138,6 +155,8 @@ def extract_about(page, warnings):
             warnings.append("about: no visible content; markup may have changed")
             return None
         return max(texts, key=len)[:10000]
+    except ExtractionError:
+        raise
     except Exception:
         warnings.append("about: extraction failed; review manually")
         return None
@@ -173,10 +192,12 @@ def merge_snapshots(previous, current):
     return previous
 
 
-def extract_profile(page, expected, captured=None):
+def extract_profile(page, expected, captured=None, *, deadline=None, progress=None):
+    report = progress or (lambda message: None)
+    remaining_timeout(deadline)
     check_page(page, expected)
     modern = merge_snapshots(captured, visible_snapshot(page))
-    name = (modern or {}).get("name") or first_visible_text(page, ["main h1"])
+    name = (modern or {}).get("name") or first_visible_text(page, ["main h1"], deadline)
     if not name or len(name) > 200:
         raise ExtractionError("No valid profile name found. The page may be blocked or changed.")
     warnings = list(modern.get("warnings", [])) if modern else []
@@ -185,22 +206,24 @@ def extract_profile(page, expected, captured=None):
         "version": 1,
         "url": expected,
         "name": name,
-        "headline": (modern or {}).get("headline") or first_visible_text(page, ["main section div.text-body-medium.break-words"]),
+        "headline": (modern or {}).get("headline") or first_visible_text(page, ["main section div.text-body-medium.break-words"], deadline),
         "company": modern.get("company") if modern else None,
-        "location": (modern or {}).get("location") or first_visible_text(page, ["main section span.text-body-small.inline.t-black--light.break-words"]),
-        "about": (modern or {}).get("about") or extract_about(page, warnings),
+        "location": (modern or {}).get("location") or first_visible_text(page, ["main section span.text-body-small.inline.t-black--light.break-words"], deadline),
+        "about": (modern or {}).get("about") or extract_about(page, warnings, deadline),
     }
     for key, anchor in (
         ("experience", "experience"), ("education", "education"),
         ("skills", "skills"), ("certifications", "licenses_and_certifications"),
     ):
+        remaining_timeout(deadline)
+        report(f"Reading {key}...")
         check_page(page, expected)
         if modern and anchor in modern.get("sections", {}):
             data[key] = modern["sections"][anchor]
             if not data[key]:
                 warnings.append(f"{anchor}: no visible entries; review manually")
         else:
-            data[key] = section_items(page, anchor, warnings)
+            data[key] = section_items(page, anchor, warnings, deadline=deadline)
     check_page(page, expected)
     # Only extracted profile fields, not the full main region (recommendations,
     # notifications and unrelated people can appear there). Keep line breaks.
@@ -219,7 +242,9 @@ def extract_profile(page, expected, captured=None):
     return data
 
 
-def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None, login=False, login_prompt=None, browser_channel="chromium"):
+def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *, playwright_factory=None, login=False, login_prompt=None, browser_channel="chromium", progress=None):
+    report = progress or (lambda message: None)
+    stage = "starting the browser"
     expected = profile_url(url)
     if not login and (not isinstance(li_at, str) or not li_at.strip() or any(c.isspace() for c in li_at)):
         raise ExtractionError("Set LI_AT locally to a valid session cookie; never paste it into chat.")
@@ -254,23 +279,35 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
                 if login:
                     # The user signs in directly to LinkedIn. The ephemeral browser
                     # manages its own cookies; never inspect or export its session.
+                    stage = "opening LinkedIn sign-in"
+                    report("Opening LinkedIn sign-in...")
                     page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded", timeout=timeout_ms)
                     answer = (login_prompt or input)(
                         "Sign in to LinkedIn in the opened browser. When finished, press Enter here (or type cancel): "
                     )
                     if answer.strip():
                         raise ExtractionError("Sign-in cancelled. No profile was extracted.")
+                    report("Sign-in confirmed; loading the requested profile (up to 30 seconds)...")
+                stage = "loading the requested profile"
                 page.goto(expected, wait_until="domcontentloaded", timeout=timeout_ms)
                 check_page(page, expected)
-                page.locator('main h1, main a[componentkey^="ProfileVerificationTriggerRef-"] h2').first.wait_for(state="visible", timeout=15000)
+                stage = "waiting for the profile header"
+                report("Profile opened; waiting for the profile header (up to 15 seconds)...")
+                page.locator('main h1:visible, main a[componentkey^="ProfileVerificationTriggerRef-"] h2:visible').first.wait_for(state="visible", timeout=15000)
+                stage = "reading visible profile sections"
+                deadline = time.monotonic() + 25
                 # Capture before every scroll so virtualized sections are retained.
                 captured = visible_snapshot(page)
-                for _ in range(12):
+                for step in range(12):
+                    remaining_timeout(deadline)
+                    report(f"Loading visible sections {step + 1}/12...")
                     page.mouse.wheel(0, 800)
                     page.wait_for_timeout(500)
                     check_page(page, expected)
                     captured = merge_snapshots(captured, visible_snapshot(page))
-                return extract_profile(page, expected, captured)
+                result = extract_profile(page, expected, captured, deadline=deadline, progress=report)
+                report("Extraction finished; closing the temporary browser...")
+                return result
             finally:
                 # A context close failure must not prevent browser cleanup.
                 try:
@@ -285,7 +322,7 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
         raise
     except Exception:
         # Browser exceptions may contain URLs or other session-derived details.
-        raise ExtractionError("Browser loading or extraction failed. Check installation, connectivity and manual sign-in.") from None
+        raise ExtractionError(f"Failed while {stage}. Check connectivity and finish sign-in in the opened browser before pressing Enter. No result was saved.") from None
 
 
 def main():
@@ -299,7 +336,8 @@ def main():
     parser.add_argument("--timeout-ms", type=int, default=30000)
     args = parser.parse_args()
     try:
-        result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login, browser_channel=args.browser)
+        progress = (lambda message: print(message, flush=True)) if args.out else None
+        result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login, browser_channel=args.browser, progress=progress)
         if args.no_raw:
             result.pop("raw_text", None)
         output = json.dumps(result, ensure_ascii=False, indent=2)

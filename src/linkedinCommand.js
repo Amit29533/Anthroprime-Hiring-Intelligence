@@ -73,7 +73,7 @@ export function linkedinCommand(profile, archiveHash) {
     $anthroOutput = Join-Path $anthroRoot ('profile-' + [guid]::NewGuid().ToString('N') + '.json')
     $anthroStage = 'signing in and extracting the profile'
     Write-Host 'Sign in to LinkedIn in the window that opens, then press Enter here.'
-    & $anthroPython (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile --login --browser $anthroBrowser --no-raw --out $anthroOutput
+    & $anthroPython -u (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile --login --browser $anthroBrowser --no-raw --out $anthroOutput
     if ($LASTEXITCODE -ne 0) { throw 'Extraction stopped. No new result was copied. Check the message above.' }
     $anthroJson = Get-Content -LiteralPath $anthroOutput -Raw -Encoding UTF8
     $anthroCheck = $anthroJson | ConvertFrom-Json
