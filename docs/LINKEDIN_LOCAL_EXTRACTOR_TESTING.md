@@ -10,20 +10,21 @@ worker. No credentials are bundled or sent to the website.
 ### Quick Windows command
 
 In Candidates → Import candidates, enter the candidate's public LinkedIn URL
-or handle, then click **Copy extraction command**. Open Windows PowerShell,
+or handle. Keep **Remember LinkedIn login locally for up to 24 hours** checked,
+then click **Copy extraction command**. Open Windows PowerShell,
 paste the entire command and press Enter. Python 3.10 or newer must already
 be installed; the command handles the remaining first-time setup.
 
 The command downloads the reviewed ZIP from the production portal, verifies
 its embedded SHA-256 checksum before unpacking, creates a local virtual
 environment, installs Playwright 1.63.0 from PyPI, prefers installed Edge or Chrome,
-and starts normal `--login` extraction. Chromium is downloaded only when
+and starts the interactive `--session` helper. Chromium is downloaded only when
 neither supported installed browser is found. Later runs reuse the runtime and
 browser. Windows PowerShell 5.1 and PowerShell 7 are supported; setup errors
 print the failed stage in plain text. The package is checked and unpacked again before each execution.
 It does not require admin access, an extension or execution-policy changes.
 
-Sign in to LinkedIn in the opened temporary browser and press Enter in
+Sign in to LinkedIn in the opened dedicated browser and press Enter in
 PowerShell. An existing login in another browser is not reused. After a
 successful extraction, the new JSON is copied to your clipboard. Return to
 the portal and click **Paste extracted profile**, review and save. This
@@ -34,8 +35,31 @@ The command leaves the result file under `%LOCALAPPDATA%\AnthroPrime\LinkedIn`
 with a unique name. If clipboard access fails, choose that file using the
 existing **LinkedIn JSON export** control. No cookie or password enters the
 clipboard or the portal. Clipboard managers/history may retain the profile
-JSON; clear it after importing if needed. The temporary login closes after
-each run. There is no persistent session to refresh or revoke.
+JSON; clear it after importing if needed.
+
+Keep the helper window open. For the next candidate, use **Copy profile URL
+for open helper**, paste into its prompt and press Enter. No setup command or
+fresh sign-in is needed for each profile. Type `retry` to retry the current
+profile, `refresh` to remove its local login and sign in again, `revoke` to
+remove its local login and close, or `quit` to close while retaining login for
+the remaining reuse window. The portal's **Copy forget-login command** works
+after the helper has closed; it does not visit a profile. Forgetting locally
+does not revoke other LinkedIn browser sessions or delete saved profile JSON.
+
+Only a dedicated browser profile under `remembered-session/browser-profile`
+is retained; the tool never reads or exports its cookies. The session directory
+is private to the current Windows user. Its fixed expiry is 24 hours after
+sign-in confirmation, not extended on each import. Before each import and
+on restart, expiry (including clock rollback) prevents reuse and removes the
+old profile before fresh sign-in. Expired files can remain on disk while the
+helper is closed or idle; it does not globally log the LinkedIn account out
+at a particular time. LinkedIn may require verification or login sooner.
+One helper at a time may use this directory. Uncheck remembered mode to use
+the existing single-profile temporary login without retaining it.
+
+Cloud command generation fetches the latest release manifest with `no-store`
+and prints the release fingerprint, so an old open portal can use the current
+ZIP. Refresh once after upgrading from a portal without this capability.
 
 If a portal deployment changes the ZIP while an old command is open, the
 checksum check refuses to execute it. Refresh the portal and copy a fresh

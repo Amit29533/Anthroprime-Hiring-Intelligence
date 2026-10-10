@@ -4,10 +4,37 @@ import { readFileSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { linkedinCommand } from '../src/linkedinCommand.js';
+import { linkedinCommand, latestExtractorManifest } from '../src/linkedinCommand.js';
 const manifest = JSON.parse(
   readFileSync(new URL('../public/linkedin-local-extractor-manifest.json', import.meta.url)),
 );
+
+test('interactive and forget commands isolate local session actions and identify release', () => {
+  const script = linkedinCommand('amit29533', manifest.archiveSha256, 'session');
+  assert.match(script, /--session --session-root \$anthroRoot/);
+  assert.match(script, /Write-Host 'Local helper closed\.'\s+return/);
+  const forget = linkedinCommand('', manifest.archiveSha256, 'forget');
+  assert.match(forget, /--forget-session --session-root \$anthroRoot/);
+  assert.ok(!forget.includes('--login'));
+  assert.throws(() => linkedinCommand('amit29533', manifest.archiveSha256, 'unsafe'));
+});
+test('release refresh bypasses cache and refuses invalid or failed manifest', async () => {
+  let options;
+  const result = await latestExtractorManifest(async (_, input) => {
+    options = input;
+    return { ok: true, json: async () => manifest };
+  });
+  assert.equal(result.archiveSha256, manifest.archiveSha256);
+  assert.equal(options.cache, 'no-store');
+  assert.ok(options.signal);
+  await assert.rejects(latestExtractorManifest(async () => ({ ok: false })));
+  await assert.rejects(
+    latestExtractorManifest(async () => ({
+      ok: true,
+      json: async () => ({ archiveSha256: 'bad' }),
+    })),
+  );
+});
 
 test('one command normalizes only a member URL, pins the archive and uses normal local login', () => {
   const script = linkedinCommand(

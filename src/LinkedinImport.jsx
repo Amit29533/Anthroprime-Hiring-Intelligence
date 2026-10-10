@@ -6,7 +6,7 @@ import { duplicate, skillList, today, uid, validateCandidate } from './domain.js
 import { candidateLabel } from './anthroId.js';
 import { linkedinProfile, linkedinLookup, pastedLinkedinDraft } from './linkedin.js';
 import { readLinkedinExport, localLinkedinDraft } from './linkedinFile.js';
-import { linkedinCommand } from './linkedinCommand.js';
+import { linkedinCommand, latestExtractorManifest } from './linkedinCommand.js';
 import extractorManifest from '../public/linkedin-local-extractor-manifest.json';
 import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { evidenceReady } from './cvEvidence.js';
@@ -48,6 +48,7 @@ export function LinkedinImport({
   readExport = readLinkedinExport,
   readClipboard = () => navigator.clipboard.readText(),
   writeClipboard = (value) => navigator.clipboard.writeText(value),
+  readManifest = latestExtractorManifest,
   canImport = ['admin', 'recruiter'].includes(getRole()),
 }) {
   const [profile, setProfile] = useState(''),
@@ -61,6 +62,8 @@ export function LinkedinImport({
   const candidateId = useRef(null);
   const [commandNotice, setCommandNotice] = useState('');
   const [command, setCommand] = useState('');
+  const [rememberLogin, setRememberLogin] = useState(true);
+  const [commandBusy, setCommandBusy] = useState(false);
   const generation = useRef(0);
   useEffect(
     () => () => {
@@ -100,19 +103,43 @@ export function LinkedinImport({
     candidateId.current = uid();
   }
   const [evidenceText, setEvidenceText] = useState('');
-  async function copyCommand() {
+  async function copyCommand(mode = 'extract') {
+    if (!canImport || commandBusy) return;
     setCommandNotice('');
+    setCommand('');
+    setCommandBusy(true);
+    const current = generation.current;
     try {
-      const value = linkedinCommand(profile, extractorManifest.archiveSha256);
+      const release = isCloud ? await readManifest() : extractorManifest;
+      if (generation.current !== current) return;
+      const value = linkedinCommand(
+        profile,
+        release.archiveSha256,
+        mode === 'forget' ? 'forget' : rememberLogin ? 'session' : 'once',
+      );
       setCommand(value);
       try {
         await writeClipboard(value);
-        setCommandNotice('Command copied. Open PowerShell, paste it and press Enter.');
+        if (generation.current !== current) return;
+        setCommandNotice(
+          `Current release ${release.archiveSha256.slice(0, 12)} copied. Open PowerShell, paste it and press Enter.`,
+        );
       } catch {
         setCommandNotice(
           'Clipboard access was unavailable. Select and copy the displayed command manually.',
         );
       }
+    } catch (failure) {
+      if (generation.current === current) setCommandNotice(failure.message);
+    } finally {
+      setCommandBusy(false);
+    }
+  }
+  async function copyHelperInput(kind) {
+    if (!canImport) return;
+    try {
+      await writeClipboard(kind === 'refresh' ? 'refresh' : `${linkedinProfile(profile)}/`);
+      setCommandNotice('Copied. Paste into the already-open helper window and press Enter.');
     } catch (failure) {
       setCommandNotice(failure.message);
     }
@@ -305,13 +332,33 @@ export function LinkedinImport({
         <section className="linkedin-export-import" aria-label="Quick LinkedIn extraction">
           <h3>Extract with one command</h3>
           <p>
-            Enter the candidate’s LinkedIn URL above, copy the command, and run it in Windows
-            PowerShell. It sets up the extractor once and opens LinkedIn for normal sign-in. Then
-            return here and paste the result.
+            Start the local helper once in Windows PowerShell and sign in to LinkedIn. Keep the
+            helper open, paste further profile URLs there, and return here to review each result.
           </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={rememberLogin}
+              disabled={!canImport || commandBusy}
+              onChange={(event) => setRememberLogin(event.target.checked)}
+            />{' '}
+            Remember LinkedIn login locally for up to 24 hours
+          </label>
           <div className="linkedin-command-actions">
-            <Button disabled={busy || !canImport} onClick={copyCommand}>
+            <Button disabled={busy || commandBusy || !canImport} onClick={() => copyCommand()}>
               Copy extraction command
+            </Button>
+            <Button disabled={busy || !canImport} onClick={() => copyHelperInput('profile')}>
+              Copy profile URL for open helper
+            </Button>
+            <Button disabled={busy || !canImport} onClick={() => copyHelperInput('refresh')}>
+              Copy refresh login instruction
+            </Button>
+            <Button
+              disabled={busy || commandBusy || !canImport}
+              onClick={() => copyCommand('forget')}
+            >
+              Copy forget-login command
             </Button>
             <Button variant="secondary" disabled={busy || !canImport} onClick={pasteExport}>
               Paste extracted profile
@@ -336,8 +383,14 @@ export function LinkedinImport({
             </a>{' '}
             on Windows. First run installs Playwright and uses installed Edge or Chrome. Chromium is
             downloaded only if neither is found; later runs reuse the setup. No extension or
-            administrator access is needed. Sign-in happens in the extractor’s temporary browser,
-            even if another browser is already logged in. The login closes after each run.
+            administrator access is needed. Remembered mode uses a dedicated browser profile on this
+            computer; it never reads your regular browser’s cookies. Type refresh in the helper to
+            sign in again, revoke to remove its local login, or quit to close and retain it until
+            expiry. Close the helper before running the forget-login command. The 24-hour limit is
+            checked before each import and when restarting; expired data is removed on the next use.
+            LinkedIn may require login sooner. Uncheck remembered mode for a temporary login that
+            closes after each run. The portal cannot inspect local login status or extract until you
+            start the helper.
           </p>
           <p>
             The command copies the extracted profile JSON to your clipboard. “Paste extracted

@@ -8,6 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FILES = {
     "tools/linkedin_profile_extractor.py": "tools/linkedin_profile_extractor.py",
     "tools/linkedin_visible_profile.js": "tools/linkedin_visible_profile.js",
+    "tools/linkedin_local_session.py": "tools/linkedin_local_session.py",
     "docs/LINKEDIN_LOCAL_EXTRACTOR_TESTING.md": "README.md",
 }
 
@@ -30,7 +31,7 @@ def build():
         "files": {source: hashlib.sha256(source_bytes(source)).hexdigest() for source in FILES},
     }
     (ROOT / "public/linkedin-local-extractor-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print("Packaged local LinkedIn extractor (3 reviewed files; no cookies or artifacts).")
+    print("Packaged local LinkedIn extractor (4 reviewed files; no cookies or artifacts).")
 
 
 if __name__ == "__main__":

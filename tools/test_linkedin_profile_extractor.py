@@ -374,7 +374,7 @@ class ExtractorTests(unittest.TestCase):
         archive_path = root / "public/linkedin-local-extractor.zip"
         self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), manifest["archiveSha256"])
         with zipfile.ZipFile(archive_path) as archive:
-            self.assertEqual(set(archive.namelist()), {"tools/linkedin_profile_extractor.py", "tools/linkedin_visible_profile.js", "README.md"})
+            self.assertEqual(set(archive.namelist()), {"tools/linkedin_profile_extractor.py", "tools/linkedin_visible_profile.js", "tools/linkedin_local_session.py", "README.md"})
             self.assertIsNone(archive.testzip())
             for source, expected in manifest["files"].items():
                 content = (root / source).read_bytes().replace(b"\r\n", b"\n")

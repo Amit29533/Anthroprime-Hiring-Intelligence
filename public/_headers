@@ -4,3 +4,9 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
+
+/linkedin-local-extractor-manifest.json
+  Cache-Control: no-store
+
+/linkedin-local-extractor.zip
+  Cache-Control: no-store

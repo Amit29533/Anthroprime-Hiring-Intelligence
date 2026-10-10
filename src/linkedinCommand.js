@@ -1,6 +1,27 @@
 import { linkedinProfile } from './linkedin.js';
 
-export function linkedinCommand(profile, archiveHash) {
+export async function latestExtractorManifest(fetcher = fetch) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetcher('/linkedin-local-extractor-manifest.json', {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok)
+      throw new Error('Cannot load the current extractor release. Refresh and retry.');
+    const manifest = await response.json();
+    if (!/^[a-f0-9]{64}$/.test(manifest?.archiveSha256))
+      throw new Error('Invalid extractor release.');
+    return manifest;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export function linkedinCommand(profile, archiveHash, mode = 'once') {
+  if (!['once', 'session', 'forget'].includes(mode)) throw new Error('Invalid helper mode.');
+  if (mode === 'forget') profile = 'local-session';
   if (!profile?.trim()) throw new Error('Enter the candidate’s LinkedIn profile URL above first.');
   if (/^\d{5,20}$/.test(profile.trim()))
     throw new Error(
@@ -72,9 +93,11 @@ export function linkedinCommand(profile, archiveHash) {
     Write-Host ('Using browser: ' + $anthroBrowser)
     $anthroOutput = Join-Path $anthroRoot ('profile-' + [guid]::NewGuid().ToString('N') + '.json')
     $anthroStage = 'signing in and extracting the profile'
-    Write-Host 'Sign in to LinkedIn in the window that opens, then press Enter here.'
-    & $anthroPython -u (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile --login --browser $anthroBrowser --no-raw --out $anthroOutput
+    Write-Host 'Extractor release: ${archiveHash.slice(0, 12)}'
+    Write-Host '${mode === 'session' ? 'Starting the 24-hour local helper. Keep this window open for more profiles.' : mode === 'forget' ? 'Removing the remembered local helper login.' : 'Sign in to LinkedIn in the window that opens, then press Enter here.'}'
+    & $anthroPython -u (Join-Path $anthroPackage 'tools\\linkedin_profile_extractor.py') $anthroProfile ${mode === 'once' ? '--login' : mode === 'session' ? '--session --session-root $anthroRoot' : '--forget-session --session-root $anthroRoot'} --browser $anthroBrowser --no-raw --out $anthroOutput
     if ($LASTEXITCODE -ne 0) { throw 'Extraction stopped. No new result was copied. Check the message above.' }
+    ${mode !== 'once' ? "Write-Host 'Local helper closed.'\n    return" : ''}
     $anthroJson = Get-Content -LiteralPath $anthroOutput -Raw -Encoding UTF8
     $anthroCheck = $anthroJson | ConvertFrom-Json
     if ($anthroCheck.format -ne 'anthro-linkedin-profile' -or $anthroCheck.version -ne 1 -or $anthroCheck.url -ne $anthroProfile) { throw 'Unexpected output. Do not import it.' }

@@ -338,15 +338,33 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("url")
+    parser.add_argument("url", nargs="?")
     parser.add_argument("--out", help="New JSON output file (existing files are never overwritten)")
     parser.add_argument("--headful", action="store_true")
     parser.add_argument("--login", action="store_true", help="Open a temporary browser for normal LinkedIn sign-in; no cookie copying")
     parser.add_argument("--browser", choices=["chromium", "chrome", "msedge"], default="chromium", help="Use installed Chrome/Edge, or the Playwright Chromium download")
     parser.add_argument("--no-raw", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=30000)
+    parser.add_argument("--session", action="store_true", help="Interactive helper with a dedicated remembered login for up to 24 hours")
+    parser.add_argument("--forget-session", action="store_true", help="Remove only this helper's remembered local login")
+    parser.add_argument("--session-root", help="Local helper directory (defaults to LOCALAPPDATA/AnthroPrime/LinkedIn)")
     args = parser.parse_args()
+    if not args.url and not args.forget_session:
+        parser.error("A profile URL is required.")
     try:
+        if args.session or args.forget_session:
+            from linkedin_local_session import run_helper
+            base = pathlib.Path(args.session_root) if args.session_root else pathlib.Path(os.environ.get("LOCALAPPDATA", pathlib.Path.home())) / "AnthroPrime" / "LinkedIn"
+            try:
+                run_helper(args.url, base, browser_channel=args.browser, forget=args.forget_session,
+                           report=lambda message: print(message, flush=True))
+            except ExtractionError:
+                raise
+            except (EOFError, KeyboardInterrupt):
+                raise
+            except Exception as error:
+                raise ExtractionError(f"Local helper failed ({type(error).__name__}). Close other helper windows and retry. No session credentials were printed.") from None
+            return 0
         progress = (lambda message: print(message, flush=True)) if args.out else None
         result = scrape(args.url, None if args.login else os.environ.get("LI_AT"), None if args.login else os.environ.get("JSESSIONID"), args.headful, args.timeout_ms, login=args.login, browser_channel=args.browser, progress=progress)
         if args.no_raw:
@@ -368,7 +386,13 @@ def main():
     except OSError:
         print("Error: Could not write output. Choose a writable, new file path.", file=sys.stderr)
         return 1
+    except (EOFError, KeyboardInterrupt):
+        print("Helper closed. No new result was copied.", flush=True)
+        return 1
 
 
 if __name__ == "__main__":
+    # The session helper imports this module; share the exception class when
+    # the entry point is run as a script instead of importing it twice.
+    sys.modules.setdefault("linkedin_profile_extractor", sys.modules[__name__])
     sys.exit(main())

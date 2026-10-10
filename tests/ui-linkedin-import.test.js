@@ -33,6 +33,7 @@ test('quick extraction copies a profile-bound command and clipboard import requi
   fireEvent.click(screen.getByRole('button', { name: 'Copy extraction command' }));
   await settle();
   assert.equal(copied.length, 1);
+  assert.match(copied[0], /--session --session-root/);
   assert.match(copied[0], /https:\/\/www.linkedin.com\/in\/mira-testcandidate\//);
   assert.equal(screen.getByLabelText('LinkedIn extraction command').value, copied[0]);
   fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
@@ -43,6 +44,65 @@ test('quick extraction copies a profile-bound command and clipboard import requi
     true,
   );
   assert.equal(saves.length, 0);
+});
+
+test('cloud command uses fresh release and supports helper URL, refresh and forgetting without a profile', async () => {
+  const copied = [];
+  const hash = 'a'.repeat(64);
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: true,
+    canImport: true,
+    request: async () => ({ configured: false }),
+    readManifest: async () => ({ archiveSha256: hash }),
+    writeClipboard: async (value) => copied.push(value),
+    onSave: async () => true,
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy forget-login command' }));
+  await settle();
+  assert.match(copied[0], /--forget-session/);
+  assert.ok(copied[0].includes(hash));
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: 'mira-testcandidate' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy profile URL for open helper' }));
+  await settle();
+  assert.equal(copied[1], 'https://www.linkedin.com/in/mira-testcandidate/');
+  fireEvent.click(screen.getByRole('button', { name: 'Copy refresh login instruction' }));
+  await settle();
+  assert.equal(copied[2], 'refresh');
+  fireEvent.click(screen.getByLabelText('Remember LinkedIn login locally for up to 24 hours'));
+  fireEvent.click(screen.getByRole('button', { name: 'Copy extraction command' }));
+  await settle();
+  assert.match(copied[3], /--login --browser/);
+  assert.ok(!copied[3].includes('--session --session-root'));
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: 'refresh' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy profile URL for open helper' }));
+  await settle();
+  assert.equal(copied[4], 'https://www.linkedin.com/in/refresh/');
+});
+
+test('manifest failure cannot copy an old embedded cloud release', async () => {
+  await mount(Panel, {
+    data: { candidates: [] },
+    isCloud: true,
+    canImport: true,
+    request: async () => ({ configured: false }),
+    readManifest: async () => {
+      throw new Error('Release unavailable');
+    },
+    writeClipboard: async () => assert.fail('Stale command copied'),
+    onSave: async () => true,
+  });
+  fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
+    target: { value: 'mira-testcandidate' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy extraction command' }));
+  await settle();
+  assert.match(screen.getByRole('status').textContent, /Release unavailable/);
+  assert.equal(screen.queryByLabelText('LinkedIn extraction command'), null);
 });
 
 test('clipboard denial or wrong-profile data clears stale drafts and viewer cannot copy or import', async () => {
@@ -111,7 +171,7 @@ test('pasted LinkedIn profiles require contact/review and save through normal ca
     screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }).disabled,
     true,
   );
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Confirm LinkedIn profile review' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }));
   await settle();
   assert.match(screen.getByRole('alert').textContent, /email address or phone/);
@@ -119,7 +179,7 @@ test('pasted LinkedIn profiles require contact/review and save through normal ca
   fireEvent.change(screen.getByLabelText('LinkedIn draft email'), {
     target: { value: 'priya@example.com' },
   });
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Confirm LinkedIn profile review' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save reviewed LinkedIn candidate' }));
   await settle();
   assert.equal(closed, false);
