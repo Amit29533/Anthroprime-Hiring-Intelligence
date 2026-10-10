@@ -103,6 +103,23 @@ test('demo and limited roles never mount internal queues or fetch their data', a
   }
 });
 
+test('specialist tools are grouped behind a separate section without eager queries', async () => {
+  await mount(Hub, {
+    isCloud: true,
+    role: 'admin',
+    scope: 'one',
+    rpc: async () => assert.fail('An unopened specialist tool must not fetch'),
+  });
+  assert.equal(screen.queryByRole('button', { name: /^Integration testing/ }), null);
+  fireEvent.click(
+    screen.getByRole('button', { name: /^Reports, integrations and administration/ }),
+  );
+  await settle();
+  assert.ok(screen.getByRole('button', { name: /^Integration testing/ }));
+  assert.ok(screen.getByRole('button', { name: /^Document processing and recovery/ }));
+  assert.equal(screen.queryByRole('heading', { name: 'Communication test workspace' }), null);
+});
+
 test('workspace changes remount every queue and discard late prior-workspace replies', async () => {
   let resolveOld;
   const rpc = async (name, args) =>

@@ -16,6 +16,7 @@ import {
   CalendarDays,
   Building2,
   Sparkles,
+  Settings2,
 } from 'lucide-react';
 import { DisclosureSection } from './DisclosureSection.jsx';
 const CompletionWorkbench = lazy(() => import('./CompletionWorkbench.jsx'));
@@ -115,80 +116,86 @@ export default function IndependentWorkHub({
           />,
         )}
       </div>
-      <h3 className="import-section-kicker">Reports, integrations and administration</h3>
-      <div className="disclosure-stack">
-        {section(
-          'completion',
-          'Reports and operational health',
-          'Historical reports, campaigns and recovery guidance',
-          ChartNoAxesCombined,
-          <Suspense fallback={<p role="status">Loading reports…</p>}>
-            <CompletionWorkbench
-              isCloud={isCloud}
-              role={role}
-              scope={scope}
-              rpc={rpc}
-              onOpenTool={openTool}
-            />
-          </Suspense>,
-        )}
-        {section(
-          'foundation',
-          'Search and repository tools',
-          'Saved filters, discovery, reports and ownership',
-          Search,
-          <Suspense fallback={<p role="status">Loading repository tools…</p>}>
-            <FoundationWorkbench
-              isCloud={isCloud}
-              role={role}
-              scope={scope}
-              rpc={rpc}
-              onOpen={onOpen}
-              onOpenClient={onOpenClient}
-              onOpenDemand={onOpenDemand}
-            />
-          </Suspense>,
-        )}
-        {section(
-          'delivery',
-          'Integration testing',
-          'Provider connections and delivery sandbox',
-          Plug,
-          <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
-        )}
-        {role === 'admin' &&
-          section(
-            'processing',
-            'Document processing and recovery',
-            'Private scanning, OCR, backups and isolated restore',
-            ArchiveRestore,
-            <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+      <DisclosureSection
+        className="workspace-advanced"
+        title="Reports, integrations and administration"
+        description="Open specialist tools and workspace configuration"
+        icon={Settings2}
+      >
+        <div className="disclosure-stack">
+          {section(
+            'completion',
+            'Reports and operational health',
+            'Historical reports, campaigns and recovery guidance',
+            ChartNoAxesCombined,
+            <Suspense fallback={<p role="status">Loading reports…</p>}>
+              <CompletionWorkbench
+                isCloud={isCloud}
+                role={role}
+                scope={scope}
+                rpc={rpc}
+                onOpenTool={openTool}
+              />
+            </Suspense>,
           )}
-        {['admin', 'recruiter'].includes(role) &&
-          section(
-            'google',
-            'Google Workspace',
-            'Email, mailbox review and calendar scheduling',
-            CalendarDays,
-            <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          {section(
+            'foundation',
+            'Search and repository tools',
+            'Saved filters, discovery, reports and ownership',
+            Search,
+            <Suspense fallback={<p role="status">Loading repository tools…</p>}>
+              <FoundationWorkbench
+                isCloud={isCloud}
+                role={role}
+                scope={scope}
+                rpc={rpc}
+                onOpen={onOpen}
+                onOpenClient={onOpenClient}
+                onOpenDemand={onOpenDemand}
+              />
+            </Suspense>,
           )}
-        {role === 'admin' &&
-          section(
-            'enterprise',
-            'Enterprise access and retention',
-            'Workspace sign-in and retention requests',
-            Building2,
-            <EnterpriseOperations isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          {section(
+            'delivery',
+            'Integration testing',
+            'Provider connections and delivery sandbox',
+            Plug,
+            <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
           )}
-        {['admin', 'recruiter'].includes(role) &&
-          section(
-            'controlled',
-            'AI and external workflows',
-            'Reviewed AI highlights, enrichment, job export and offer signing',
-            Sparkles,
-            <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
-          )}
-      </div>
+          {role === 'admin' &&
+            section(
+              'processing',
+              'Document processing and recovery',
+              'Private scanning, OCR, backups and isolated restore',
+              ArchiveRestore,
+              <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+            )}
+          {['admin', 'recruiter'].includes(role) &&
+            section(
+              'google',
+              'Google Workspace',
+              'Email, mailbox review and calendar scheduling',
+              CalendarDays,
+              <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+            )}
+          {role === 'admin' &&
+            section(
+              'enterprise',
+              'Enterprise access and retention',
+              'Workspace sign-in and retention requests',
+              Building2,
+              <EnterpriseOperations isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+            )}
+          {['admin', 'recruiter'].includes(role) &&
+            section(
+              'controlled',
+              'AI and external workflows',
+              'Reviewed AI highlights, enrichment, job export and offer signing',
+              Sparkles,
+              <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+            )}
+        </div>
+      </DisclosureSection>
     </section>
   );
 }

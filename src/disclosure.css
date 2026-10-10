@@ -91,6 +91,9 @@
 .workspace-tool-groups {
   margin: 24px 0;
 }
+.workspace-advanced {
+  margin-top: 12px;
+}
 .workspace-tool-groups > h2 {
   margin: 0;
   font-size: 18px;

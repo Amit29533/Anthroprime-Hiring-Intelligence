@@ -13,8 +13,9 @@ text import and configured providers live under Other import methods.
 Extraction notes are expandable. Identity, contact, evidence, duplicate and
 confirmation checks still apply before saving.
 
-Overview queues and advanced tools use the same disclosure component. Closed,
-unvisited sections do not mount or fetch data. Visited sections remain mounted
+Overview queues and advanced tools use the same disclosure component.
+Specialist tools are grouped under Reports, integrations and administration.
+Closed, unvisited sections do not mount or fetch data. Visited sections remain mounted
 while hidden, preserving drafts and ongoing work. Workspace or role changes
 remount scoped tools. Role restrictions and recovery links remain supported.
 
