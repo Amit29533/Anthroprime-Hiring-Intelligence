@@ -7,6 +7,7 @@ import './dark.css';
 import './polish.css';
 import './modern.css';
 import './experience.css';
+import './consistency.css';
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

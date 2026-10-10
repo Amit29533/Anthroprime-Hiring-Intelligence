@@ -63,7 +63,7 @@ async function builder(harness, props = {}) {
 test('the builder opens with a live total and no saved reports', async () => {
   const harness = harnessWith();
   await builder(harness);
-  assert.ok(screen.getByText('Ask your own questions.'));
+  assert.ok(screen.getByRole('heading', { name: 'Reports', level: 1 }));
   assert.ok(allText(/Nothing saved yet/).length);
   assert.ok(allText(/record.* considered/).length, 'the population is stated up front');
   const demands = harness.state.data.demands.length;
@@ -288,6 +288,9 @@ test('the Reports page is reachable from the sidebar', async () => {
   await mount(M.App, {});
   await settle(6);
   await navTo('Reports');
-  assert.ok(screen.getByText('Ask your own questions.'), 'the page rendered from the shell');
+  assert.ok(
+    screen.getByRole('heading', { name: 'Reports', level: 1 }),
+    'the page rendered from the shell',
+  );
   cleanup();
 });

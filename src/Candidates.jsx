@@ -1,3 +1,5 @@
+import { MoreOptions, FormSection, SectionTabs } from './ProgressiveUI.jsx';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
@@ -264,16 +266,28 @@ export function Candidates({
         )}
       </PageHeader>
       {cloud && (
-        <details>
-          <summary>Advanced repository tools</summary>
+        <DisclosureSection
+          className="advanced-tools"
+          title="Advanced repository tools"
+          icon={SlidersHorizontal}
+        >
           <FoundationWorkbench
             onOpen={onOpen}
             onOpenClient={onOpenClient}
             onOpenDemand={onOpenDemand}
           />
-        </details>
+        </DisclosureSection>
       )}
-      <HostedIntelligence candidates={data.candidates} onOpen={onOpen} />
+      {cloud && (
+        <DisclosureSection
+          className="advanced-tools"
+          title="Intelligent search and suggestions"
+          description="Explore optional search tools and reviewed suggestions."
+          icon={FileText}
+        >
+          <HostedIntelligence candidates={data.candidates} onOpen={onOpen} />
+        </DisclosureSection>
+      )}
       <div className="repository-tabs">
         {['All candidates', 'Ready', 'Near-ready', 'Assessing', 'Stale'].map((s) => (
           <button
@@ -305,16 +319,6 @@ export function Candidates({
             }}
           />
           <Button
-            variant={semantic ? '' : 'secondary'}
-            onClick={() => {
-              setSemantic(!semantic);
-              setPage(1);
-            }}
-            title="Natural-language search: the query is parsed into visible, editable criteria"
-          >
-            Semantic
-          </Button>
-          <Button
             variant={filters ? '' : 'secondary'}
             icon={SlidersHorizontal}
             onClick={() => setFilters(!filters)}
@@ -324,45 +328,60 @@ export function Candidates({
               ? ` (${[location, notice, minExp, skill, tag].filter(Boolean).length})`
               : ''}
           </Button>
-          <select
-            aria-label="Sort candidates"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option value="name">Name A–Z</option>
-            <option value="experience">Most experienced</option>
-            <option value="recent">Recently verified</option>
-            <option value="relevance">Relevance (semantic)</option>
-          </select>
-          <Button
-            icon={Download}
-            variant="secondary"
-            disabled={
-              (cloud && !canWriteForRole(getRole())) ||
-              serverFilter.pending ||
-              Boolean(filterError || serverFilter.error)
-            }
-            title={
-              cloud && !canWriteForRole(getRole()) ? 'Viewer role cannot export candidate data' : ''
-            }
-            onClick={async () => {
-              const exported = await exportCandidateData(
-                selected.length ? rows.filter((c) => selected.includes(c.id)) : rows,
-                notify,
-              );
-              if (!exported) return;
-              notify('Candidate CSV exported.');
-              audit &&
-                audit({
-                  entityType: 'candidates',
-                  entityId: null,
-                  action: 'exported',
-                  detail: `${selected.length || rows.length} candidates`,
-                });
-            }}
-          >
-            Export{selected.length ? ` (${selected.length})` : ''}
-          </Button>
+
+          <MoreOptions label="Search options">
+            <select
+              aria-label="Sort candidates"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="name">Name A–Z</option>
+              <option value="experience">Most experienced</option>
+              <option value="recent">Recently verified</option>
+              <option value="relevance">Relevance (semantic)</option>
+            </select>
+            <Button
+              variant={semantic ? '' : 'secondary'}
+              onClick={() => {
+                setSemantic(!semantic);
+                setPage(1);
+              }}
+              title="Natural-language search: the query is parsed into visible, editable criteria"
+            >
+              Semantic
+            </Button>
+            <Button
+              icon={Download}
+              variant="secondary"
+              disabled={
+                (cloud && !canWriteForRole(getRole())) ||
+                serverFilter.pending ||
+                Boolean(filterError || serverFilter.error)
+              }
+              title={
+                cloud && !canWriteForRole(getRole())
+                  ? 'Viewer role cannot export candidate data'
+                  : ''
+              }
+              onClick={async () => {
+                const exported = await exportCandidateData(
+                  selected.length ? rows.filter((c) => selected.includes(c.id)) : rows,
+                  notify,
+                );
+                if (!exported) return;
+                notify('Candidate CSV exported.');
+                audit &&
+                  audit({
+                    entityType: 'candidates',
+                    entityId: null,
+                    action: 'exported',
+                    detail: `${selected.length || rows.length} candidates`,
+                  });
+              }}
+            >
+              Export{selected.length ? ` (${selected.length})` : ''}
+            </Button>
+          </MoreOptions>
         </div>
         {filters && (
           <div className="filter-bar">
@@ -473,125 +492,133 @@ export function Candidates({
             Filtering your workspace…
           </p>
         )}
-        <div className="views-bar">
-          <span className="views-label">Views:</span>
-          <select
-            aria-label="Saved views"
-            value=""
-            onChange={(e) => {
-              const v = savedViews.find((x) => x.id === e.target.value);
-              if (!v) return;
-              setQuery(v.filters.query || '');
-              setStatus(v.filters.status || 'All candidates');
-              setQueue(v.filters.queue || '');
-              setLocation(v.filters.location || '');
-              setNotice(v.filters.notice || '');
-              setMinExp(v.filters.minExp || '');
-              setSkill(v.filters.skill || '');
-              setTag(v.filters.tag || '');
-              setSort(v.filters.sort || 'name');
-              setRepositoryFilters({
-                ...blankRepositoryFilters(),
-                ...(v.filters.repositoryFilters || {}),
-                ...(getRole() !== 'admin' ? { maxExpected: '' } : {}),
-              });
-              setPage(1);
-            }}
-          >
-            <option value="">Apply a saved view…</option>
-            {savedViews.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-          <Button
-            variant="ghost"
-            className="small"
-            onClick={async () => {
-              const name = window.prompt('Name this view (search, filters and sort are saved):');
-              if (!name) return;
-              const view = {
-                id: uid(),
-                name,
-                filters: {
-                  query,
-                  status,
-                  queue,
-                  location,
-                  notice,
-                  minExp,
-                  skill,
-                  tag,
-                  sort,
-                  repositoryFilters,
-                },
-              };
-              if (
-                await onSave('settings', [
-                  {
-                    id: 'workspace',
-                    custom: { ...settingsRow?.custom, savedViews: [...savedViews, view] },
-                  },
-                ])
-              )
-                notify(`View "${name}" saved.`);
-            }}
-          >
-            Save current view
-          </Button>
-          {savedViews.length > 0 && (
+        <FormSection
+          title="Saved views and table columns"
+          description="Choose the details you want to see."
+        >
+          <div className="views-bar">
+            <span className="views-label">Views:</span>
+            <select
+              aria-label="Saved views"
+              value=""
+              onChange={(e) => {
+                const v = savedViews.find((x) => x.id === e.target.value);
+                if (!v) return;
+                setQuery(v.filters.query || '');
+                setStatus(v.filters.status || 'All candidates');
+                setQueue(v.filters.queue || '');
+                setLocation(v.filters.location || '');
+                setNotice(v.filters.notice || '');
+                setMinExp(v.filters.minExp || '');
+                setSkill(v.filters.skill || '');
+                setTag(v.filters.tag || '');
+                setSort(v.filters.sort || 'name');
+                setRepositoryFilters({
+                  ...blankRepositoryFilters(),
+                  ...(v.filters.repositoryFilters || {}),
+                  ...(getRole() !== 'admin' ? { maxExpected: '' } : {}),
+                });
+                setPage(1);
+              }}
+            >
+              <option value="">Apply a saved view…</option>
+              {savedViews.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
             <Button
               variant="ghost"
               className="small"
               onClick={async () => {
-                const name = window.prompt(
-                  `Delete which view? Options: ${savedViews.map((v) => v.name).join(', ')}`,
-                );
+                const name = window.prompt('Name this view (search, filters and sort are saved):');
                 if (!name) return;
-                const remaining = savedViews.filter((v) => v.name !== name.trim());
-                if (remaining.length === savedViews.length)
-                  return notify(`No saved view is named “${name}”.`);
+                const view = {
+                  id: uid(),
+                  name,
+                  filters: {
+                    query,
+                    status,
+                    queue,
+                    location,
+                    notice,
+                    minExp,
+                    skill,
+                    tag,
+                    sort,
+                    repositoryFilters,
+                  },
+                };
                 if (
                   await onSave('settings', [
-                    { id: 'workspace', custom: { ...settingsRow?.custom, savedViews: remaining } },
+                    {
+                      id: 'workspace',
+                      custom: { ...settingsRow?.custom, savedViews: [...savedViews, view] },
+                    },
                   ])
                 )
-                  notify('View deleted.');
+                  notify(`View "${name}" saved.`);
               }}
             >
-              Delete a view
+              Save current view
             </Button>
-          )}
-          <span className="views-spacer" />
-          <span className="views-label">Columns:</span>
-          <div className="column-chooser">
-            {[
-              col('expertise', 'Expertise'),
-              col('experience', 'Experience'),
-              col('availability', 'Availability'),
-              col('readiness', 'Readiness'),
-              col('profile', 'Profile freshness'),
-            ].map((c) => (
-              <label key={c.k}>
-                <input
-                  type="checkbox"
-                  checked={c.visible}
-                  onChange={(e) => {
-                    const next = { ...columns, [c.k]: e.target.checked };
-                    setColumns(next);
-                    try {
-                      localStorage.setItem('ecod-columns-v1', JSON.stringify(next));
-                    } catch {
-                      /* private mode or quota — the chooser still works for this session */
-                    }
-                  }}
-                />
-                {c.label}
-              </label>
-            ))}
+            {savedViews.length > 0 && (
+              <Button
+                variant="ghost"
+                className="small"
+                onClick={async () => {
+                  const name = window.prompt(
+                    `Delete which view? Options: ${savedViews.map((v) => v.name).join(', ')}`,
+                  );
+                  if (!name) return;
+                  const remaining = savedViews.filter((v) => v.name !== name.trim());
+                  if (remaining.length === savedViews.length)
+                    return notify(`No saved view is named “${name}”.`);
+                  if (
+                    await onSave('settings', [
+                      {
+                        id: 'workspace',
+                        custom: { ...settingsRow?.custom, savedViews: remaining },
+                      },
+                    ])
+                  )
+                    notify('View deleted.');
+                }}
+              >
+                Delete a view
+              </Button>
+            )}
+            <span className="views-spacer" />
+            <span className="views-label">Columns:</span>
+            <div className="column-chooser">
+              {[
+                col('expertise', 'Expertise'),
+                col('experience', 'Experience'),
+                col('availability', 'Availability'),
+                col('readiness', 'Readiness'),
+                col('profile', 'Profile freshness'),
+              ].map((c) => (
+                <label key={c.k}>
+                  <input
+                    type="checkbox"
+                    checked={c.visible}
+                    onChange={(e) => {
+                      const next = { ...columns, [c.k]: e.target.checked };
+                      setColumns(next);
+                      try {
+                        localStorage.setItem('ecod-columns-v1', JSON.stringify(next));
+                      } catch {
+                        /* private mode or quota — the chooser still works for this session */
+                      }
+                    }}
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        </FormSection>
         {selected.length > 0 && canWriteForRole(getRole()) && (
           <BulkBar
             data={data}
@@ -867,61 +894,69 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
           <Field label="Total experience (years)">
             {field('experience', 'number', { min: 0, max: MAX_EXPERIENCE_YEARS, step: 0.5 })}
           </Field>
-          <Field label="Relevant experience (years)">
-            {field('relevantExperience', 'number', {
-              min: 0,
-              max: MAX_EXPERIENCE_YEARS,
-              step: 0.5,
-            })}
-          </Field>
-          <Field label="Notice period (days)">
-            {field('notice', 'number', { min: 0, max: MAX_NOTICE_DAYS })}
-          </Field>
-          {(!cloud || getRole() === 'admin') && (
-            <>
-              <Field label="Current CTC (₹ LPA)">
-                {field('current', 'number', { min: 0, step: 0.1 })}
-              </Field>
-              <Field label="Expected CTC (₹ LPA)">
-                {field('expected', 'number', { min: 0, step: 0.1 })}
-              </Field>
-            </>
-          )}
-          <Field label="Work preference">
-            <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
-              {['Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Engagement preference">
-            <select
-              value={form.engagement || ''}
-              onChange={(e) => setForm({ ...form, engagement: e.target.value })}
-            >
-              <option value="">Not stated</option>
-              {ENGAGEMENT_TYPES.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Registry status">
-            <select
-              value={form.activeStatus || 'Active'}
-              onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
-            >
-              {['Active', 'Passive'].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Earliest start date">
-            <input
-              type="date"
-              value={form.earliestStart || ''}
-              onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
-            />
-          </Field>
+          <FormSection
+            title="Availability and preferences"
+            description="Experience, notice, compensation and working preferences."
+          >
+            <Field label="Relevant experience (years)">
+              {field('relevantExperience', 'number', {
+                min: 0,
+                max: MAX_EXPERIENCE_YEARS,
+                step: 0.5,
+              })}
+            </Field>
+            <Field label="Notice period (days)">
+              {field('notice', 'number', { min: 0, max: MAX_NOTICE_DAYS })}
+            </Field>
+            {(!cloud || getRole() === 'admin') && (
+              <>
+                <Field label="Current CTC (₹ LPA)">
+                  {field('current', 'number', { min: 0, step: 0.1 })}
+                </Field>
+                <Field label="Expected CTC (₹ LPA)">
+                  {field('expected', 'number', { min: 0, step: 0.1 })}
+                </Field>
+              </>
+            )}
+            <Field label="Work preference">
+              <select
+                value={form.mode}
+                onChange={(e) => setForm({ ...form, mode: e.target.value })}
+              >
+                {['Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Engagement preference">
+              <select
+                value={form.engagement || ''}
+                onChange={(e) => setForm({ ...form, engagement: e.target.value })}
+              >
+                <option value="">Not stated</option>
+                {ENGAGEMENT_TYPES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Registry status">
+              <select
+                value={form.activeStatus || 'Active'}
+                onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
+              >
+                {['Active', 'Passive'].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Earliest start date">
+              <input
+                type="date"
+                value={form.earliestStart || ''}
+                onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
+              />
+            </Field>
+          </FormSection>
           <Field
             label="Skills *"
             hint="Separate skills with commas. Common aliases are normalized."
@@ -966,60 +1001,65 @@ export function CandidateForm({ candidate, data, onClose, onSave, busy }) {
           <Field label="Last verified *">
             {field('verified', 'date', { required: true, max: today() })}
           </Field>
-          <Field label="LinkedIn URL">
-            {field('linkedin', 'url', { placeholder: 'https://www.linkedin.com/in/…' })}
-          </Field>
-          <Field label="Preferred locations">
-            <input
-              value={form.preferredLocations || ''}
-              onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
-              placeholder="Bengaluru, Remote"
-            />
-          </Field>
-          <Field label="Timezone">
-            <input
-              value={form.timezone || ''}
-              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-              placeholder="Asia/Kolkata"
-            />
-          </Field>
-          <Field label="Next action">
-            <input
-              value={form.nextAction || ''}
-              onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
-              placeholder="e.g. Schedule client interview"
-            />
-          </Field>
-          <Field label="External ID">
-            <input
-              value={form.externalId || ''}
-              onChange={(e) => setForm({ ...form, externalId: e.target.value })}
-              placeholder="Reference in your source system"
-            />
-          </Field>
-          <Field
-            label="Tags"
-            hint="Comma-separated labels for your own segmentation, e.g. Client favourite, Fast-track."
+          <FormSection
+            title="Additional profile details"
+            description="Links, internal tags, custom fields and a professional summary."
           >
-            <input
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="Client favourite, Fast-track"
+            <Field label="LinkedIn URL">
+              {field('linkedin', 'url', { placeholder: 'https://www.linkedin.com/in/…' })}
+            </Field>
+            <Field label="Preferred locations">
+              <input
+                value={form.preferredLocations || ''}
+                onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
+                placeholder="Bengaluru, Remote"
+              />
+            </Field>
+            <Field label="Timezone">
+              <input
+                value={form.timezone || ''}
+                onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+                placeholder="Asia/Kolkata"
+              />
+            </Field>
+            <Field label="Next action">
+              <input
+                value={form.nextAction || ''}
+                onChange={(e) => setForm({ ...form, nextAction: e.target.value })}
+                placeholder="e.g. Schedule client interview"
+              />
+            </Field>
+            <Field label="External ID">
+              <input
+                value={form.externalId || ''}
+                onChange={(e) => setForm({ ...form, externalId: e.target.value })}
+                placeholder="Reference in your source system"
+              />
+            </Field>
+            <Field
+              label="Tags"
+              hint="Comma-separated labels for your own segmentation, e.g. Client favourite, Fast-track."
+            >
+              <input
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="Client favourite, Fast-track"
+              />
+            </Field>
+            <CustomFieldInputs
+              data={data}
+              module="candidates"
+              values={form.custom}
+              onChange={(custom) => setForm({ ...form, custom })}
             />
-          </Field>
-          <CustomFieldInputs
-            data={data}
-            module="candidates"
-            values={form.custom}
-            onChange={(custom) => setForm({ ...form, custom })}
-          />
-          <Field label="Professional summary" wide>
-            <textarea
-              rows={3}
-              value={form.summary}
-              onChange={(e) => setForm({ ...form, summary: e.target.value })}
-            />
-          </Field>
+            <Field label="Professional summary" wide>
+              <textarea
+                rows={3}
+                value={form.summary}
+                onChange={(e) => setForm({ ...form, summary: e.target.value })}
+              />
+            </Field>
+          </FormSection>
           {error && (
             <div className="form-error wide" role="alert">
               {error}
@@ -1167,7 +1207,7 @@ export function CandidateProfile({
               </Button>
             )}
             {!viewer && (
-              <>
+              <MoreOptions label="Profile actions">
                 <a
                   className="button secondary"
                   href={`mailto:${c.email || ''}?subject=${encodeURIComponent('AnthroPrime candidate portal — your login')}&body=${encodeURIComponent(`Hi ${c.name.split(' ')[0]},\n\nYou can now track your applications, interviews, offers and consents — and propose updates to your availability — on our candidate portal:\n\n${typeof location !== 'undefined' ? location.origin : ''}/portal.html\n\nSign up or sign in, then contact our team to confirm your account and approve access to your profile. Access requires an administrator-approved grant and may expire.\n\n— AnthroPrime talent team`)}`}
@@ -1215,7 +1255,7 @@ export function CandidateProfile({
                 >
                   Dossier
                 </button>
-              </>
+              </MoreOptions>
             )}
           </div>
         </div>
@@ -1238,8 +1278,8 @@ export function CandidateProfile({
             </a>
           )}
         </div>
-        <div className="profile-tabs">
-          {[
+        <SectionTabs
+          items={[
             'Overview',
             'Contacts',
             ...(cloud ? ['Communication tests', 'Feedback & self-updates'] : []),
@@ -1255,12 +1295,11 @@ export function CandidateProfile({
             'Applications',
             'Notes & follow-ups',
             'History',
-          ].map((t) => (
-            <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-              {t}
-            </button>
-          ))}
-        </div>
+          ]}
+          value={tab}
+          onChange={setTab}
+          primary={['Overview', 'Applications', 'Interviews', 'Documents']}
+        />
         <div className="profile-body">
           {cloud && tab === 'Communication tests' && (
             <>

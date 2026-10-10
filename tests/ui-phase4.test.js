@@ -128,6 +128,8 @@ test('client decisions retry the same operation and a client switch clears prior
     },
   });
   await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'Give feedback or request an interview' }));
+  await settle();
   fireEvent.change(screen.getByLabelText('Feedback type'), { target: { value: 'decision' } });
   fireEvent.change(screen.getByLabelText('Decision'), { target: { value: 'Hold' } });
   fireEvent.change(screen.getByLabelText('Rating (optional)'), { target: { value: '4' } });

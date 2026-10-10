@@ -1,3 +1,4 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { intelligenceRpc } from './intelligence.js';
 import { Snapshot } from './ClientCollaboration.jsx';
@@ -219,7 +220,9 @@ export function ClientPortalView({ rpc = intelligenceRpc }) {
               {p.respond_by && (
                 <p>Feedback requested by {new Date(p.respond_by).toLocaleDateString()}</p>
               )}
-              <Feedback pack={p} rpc={rpc} />
+              <DisclosureSection title="Give feedback or request an interview">
+                <Feedback pack={p} rpc={rpc} />
+              </DisclosureSection>
             </article>
           ))}
           <button disabled={!offset} onClick={() => setOffset(offset - 20)}>

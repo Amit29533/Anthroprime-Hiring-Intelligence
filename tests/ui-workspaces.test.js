@@ -181,6 +181,7 @@ test('a delayed repository reload cannot replace the newly selected workspace', 
   await press('Sign in');
   await settle(12);
   await press('Workspace settings');
+  await click(await screen.findByRole('button', { name: /^Workspace and data/ }));
   await screen.findByRole('button', { name: 'Reload repository' }, { timeout: 5000 });
   let release;
   globalThis.fetch = async (input, init = {}) => {

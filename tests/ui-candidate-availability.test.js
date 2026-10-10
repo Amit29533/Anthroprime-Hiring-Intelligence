@@ -180,6 +180,8 @@ test('paged Candidate 360 uses sourced availability without fetching legacy sect
     },
   });
   await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Availability' }));
   await settle();
   assert.ok(screen.getByRole('region', { name: 'availability facts' }));

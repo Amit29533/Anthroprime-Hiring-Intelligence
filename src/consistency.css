@@ -1,0 +1,323 @@
+/* Final shared layer for internal pages and all three public portals. */
+:root:root:root {
+  --control-height: 42px;
+}
+:root:root:root :is(.workspace-main, .careers-main, dialog) {
+  min-width: 0;
+}
+:root:root:root :is(.panel, .portal-card, .careers-status) {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--border);
+}
+:root:root:root
+  :is(.settings-body, .profile-section, .completion-workbench, .careers-main, .modal-body)
+  button:not([class]),
+:root:root:root .completion-workbench button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--control-height);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+:root:root:root .completion-workbench button[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--tint);
+  border-color: var(--accent);
+}
+:root:root:root
+  :is(.settings-body, .careers-main, .modal-body)
+  button:not([class]):hover:not(:disabled) {
+  background: var(--tint);
+  border-color: var(--accent);
+}
+:root:root:root :is(button, a, summary):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 3px;
+}
+:root:root:root :is(button:disabled, .button.disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+:root:root:root :is(input, select, textarea):not([type='checkbox']):not([type='radio']) {
+  min-height: var(--control-height);
+  max-width: 100%;
+  font: inherit;
+}
+:root:root:root :is(.field, .form-grid, fieldset, .settings-body) {
+  min-width: 0;
+}
+:root:root:root :is(.settings-body, .careers-main) form > label:not(.button):not(.checkbox-label) {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink);
+}
+:root:root:root fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+:root:root:root legend {
+  color: var(--ink);
+  padding: 0 6px;
+  font-weight: 600;
+}
+:root:root:root .form-section-content > :not(.field) {
+  grid-column: 1 / -1;
+}
+:root:root:root .form-section-content > .button {
+  justify-self: start;
+}
+:root:root:root .form-section-content > p {
+  margin: 0;
+  color: var(--muted);
+}
+:root:root:root .form-section-content > .wide {
+  grid-column: 1 / -1;
+}
+:root:root:root .settings-categories .disclosure-body .panel {
+  box-shadow: none;
+}
+:root:root:root .settings-categories .disclosure-body {
+  padding-top: 8px;
+}
+:root:root:root .form-section {
+  box-shadow: none;
+}
+:root:root:root .repository > .form-section {
+  margin: 0 16px 14px;
+}
+:root:root:root .views-bar {
+  background: transparent;
+  border: 0;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+:root:root:root .views-bar .column-chooser {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  flex-wrap: wrap;
+}
+:root:root:root :is(.table-scroll, .table-wrap) {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+:root:root:root table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+:root:root:root th {
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+:root:root:root :is(td, th) {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+}
+:root:root:root tbody tr:hover {
+  background: color-mix(in srgb, var(--tint) 45%, var(--surface));
+}
+:root:root:root tbody tr:last-child td {
+  border-bottom: 0;
+}
+:root:root:root
+  :is(.heading-actions, .modal-actions, .iv-actions, .approval-actions, .profile-actions) {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+:root:root:root .heading-actions {
+  align-items: center;
+}
+:root:root:root .button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
+}
+:root:root:root .button svg {
+  flex-shrink: 0;
+}
+:root:root:root .profile-actions {
+  align-items: flex-start;
+}
+:root:root:root .profile-header {
+  overflow: visible;
+}
+:root:root:root .search-help {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 12px;
+}
+:root:root:root .search-help summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+:root:root:root .careers-secondary {
+  max-width: 1040px;
+  margin: 16px auto;
+}
+:root:root:root .careers-secondary .careers-refer,
+:root:root:root .careers-secondary .careers-status,
+:root:root:root .portal-main .disclosure-body .portal-card {
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+  padding: 12px 0;
+}
+:root:root:root .portal-main {
+  display: grid;
+  gap: 18px;
+}
+:root:root:root .portal-main > .portal-card {
+  margin: 0;
+}
+:root:root:root .careers-main > div > .panel {
+  padding: 20px;
+  margin-top: 18px;
+}
+:root:root:root .sidebar-note {
+  display: none;
+}
+:root:root:root .sidebar nav {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+:root:root:root .sidebar nav .nav-group > div > button {
+  width: 100%;
+}
+:root:root:root .modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface);
+}
+:root:root:root :is(.form-error, [role='alert']) {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  :root:root:root :is(.page-heading, .panel-heading) {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  :root:root:root .heading-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  :root:root:root .heading-actions > .button {
+    flex: 1 1 auto;
+  }
+  :root:root:root :is(.task-add, .report-filter, .section-toolbar) {
+    flex-wrap: wrap;
+  }
+  :root:root:root .task-add > :is(input, select) {
+    min-width: 140px;
+    flex: 1;
+  }
+  :root:root:root .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root:root:root .settings-body {
+    padding: 16px;
+  }
+  :root:root:root .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  :root:root:root .stat {
+    padding: 16px;
+  }
+  :root:root:root .stat > strong {
+    font-size: 27px;
+  }
+  :root:root:root :is(.profile-contact, .status-row, .app-row, .iv-row) {
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+  :root:root:root .profile-header {
+    flex-wrap: wrap;
+  }
+  :root:root:root .profile-actions {
+    width: 100%;
+  }
+  :root:root:root .options-popover {
+    right: 0;
+  }
+  :root:root:root :is(td, th) {
+    padding: 12px;
+  }
+  :root:root:root .disclosure-label span {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:root:root *,
+  :root:root:root *::before,
+  :root:root:root *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+:root[data-motion='paused'] *,
+:root[data-motion='paused'] *::before,
+:root[data-motion='paused'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+:root:root:root .sidebar-bottom {
+  padding-top: 12px;
+  flex-shrink: 0;
+}
+:root:root:root .sidebar-user {
+  padding: 14px 7px;
+  margin-top: 6px;
+}
+:root:root:root .nav-group > summary {
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 10px 8px;
+  gap: 8px;
+  min-height: 38px;
+}
+:root:root:root .sidebar nav {
+  grid-auto-rows: max-content;
+}
+
+:root:root:root .sidebar nav {
+  overflow-x: hidden;
+}
+:root:root:root .sidebar .brand {
+  margin-bottom: 16px;
+}
+:root:root:root .nav-group > summary {
+  font-size: 12px;
+}
+:root:root:root .nav-group > summary svg {
+  flex-shrink: 0;
+}

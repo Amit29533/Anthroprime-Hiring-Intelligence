@@ -1,3 +1,5 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
+import { CalendarClock, ShieldCheck } from 'lucide-react';
 // Candidate portal (/portal.html) — cloud mode signs in with Supabase Auth and reads the
 // curated RPCs through explicit account grants; demo mode opens a fictional profile by email.
 // Cloud profile changes use reviewed proposals; communication opt-outs apply immediately.
@@ -20,6 +22,7 @@ import './dark.css';
 import './polish.css';
 import './modern.css';
 import './experience.css';
+import './consistency.css';
 
 const label = {
   pending: 'Received — in review',
@@ -57,7 +60,7 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
       <section className="careers-status portal-card">
         <h2 style={{ margin: '0 0 2px' }}>{p.name}</h2>
         <p className="anthro-id">Anthro-ID: {anthroIdFor(p)}</p>
-        <p style={{ margin: 0, color: '#a9c3bc' }}>
+        <p style={{ margin: 0, color: 'var(--muted)' }}>
           {[p.title, p.location].filter(Boolean).join(' · ') || 'Candidate profile'}
         </p>
         {p.skills?.length > 0 && (
@@ -69,75 +72,81 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
         )}
       </section>
       {!cloud && (
-        <section className="careers-status portal-card">
-          <h2>Your availability</h2>
-          <p>Update your preferences any time — recruiters see the change immediately.</p>
-          <div className="form-grid">
-            <label>
-              Notice period (days)
-              <input
-                type="number"
-                min="0"
-                value={form.notice ?? ''}
-                onChange={(e) => setForm({ ...form, notice: e.target.value })}
-              />
-            </label>
-            <label>
-              Earliest start
-              <input
-                type="date"
-                value={form.earliestStart || ''}
-                onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
-              />
-            </label>
-            <label>
-              Status
-              <select
-                value={form.activeStatus}
-                onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
-              >
-                <option>Active</option>
-                <option>Passive</option>
-              </select>
-            </label>
-            <label>
-              Work mode
-              <select
-                value={form.mode}
-                onChange={(e) => setForm({ ...form, mode: e.target.value })}
-              >
-                <option>Flexible</option>
-                <option>Remote</option>
-                <option>Hybrid</option>
-                <option>Onsite</option>
-              </select>
-            </label>
-            <label>
-              Engagement preference
-              <input
-                value={form.engagement}
-                onChange={(e) => setForm({ ...form, engagement: e.target.value })}
-                placeholder="Permanent / Contract / C2H…"
-              />
-            </label>
-            <label>
-              Preferred locations
-              <input
-                value={form.preferredLocations}
-                onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
-                placeholder="Bengaluru, Remote…"
-              />
-            </label>
-          </div>
-          <button className="apply-btn" disabled={busy} onClick={() => onSave(form)}>
-            {busy ? 'Saving…' : 'Save preferences'}
-          </button>
-          {msg && (
-            <p className="careers-loading" style={{ marginTop: 8 }}>
-              {msg}
-            </p>
-          )}
-        </section>
+        <DisclosureSection
+          title="Update availability"
+          description="Notice period, start date and work preferences."
+          icon={CalendarClock}
+        >
+          <section className="careers-status portal-card">
+            <h2>Your availability</h2>
+            <p>Update your preferences any time — recruiters see the change immediately.</p>
+            <div className="form-grid">
+              <label>
+                Notice period (days)
+                <input
+                  type="number"
+                  min="0"
+                  value={form.notice ?? ''}
+                  onChange={(e) => setForm({ ...form, notice: e.target.value })}
+                />
+              </label>
+              <label>
+                Earliest start
+                <input
+                  type="date"
+                  value={form.earliestStart || ''}
+                  onChange={(e) => setForm({ ...form, earliestStart: e.target.value })}
+                />
+              </label>
+              <label>
+                Status
+                <select
+                  value={form.activeStatus}
+                  onChange={(e) => setForm({ ...form, activeStatus: e.target.value })}
+                >
+                  <option>Active</option>
+                  <option>Passive</option>
+                </select>
+              </label>
+              <label>
+                Work mode
+                <select
+                  value={form.mode}
+                  onChange={(e) => setForm({ ...form, mode: e.target.value })}
+                >
+                  <option>Flexible</option>
+                  <option>Remote</option>
+                  <option>Hybrid</option>
+                  <option>Onsite</option>
+                </select>
+              </label>
+              <label>
+                Engagement preference
+                <input
+                  value={form.engagement}
+                  onChange={(e) => setForm({ ...form, engagement: e.target.value })}
+                  placeholder="Permanent / Contract / C2H…"
+                />
+              </label>
+              <label>
+                Preferred locations
+                <input
+                  value={form.preferredLocations}
+                  onChange={(e) => setForm({ ...form, preferredLocations: e.target.value })}
+                  placeholder="Bengaluru, Remote…"
+                />
+              </label>
+            </div>
+            <button className="apply-btn" disabled={busy} onClick={() => onSave(form)}>
+              {busy ? 'Saving…' : 'Save preferences'}
+            </button>
+            {msg && (
+              <p className="careers-loading" style={{ marginTop: 8 }}>
+                {msg}
+              </p>
+            )}
+          </section>
+        </DisclosureSection>
       )}
       <section className="careers-status portal-card">
         <h2>Your applications</h2>
@@ -250,26 +259,32 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
           </div>
         </section>
       )}
-      <section className="careers-status portal-card">
-        <h2>Your consents</h2>
-        <p>You can withdraw any consent here; required notices stay on record.</p>
-        <div className="status-results">
-          {view.consents.map((cn) => (
-            <div key={cn.id} className="status-row">
-              <strong>{cn.purpose}</strong>
-              <span>{String(cn.date).slice(0, 10)}</span>
-              {cn.status === 'revoked' ? (
-                <Pill kind="dismissed">Withdrawn</Pill>
-              ) : (
-                <button className="apply-btn" onClick={() => onSave(null, cn.id)}>
-                  Withdraw
-                </button>
-              )}
-            </div>
-          ))}
-          {!view.consents.length && <p className="careers-loading">No consents recorded.</p>}
-        </div>
-      </section>
+      <DisclosureSection
+        title="Privacy and consents"
+        description="View your choices or withdraw consent."
+        icon={ShieldCheck}
+      >
+        <section className="careers-status portal-card">
+          <h2>Your consents</h2>
+          <p>You can withdraw any consent here; required notices stay on record.</p>
+          <div className="status-results">
+            {view.consents.map((cn) => (
+              <div key={cn.id} className="status-row">
+                <strong>{cn.purpose}</strong>
+                <span>{String(cn.date).slice(0, 10)}</span>
+                {cn.status === 'revoked' ? (
+                  <Pill kind="dismissed">Withdrawn</Pill>
+                ) : (
+                  <button className="apply-btn" onClick={() => onSave(null, cn.id)}>
+                    Withdraw
+                  </button>
+                )}
+              </div>
+            ))}
+            {!view.consents.length && <p className="careers-loading">No consents recorded.</p>}
+          </div>
+        </section>
+      </DisclosureSection>
     </main>
   );
 }

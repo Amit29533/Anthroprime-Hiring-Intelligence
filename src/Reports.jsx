@@ -1,3 +1,5 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
+import { FormSection } from './ProgressiveUI.jsx';
 import CompletionWorkbench from './CompletionWorkbench.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
 import React, { useMemo, useState } from 'react';
@@ -120,7 +122,7 @@ export function Reports({
     <>
       <PageHeader
         eyebrow="ANALYTICS"
-        title="Ask your own questions."
+        title="Reports"
         description="Build a report over any record type, save it for the team, and export the answer."
       >
         <Button variant="secondary" icon={Plus} onClick={() => setDraft(blankReport(draft.entity))}>
@@ -129,23 +131,25 @@ export function Reports({
       </PageHeader>
 
       {cloud && (
-        <details>
-          <summary>Bounded foundation analytics</summary>
+        <DisclosureSection title="Repository analytics">
           <FoundationWorkbench
             initialTab="report"
             onOpen={onOpen}
             onOpenClient={onOpenClient}
             onOpenDemand={onOpenDemand}
           />
-        </details>
+        </DisclosureSection>
       )}
       {cloud && (
-        <details>
-          <summary>Historical report builder and conversion cohorts</summary>
+        <DisclosureSection title="Historical reports and conversion cohorts">
           <CompletionWorkbench role={role} initialTab="history" />
-        </details>
+        </DisclosureSection>
       )}
-      {cloud && <DemandReadinessReport demands={data.demands || []} role={role} />}
+      {cloud && (
+        <DisclosureSection title="Demand readiness analysis">
+          <DemandReadinessReport demands={data.demands || []} role={role} />
+        </DisclosureSection>
+      )}
 
       <div className="report-layout">
         <section className="panel">
@@ -278,80 +282,86 @@ export function Reports({
               </Field>
             </div>
 
-            <h3 className="member-subheading">Filters</h3>
-            {config.filters.length === 0 && (
-              <p className="supporting-text">No filters — every record is included.</p>
-            )}
-            {config.filters.map((f, i) => {
-              const meta = findField(draft.entity, f.field);
-              const operators = Object.entries(OPERATORS).filter(
-                ([, o]) => !meta || o.types.includes(meta.type),
-              );
-              return (
-                <div className="report-filter" key={i}>
-                  <select
-                    aria-label={`Filter ${i + 1} field`}
-                    value={f.field}
-                    onChange={(e) => setFilter(i, { field: e.target.value, value: '' })}
-                  >
-                    <option value="">Choose a field…</option>
-                    {fields.map((x) => (
-                      <option key={x.key} value={x.key}>
-                        {x.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label={`Filter ${i + 1} comparison`}
-                    value={f.operator}
-                    onChange={(e) => setFilter(i, { operator: e.target.value })}
-                  >
-                    {operators.map(([key, o]) => (
-                      <option key={key} value={key}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  {!NO_VALUE.has(f.operator) && (
-                    <>
-                      <input
-                        aria-label={`Filter ${i + 1} value`}
-                        list={`report-values-${i}`}
-                        value={f.value ?? ''}
-                        onChange={(e) => setFilter(i, { value: e.target.value })}
-                      />
-                      <datalist id={`report-values-${i}`}>
-                        {(f.field
-                          ? suggestValues(data, draft.entity, f.field, 40, { isAdmin })
-                          : []
-                        ).map((v) => (
-                          <option key={v} value={v} />
-                        ))}
-                      </datalist>
-                    </>
-                  )}
-                  <Button
-                    variant="secondary"
-                    icon={Trash2}
-                    onClick={() => setConfig({ filters: config.filters.filter((_, x) => x !== i) })}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              );
-            })}
-            <Button
-              variant="secondary"
-              icon={Plus}
-              onClick={() =>
-                setConfig({
-                  filters: [...config.filters, { field: '', operator: 'is', value: '' }],
-                })
-              }
+            <FormSection
+              title="Report filters"
+              description="Narrow the records included in this report."
             >
-              Add filter
-            </Button>
-
+              <h3 className="member-subheading">Filters</h3>
+              {config.filters.length === 0 && (
+                <p className="supporting-text">No filters — every record is included.</p>
+              )}
+              {config.filters.map((f, i) => {
+                const meta = findField(draft.entity, f.field);
+                const operators = Object.entries(OPERATORS).filter(
+                  ([, o]) => !meta || o.types.includes(meta.type),
+                );
+                return (
+                  <div className="report-filter" key={i}>
+                    <select
+                      aria-label={`Filter ${i + 1} field`}
+                      value={f.field}
+                      onChange={(e) => setFilter(i, { field: e.target.value, value: '' })}
+                    >
+                      <option value="">Choose a field…</option>
+                      {fields.map((x) => (
+                        <option key={x.key} value={x.key}>
+                          {x.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label={`Filter ${i + 1} comparison`}
+                      value={f.operator}
+                      onChange={(e) => setFilter(i, { operator: e.target.value })}
+                    >
+                      {operators.map(([key, o]) => (
+                        <option key={key} value={key}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    {!NO_VALUE.has(f.operator) && (
+                      <>
+                        <input
+                          aria-label={`Filter ${i + 1} value`}
+                          list={`report-values-${i}`}
+                          value={f.value ?? ''}
+                          onChange={(e) => setFilter(i, { value: e.target.value })}
+                        />
+                        <datalist id={`report-values-${i}`}>
+                          {(f.field
+                            ? suggestValues(data, draft.entity, f.field, 40, { isAdmin })
+                            : []
+                          ).map((v) => (
+                            <option key={v} value={v} />
+                          ))}
+                        </datalist>
+                      </>
+                    )}
+                    <Button
+                      variant="secondary"
+                      icon={Trash2}
+                      onClick={() =>
+                        setConfig({ filters: config.filters.filter((_, x) => x !== i) })
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button
+                variant="secondary"
+                icon={Plus}
+                onClick={() =>
+                  setConfig({
+                    filters: [...config.filters, { field: '', operator: 'is', value: '' }],
+                  })
+                }
+              >
+                Add filter
+              </Button>
+            </FormSection>
             <div className="form-grid report-save">
               <Field label="Report name" hint={nameError}>
                 <input

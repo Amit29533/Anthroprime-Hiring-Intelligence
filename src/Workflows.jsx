@@ -1,3 +1,5 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
+import { FormSection } from './ProgressiveUI.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
 import EnterpriseOperations from './EnterpriseOperations.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
@@ -468,7 +470,7 @@ export function Assessments({ data, onNew, onEnrich, onOpen, onSave, busy }) {
     <>
       <PageHeader
         eyebrow="ASSESS · ENRICH · VALIDATE"
-        title="Build confidence in every candidate."
+        title="Assessments and training"
         description="Capture evidence, close skill gaps and create deployment-ready talent."
       >
         {!viewer && (
@@ -721,7 +723,7 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
     <>
       <PageHeader
         eyebrow="KEEP THE RELATIONSHIP WARM"
-        title="Every conversation counts."
+        title="Activities"
         description="Your notes, next steps and candidate follow-ups in one place."
       />
       <div className="repository-tabs">
@@ -777,49 +779,54 @@ export function Activities({ data, onOpen, onSave, busy, notify, audit }) {
           subtitle="The working checklist across candidates and demands - interview prep, documents, offer letters"
         />
         {!viewer && (
-          <form className="task-add" onSubmit={addTask}>
-            <input
-              required
-              value={taskForm.title}
-              onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-              placeholder="Add a task, e.g. Collect documents from Ishaan"
-            />
-            <input
-              type="date"
-              aria-label="Due date"
-              value={taskForm.due}
-              onChange={(e) => setTaskForm({ ...taskForm, due: e.target.value })}
-            />
-            <select
-              aria-label="Task candidate"
-              value={taskForm.candidateId}
-              onChange={(e) => setTaskForm({ ...taskForm, candidateId: e.target.value })}
-            >
-              <option value="">No candidate</option>
-              {data.candidates.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {candidateLabel(c)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Task demand"
-              value={taskForm.demandId}
-              onChange={(e) => setTaskForm({ ...taskForm, demandId: e.target.value })}
-            >
-              <option value="">No demand</option>
-              {data.demands
-                .filter((d) => d.status === 'Open')
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.title}
+          <FormSection
+            title="Create a task"
+            description="Add a follow-up, due date and related records."
+          >
+            <form className="task-add" onSubmit={addTask}>
+              <input
+                required
+                value={taskForm.title}
+                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                placeholder="Add a task, e.g. Collect documents from Ishaan"
+              />
+              <input
+                type="date"
+                aria-label="Due date"
+                value={taskForm.due}
+                onChange={(e) => setTaskForm({ ...taskForm, due: e.target.value })}
+              />
+              <select
+                aria-label="Task candidate"
+                value={taskForm.candidateId}
+                onChange={(e) => setTaskForm({ ...taskForm, candidateId: e.target.value })}
+              >
+                <option value="">No candidate</option>
+                {data.candidates.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {candidateLabel(c)}
                   </option>
                 ))}
-            </select>
-            <Button className="small" icon={Plus} disabled={busy}>
-              Add task
-            </Button>
-          </form>
+              </select>
+              <select
+                aria-label="Task demand"
+                value={taskForm.demandId}
+                onChange={(e) => setTaskForm({ ...taskForm, demandId: e.target.value })}
+              >
+                <option value="">No demand</option>
+                {data.demands
+                  .filter((d) => d.status === 'Open')
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.title}
+                    </option>
+                  ))}
+              </select>
+              <Button className="small" icon={Plus} disabled={busy}>
+                Add task
+              </Button>
+            </form>
+          </FormSection>
         )}
         <div className="task-list">
           {tasks.map((t) => {
@@ -990,7 +997,7 @@ export function Pools({ data, onOpen, onSave, busy }) {
     <>
       <PageHeader
         eyebrow="CURATED CONNECTIONS"
-        title="A network, organized around possibility."
+        title="Talent pools"
         description="Dynamic talent pools update automatically as your repository grows."
       />
       <StaticPools data={data} onOpen={onOpen} onSave={onSave} busy={busy} />
@@ -1090,7 +1097,7 @@ export function Analytics({ data, navigate }) {
     <>
       <PageHeader
         eyebrow="THE VALUE IN YOUR NETWORK"
-        title="Talent intelligence, in perspective."
+        title="Analytics"
         description="Live metrics from your repository and current hiring processes."
       />
       <div className="stats-grid">
@@ -1130,7 +1137,14 @@ export function Analytics({ data, navigate }) {
         />
       </div>
       <div className="analytics-grid">
-        <LifecycleAnalytics />
+        <DisclosureSection
+          className="advanced-tools"
+          title="Lifecycle analysis"
+          description="Explore stage transitions and conversion trends."
+          icon={TrendingUp}
+        >
+          <LifecycleAnalytics />
+        </DisclosureSection>
         <SkillInventoryPanel
           data={data}
           onOpenCandidate={(id) => navigate('Candidates', { personId: id })}
@@ -1434,343 +1448,457 @@ export function Settings({ data, session, onReload, notify, audit, onSave, onDel
     <>
       <PageHeader
         eyebrow="YOUR WORKSPACE"
-        title="A foundation for better recruiting."
-        description="Understand where your data lives and how this workspace is configured."
+        title="Workspace settings"
+        description="Choose a section to manage your team, preferences or connected tools."
       />
-      <div className="settings-grid">
-        <section className="panel">
-          <PanelHeading
-            title="Data & connection"
-            action={
-              <Badge tone={cloud ? 'green' : 'amber'}>
-                {cloud ? 'Cloud connected' : 'Local demo'}
-              </Badge>
-            }
-          />
-          <div className="settings-body">
-            <div className="settings-feature">
-              <Cloud size={25} />
-              <div>
-                <h3>{cloud ? 'Shared PostgreSQL repository' : 'Browser-local demo workspace'}</h3>
-                <p>
-                  {cloud
-                    ? 'Your account accesses workspace records through Supabase authentication and row-level security.'
-                    : 'This workspace uses fictional examples and saves changes in this browser. It is not a shared team database. Use demo information until your cloud workspace is configured.'}
-                </p>
+      <div className="settings-categories" key={`${getWorkspaceId()}:${getRole()}`}>
+        <DisclosureSection
+          title="Workspace and data"
+          description="Repository connection and workspace status."
+          icon={Database}
+        >
+          <section className="panel">
+            <PanelHeading
+              title="Data & connection"
+              action={
+                <Badge tone={cloud ? 'green' : 'amber'}>
+                  {cloud ? 'Cloud connected' : 'Local demo'}
+                </Badge>
+              }
+            />
+            <div className="settings-body">
+              <div className="settings-feature">
+                <Cloud size={25} />
+                <div>
+                  <h3>{cloud ? 'Shared PostgreSQL repository' : 'Browser-local demo workspace'}</h3>
+                  <p>
+                    {cloud
+                      ? 'Your account accesses workspace records through Supabase authentication and row-level security.'
+                      : 'This workspace uses fictional examples and saves changes in this browser. It is not a shared team database. Use demo information until your cloud workspace is configured.'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <dl>
-              <div>
-                <dt>Hosting target</dt>
-                <dd>Netlify</dd>
-              </div>
-              <div>
-                <dt>Database</dt>
-                <dd>{cloud ? 'Supabase PostgreSQL' : 'Browser storage'}</dd>
-              </div>
-              <div>
-                <dt>Matching engine</dt>
-                <dd>Weighted, deterministic criteria</dd>
-              </div>
-              <div>
-                <dt>Profile persistence</dt>
-                <dd>{cloud ? 'Shared workspace' : 'This browser only'}</dd>
-              </div>
-              <div>
-                <dt>Candidate records</dt>
-                <dd>{data.candidates.length}</dd>
-              </div>
-            </dl>
-            <Button variant="secondary" icon={RefreshCw} onClick={onReload}>
-              Reload repository
-            </Button>
-            {!cloud && (
-              <Button
-                variant="secondary"
-                icon={Database}
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      'Reset the demo workspace? Every change saved in this browser is discarded and the fictional sample data is restored. This cannot be undone.',
-                    )
-                  )
-                    return;
-                  await resetDemo();
-                  if (onReload) await onReload();
-                  notify('Demo workspace reset to the sample data.');
-                  audit &&
-                    audit({
-                      entityType: 'workspace',
-                      entityId: null,
-                      action: 'updated',
-                      detail: 'Demo data reset from Workspace settings',
-                    });
-                }}
-              >
-                Reset demo data
+              <dl>
+                <div>
+                  <dt>Hosting target</dt>
+                  <dd>Netlify</dd>
+                </div>
+                <div>
+                  <dt>Database</dt>
+                  <dd>{cloud ? 'Supabase PostgreSQL' : 'Browser storage'}</dd>
+                </div>
+                <div>
+                  <dt>Matching engine</dt>
+                  <dd>Weighted, deterministic criteria</dd>
+                </div>
+                <div>
+                  <dt>Profile persistence</dt>
+                  <dd>{cloud ? 'Shared workspace' : 'This browser only'}</dd>
+                </div>
+                <div>
+                  <dt>Candidate records</dt>
+                  <dd>{data.candidates.length}</dd>
+                </div>
+              </dl>
+              <Button variant="secondary" icon={RefreshCw} onClick={onReload}>
+                Reload repository
               </Button>
-            )}
-            {!cloud && (
-              <p className="supporting-text">
-                Team setup instructions and the database migration are included in the project's
-                README. Configure the Supabase project URL and public key in Netlify, then redeploy.
-              </p>
-            )}
-          </div>
-        </section>
-        <Members notify={notify} audit={audit} />
-        <DepartmentsPanel
-          data={data}
-          onSave={onSave}
-          onNew={() => onModal?.({ type: 'department' })}
-          onEdit={(department) => onModal?.({ type: 'department', department })}
-          notify={notify}
-        />
-        <CareersSeoPanel data={data} notify={notify} />
-        <BrandingPanel data={data} onSave={onSave} notify={notify} />
-        <CustomFieldsPanel data={data} onSave={onSave} notify={notify} />
-        <AssignmentPanel
-          data={data}
-          onSave={onSave}
-          onDelete={onDelete}
-          onNew={() => onModal?.({ type: 'assignmentRule' })}
-          onEdit={(rule) => onModal?.({ type: 'assignmentRule', rule })}
-          notify={notify}
-        />
-        <section className="panel">
-          <PanelHeading title="Workspace capabilities" />
-          <div className="settings-body">
-            <div className="capability">
-              <CheckCircle2 />
-              <span>Reusable candidate profiles & history</span>
+              {!cloud && (
+                <Button
+                  variant="secondary"
+                  icon={Database}
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        'Reset the demo workspace? Every change saved in this browser is discarded and the fictional sample data is restored. This cannot be undone.',
+                      )
+                    )
+                      return;
+                    await resetDemo();
+                    if (onReload) await onReload();
+                    notify('Demo workspace reset to the sample data.');
+                    audit &&
+                      audit({
+                        entityType: 'workspace',
+                        entityId: null,
+                        action: 'updated',
+                        detail: 'Demo data reset from Workspace settings',
+                      });
+                  }}
+                >
+                  Reset demo data
+                </Button>
+              )}
+              {!cloud && (
+                <p className="supporting-text">
+                  Team setup instructions and the database migration are included in the project's
+                  README. Configure the Supabase project URL and public key in Netlify, then
+                  redeploy.
+                </p>
+              )}
             </div>
-            <div className="capability">
-              <CheckCircle2 />
-              <span>Explainable demand matching</span>
-            </div>
-            <div className="capability">
-              <CheckCircle2 />
-              <span>Pipeline, assessments & enrichment</span>
-            </div>
-            <div className="capability">
-              <CheckCircle2 />
-              <span>CSV import with duplicate checks</span>
-            </div>
-            <div className="roadmap-note">
-              <h3>Release boundaries</h3>
-              <p>
-                This release includes in-browser CV parsing, private document storage, local
-                semantic retrieval, public careers and candidate self-service portals, and
-                admin-only manual retention review. It does not include hosted embeddings or
-                AI-driven decisions, automated email notifications or calendar sync, client/vendor
-                portals, fine-grained role administration, or automatic retention enforcement.
-              </p>
-            </div>
-          </div>
-        </section>
-        {!viewer && (
-          <DataTools
+          </section>
+        </DisclosureSection>
+        <DisclosureSection
+          title="Team and organisation"
+          description="Members, departments and ownership rules."
+          icon={Users}
+        >
+          <Members notify={notify} audit={audit} />
+          <DepartmentsPanel
             data={data}
             onSave={onSave}
-            onReload={onReload}
+            onNew={() => onModal?.({ type: 'department' })}
+            onEdit={(department) => onModal?.({ type: 'department', department })}
             notify={notify}
-            audit={audit}
           />
-        )}
-        <MfaPanel key={`mfa-${getWorkspaceId()}`} />
-        {getRole() === 'admin' && (
-          <OperationsConsole key={`operations-${getWorkspaceId()}`} onHoldChange={onReload} />
-        )}
-        {getRole() === 'admin' && <ExecutionJobsPanel />}
-        {getRole() === 'admin' && <InterviewReminders key={`reminders-${getWorkspaceId()}`} />}
-        {getRole() === 'admin' && <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />}
-        {!viewer && <SavedImports onReload={onReload} notify={notify} />}
-        {getRole() === 'admin' && <IntegrationsPanel />}
-        {getRole() === 'admin' && <DeliverySandbox />}
-        {getRole() === 'admin' && <ProcessingRecovery />}
-        {getRole() === 'admin' && <GoogleWorkspace />}
-        {getRole() === 'admin' && <ControlledWorkflows />}
-        {getRole() === 'admin' && <EnterpriseOperations />}
-        {getRole() === 'admin' && <MachineCredentials />}
-        {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
-        {getRole() === 'admin' && <IntelligenceSettings />}
-        {getRole() === 'admin' && <IndexHealthPanel />}
-        {getRole() === 'admin' && <DocumentReputation documents={data.documents} />}
-        {getRole() === 'admin' && <DocumentReviewQueue onReload={onReload} />}
-        {getRole() === 'admin' && <DocumentAccessAudit />}
-        {getRole() === 'admin' && <CandidateExportAudit />}
-        {getRole() === 'admin' && (
-          <SubjectRequests key={getWorkspaceId()} onHoldChange={onReload} />
-        )}
-        {getRole() === 'admin' && (
-          <AdminPanel data={data} onSave={onSave} notify={notify} audit={audit} />
-        )}
-        {!viewer && <TaxonomyEditor data={data} onSave={onSave} notify={notify} />}
-        <section className="panel">
-          <PanelHeading title="Data portability" />
-          <div className="settings-body">
-            {viewer ? (
-              <p className="supporting-text" role="status">
-                Your viewer role is read-only; data export and restore are unavailable.
-              </p>
-            ) : (
-              <p>Export candidate records for your own reporting and migration.</p>
+        </DisclosureSection>
+        <DisclosureSection
+          title="Branding and profile fields"
+          description="Public careers, workspace branding and custom fields."
+          icon={Layers}
+        >
+          <CareersSeoPanel data={data} notify={notify} />
+          <BrandingPanel data={data} onSave={onSave} notify={notify} />
+          <CustomFieldsPanel data={data} onSave={onSave} notify={notify} />
+        </DisclosureSection>
+        <DisclosureSection
+          title="Assignment and recruiting policies"
+          description="Ownership, templates, taxonomy and automation."
+          icon={ClipboardCheck}
+        >
+          <AssignmentPanel
+            data={data}
+            onSave={onSave}
+            onDelete={onDelete}
+            onNew={() => onModal?.({ type: 'assignmentRule' })}
+            onEdit={(rule) => onModal?.({ type: 'assignmentRule', rule })}
+            notify={notify}
+          />
+          {getRole() === 'admin' && (
+            <AdminPanel data={data} onSave={onSave} notify={notify} audit={audit} />
+          )}
+          {!viewer && <TaxonomyEditor data={data} onSave={onSave} notify={notify} />}
+        </DisclosureSection>
+        <DisclosureSection
+          title="Operations and maintenance"
+          description="Jobs, reminders, import recovery and repository health."
+          icon={RefreshCw}
+        >
+          <section className="panel">
+            <PanelHeading title="Recruiting essentials" />
+            <div className="settings-body">
+              <div className="capability">
+                <CheckCircle2 />
+                <span>Reusable candidate profiles & history</span>
+              </div>
+              <div className="capability">
+                <CheckCircle2 />
+                <span>Explainable demand matching</span>
+              </div>
+              <div className="capability">
+                <CheckCircle2 />
+                <span>Pipeline, assessments & enrichment</span>
+              </div>
+              <div className="capability">
+                <CheckCircle2 />
+                <span>CSV import with duplicate checks</span>
+              </div>
+            </div>
+          </section>
+          {!viewer && (
+            <DataTools
+              data={data}
+              onSave={onSave}
+              onReload={onReload}
+              notify={notify}
+              audit={audit}
+            />
+          )}
+          <MfaPanel key={`mfa-${getWorkspaceId()}`} />
+          {getRole() === 'admin' && (
+            <DisclosureSection title="Operational holds" icon={Cloud}>
+              <OperationsConsole key={`operations-${getWorkspaceId()}`} onHoldChange={onReload} />
+            </DisclosureSection>
+          )}
+          {getRole() === 'admin' && (
+            <DisclosureSection title="Background jobs" icon={Cloud}>
+              <ExecutionJobsPanel />
+            </DisclosureSection>
+          )}
+          {getRole() === 'admin' && (
+            <DisclosureSection title="Interview reminders" icon={Cloud}>
+              <InterviewReminders key={`reminders-${getWorkspaceId()}`} />
+            </DisclosureSection>
+          )}
+          {getRole() === 'admin' && (
+            <DisclosureSection title="Profile freshness reviews" icon={Cloud}>
+              <FreshnessReviews key={`freshness-${getWorkspaceId()}`} />
+            </DisclosureSection>
+          )}
+          {!viewer && (
+            <DisclosureSection title="Saved imports" icon={Cloud}>
+              <SavedImports onReload={onReload} notify={notify} />
+            </DisclosureSection>
+          )}
+        </DisclosureSection>
+        {!viewer && (
+          <DisclosureSection
+            title="Integrations and intelligence"
+            description="Providers, credentials, external mappings and search."
+            icon={Cloud}
+          >
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Provider connections" icon={Cloud}>
+                <IntegrationsPanel />
+              </DisclosureSection>
             )}
-            <Button
-              variant="secondary"
-              icon={Download}
-              disabled={viewer}
-              title={viewer ? 'Viewer role cannot export candidate data' : ''}
-              onClick={async () => {
-                const exportRows = data.candidates.filter((c) => !c.mergedInto);
-                if (!(await exportCandidateData(exportRows, notify))) return;
-                notify('Candidate CSV exported.');
-                audit &&
-                  audit({
-                    entityType: 'candidates',
-                    entityId: null,
-                    action: 'exported',
-                    detail: `${exportRows.length} candidates`,
-                  });
-              }}
-            >
-              Export candidate CSV
-            </Button>
-            <p className="supporting-text">
-              Includes contact details. Audited candidate CSVs include compensation only for
-              administrators. Store exports in an appropriate private location.
-            </p>
-            <div className="backup-row">
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Delivery testing" icon={Cloud}>
+                <DeliverySandbox />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Processing recovery" icon={Cloud}>
+                <ProcessingRecovery />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Google Workspace" icon={Cloud}>
+                <GoogleWorkspace />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="AI and external workflows" icon={Cloud}>
+                <ControlledWorkflows />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Enterprise access" icon={Cloud}>
+                <EnterpriseOperations />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="API credentials" icon={Cloud}>
+                <MachineCredentials />
+              </DisclosureSection>
+            )}
+            {!viewer && <ExternalMappingsPanel candidates={data.candidates} />}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Intelligence configuration" icon={Cloud}>
+                <IntelligenceSettings />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Search index health" icon={Cloud}>
+                <IndexHealthPanel />
+              </DisclosureSection>
+            )}
+          </DisclosureSection>
+        )}
+        {getRole() === 'admin' && (
+          <DisclosureSection
+            title="Privacy and document governance"
+            description="Review documents, audit access and handle requests."
+            icon={CheckCircle2}
+          >
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Document reputation" icon={Cloud}>
+                <DocumentReputation documents={data.documents} />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Document review queue" icon={Cloud}>
+                <DocumentReviewQueue onReload={onReload} />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Document access log" icon={Cloud}>
+                <DocumentAccessAudit />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <DisclosureSection title="Candidate export log" icon={Cloud}>
+                <CandidateExportAudit />
+              </DisclosureSection>
+            )}
+            {getRole() === 'admin' && (
+              <SubjectRequests key={getWorkspaceId()} onHoldChange={onReload} />
+            )}
+          </DisclosureSection>
+        )}
+        <DisclosureSection
+          title="Exports and backups"
+          description="Download records, restore snapshots and inspect recent changes."
+          icon={Download}
+        >
+          <section className="panel">
+            <PanelHeading title="Data portability" />
+            <div className="settings-body">
+              {viewer ? (
+                <p className="supporting-text" role="status">
+                  Your viewer role is read-only; data export and restore are unavailable.
+                </p>
+              ) : (
+                <p>Export candidate records for your own reporting and migration.</p>
+              )}
               <Button
                 variant="secondary"
                 icon={Download}
                 disabled={viewer}
-                title={viewer ? 'Viewer role cannot export a workspace backup' : ''}
-                onClick={() => {
-                  const exported = exportSensitiveFile(
-                    JSON.stringify(backupBundle(data), null, 2),
-                    `ecod-workspace-backup-${today()}.json`,
-                    'application/json',
-                    notify,
-                  );
-                  if (!exported) return;
-                  notify('Workspace backup downloaded - store it somewhere private.');
+                title={viewer ? 'Viewer role cannot export candidate data' : ''}
+                onClick={async () => {
+                  const exportRows = data.candidates.filter((c) => !c.mergedInto);
+                  if (!(await exportCandidateData(exportRows, notify))) return;
+                  notify('Candidate CSV exported.');
                   audit &&
                     audit({
-                      entityType: 'workspace',
+                      entityType: 'candidates',
                       entityId: null,
                       action: 'exported',
-                      detail: 'Loaded application rows snapshot (JSON); partial cloud coverage',
+                      detail: `${exportRows.length} candidates`,
                     });
                 }}
               >
-                Download workspace backup (JSON)
+                Export candidate CSV
               </Button>
-              {!viewer && (
-                <label className={`button secondary${restoreBusy ? ' disabled' : ''}`}>
-                  <FileSpreadsheet size={16} />
-                  {restoreBusy ? 'Restoring…' : 'Restore from backup'}
-                  <input
-                    type="file"
-                    hidden
-                    accept=".json"
-                    disabled={restoreBusy}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = '';
-                      if (!file) return;
-                      if (
-                        !window.confirm(
-                          'Restore merges every table from this backup into the workspace. Existing rows with the same ids are overwritten; deletions are not applied. Continue?',
+              <p className="supporting-text">
+                Includes contact details. Audited candidate CSVs include compensation only for
+                administrators. Store exports in an appropriate private location.
+              </p>
+              <div className="backup-row">
+                <Button
+                  variant="secondary"
+                  icon={Download}
+                  disabled={viewer}
+                  title={viewer ? 'Viewer role cannot export a workspace backup' : ''}
+                  onClick={() => {
+                    const exported = exportSensitiveFile(
+                      JSON.stringify(backupBundle(data), null, 2),
+                      `ecod-workspace-backup-${today()}.json`,
+                      'application/json',
+                      notify,
+                    );
+                    if (!exported) return;
+                    notify('Workspace backup downloaded - store it somewhere private.');
+                    audit &&
+                      audit({
+                        entityType: 'workspace',
+                        entityId: null,
+                        action: 'exported',
+                        detail: 'Loaded application rows snapshot (JSON); partial cloud coverage',
+                      });
+                  }}
+                >
+                  Download workspace backup (JSON)
+                </Button>
+                {!viewer && (
+                  <label className={`button secondary${restoreBusy ? ' disabled' : ''}`}>
+                    <FileSpreadsheet size={16} />
+                    {restoreBusy ? 'Restoring…' : 'Restore from backup'}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".json"
+                      disabled={restoreBusy}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        if (
+                          !window.confirm(
+                            'Restore merges every table from this backup into the workspace. Existing rows with the same ids are overwritten; deletions are not applied. Continue?',
+                          )
                         )
-                      )
-                        return;
-                      setRestoreBusy(true);
-                      try {
-                        const text = await file.text();
-                        const { rows: restored, exportedAt } = parseBackup(text);
-                        const { touched, total } = await restoreBackupRows(restored, onSave);
-                        notify(
-                          `Restore complete: ${total} rows across ${touched} tables (backup from ${String(exportedAt).slice(0, 10)}).`,
-                        );
-                        audit &&
-                          audit({
-                            entityType: 'workspace',
-                            entityId: null,
-                            action: 'updated',
-                            detail: `Restored backup from ${String(exportedAt).slice(0, 10)}`,
-                          });
-                      } catch (err) {
-                        notify(`Restore failed: ${err.message}`);
-                      }
-                      setRestoreBusy(false);
-                    }}
+                          return;
+                        setRestoreBusy(true);
+                        try {
+                          const text = await file.text();
+                          const { rows: restored, exportedAt } = parseBackup(text);
+                          const { touched, total } = await restoreBackupRows(restored, onSave);
+                          notify(
+                            `Restore complete: ${total} rows across ${touched} tables (backup from ${String(exportedAt).slice(0, 10)}).`,
+                          );
+                          audit &&
+                            audit({
+                              entityType: 'workspace',
+                              entityId: null,
+                              action: 'updated',
+                              detail: `Restored backup from ${String(exportedAt).slice(0, 10)}`,
+                            });
+                        } catch (err) {
+                          notify(`Restore failed: ${err.message}`);
+                        }
+                        setRestoreBusy(false);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="supporting-text">
+                This portability snapshot contains application rows currently loaded for your
+                account. Cloud coverage may be partial. It excludes private governance and
+                operations records, Auth, original file bytes, protected columns and database
+                configuration. Restore merges rows by id through the normal save path — deletions
+                are never applied. Encrypted server-side backups with tested restore (RPO/RTO)
+                remain an operations responsibility.
+              </p>
+              <div className="since-export">
+                <Field label="Incremental change export (API groundwork)">
+                  <input
+                    type="date"
+                    value={since}
+                    onChange={(e) => setSince(e.target.value)}
+                    aria-label="Export changes since"
                   />
-                </label>
+                </Field>
+                <Button
+                  variant="secondary"
+                  icon={FileSpreadsheet}
+                  disabled={!since || viewer}
+                  title={viewer ? 'Viewer role cannot export workspace data' : ''}
+                  onClick={() =>
+                    exportSensitiveFile(
+                      JSON.stringify(changesSince(data, since), null, 2),
+                      `ecod-changes-${since}.json`,
+                      'application/json',
+                      notify,
+                    )
+                  }
+                >
+                  Export changes since {since || '…'}
+                </Button>
+                <p className="supporting-text">
+                  Blueprint §14: the same shape a future <code>updated_since</code> API endpoint
+                  returns.
+                </p>
+              </div>
+            </div>
+          </section>
+          <section className="panel">
+            <PanelHeading
+              title="Recent activity"
+              subtitle="Views and exports recorded in this workspace"
+            />
+            <div className="audit-list">
+              {data.auditEvents.slice(0, 8).map((e) => (
+                <article key={e.id} className="audit-row">
+                  <Badge tone={e.action === 'exported' ? 'amber' : 'gray'}>{e.action}</Badge>
+                  <span>{e.detail || e.entityType}</span>
+                  <small>
+                    {new Date(e.date).toLocaleString()} · {e.actor}
+                  </small>
+                </article>
+              ))}
+              {!data.auditEvents.length && (
+                <p className="supporting-text">
+                  Profile views and CSV exports will be recorded here.
+                </p>
               )}
             </div>
-            <p className="supporting-text">
-              This portability snapshot contains application rows currently loaded for your account.
-              Cloud coverage may be partial. It excludes private governance and operations records,
-              Auth, original file bytes, protected columns and database configuration. Restore
-              merges rows by id through the normal save path — deletions are never applied.
-              Encrypted server-side backups with tested restore (RPO/RTO) remain an operations
-              responsibility.
-            </p>
-            <div className="since-export">
-              <Field label="Incremental change export (API groundwork)">
-                <input
-                  type="date"
-                  value={since}
-                  onChange={(e) => setSince(e.target.value)}
-                  aria-label="Export changes since"
-                />
-              </Field>
-              <Button
-                variant="secondary"
-                icon={FileSpreadsheet}
-                disabled={!since || viewer}
-                title={viewer ? 'Viewer role cannot export workspace data' : ''}
-                onClick={() =>
-                  exportSensitiveFile(
-                    JSON.stringify(changesSince(data, since), null, 2),
-                    `ecod-changes-${since}.json`,
-                    'application/json',
-                    notify,
-                  )
-                }
-              >
-                Export changes since {since || '…'}
-              </Button>
-              <p className="supporting-text">
-                Blueprint §14: the same shape a future <code>updated_since</code> API endpoint
-                returns.
-              </p>
-            </div>
-          </div>
-        </section>
-        <section className="panel">
-          <PanelHeading
-            title="Recent activity"
-            subtitle="Views and exports recorded in this workspace"
-          />
-          <div className="audit-list">
-            {data.auditEvents.slice(0, 8).map((e) => (
-              <article key={e.id} className="audit-row">
-                <Badge tone={e.action === 'exported' ? 'amber' : 'gray'}>{e.action}</Badge>
-                <span>{e.detail || e.entityType}</span>
-                <small>
-                  {new Date(e.date).toLocaleString()} · {e.actor}
-                </small>
-              </article>
-            ))}
-            {!data.auditEvents.length && (
-              <p className="supporting-text">
-                Profile views and CSV exports will be recorded here.
-              </p>
-            )}
-          </div>
-        </section>
+          </section>
+        </DisclosureSection>
+
         {cloud && (
           <section className="panel">
             <PanelHeading title="Your session" />
@@ -2139,702 +2267,713 @@ function AdminPanel({ data, onSave, notify, audit }) {
         title="Administration"
         subtitle="Workspace-wide configuration — admin role only"
       />
-      <h3 className="history-heading">Pipeline stage labels</h3>
-      <p className="supporting-text">
-        Rename how the ten stages display across the workspace. Values stay stable for history and
-        dispositions.
-      </p>
-      <div className="stage-label-grid">
-        {STAGES.map((st) => (
-          <Field key={st} label={st}>
+      <FormSection title="Pipeline stage labels">
+        <p className="supporting-text">
+          Rename how the ten stages display across the workspace. Values stay stable for history and
+          dispositions.
+        </p>
+        <div className="stage-label-grid">
+          {STAGES.map((st) => (
+            <Field key={st} label={st}>
+              <input
+                value={labels[st] || ''}
+                placeholder={st}
+                onChange={(e) => setLabels({ ...labels, [st]: e.target.value })}
+              />
+            </Field>
+          ))}
+        </div>
+        <Button
+          className="small"
+          disabled={busy}
+          onClick={() => saveSettings({ stageLabels: labels })}
+        >
+          Save stage labels
+        </Button>
+      </FormSection>
+      <FormSection title="Retention review">
+        {!cloud && (
+          <>
+            <h3 className="history-heading">Retention policy</h3>
+            <div className="retention-row">
+              <Field label="Review profiles unverified for (months)">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={months}
+                  onChange={(e) => setMonths(Number(e.target.value))}
+                />
+              </Field>
+              <Button
+                className="small"
+                disabled={busy}
+                onClick={() => saveSettings({ retentionMonths: months })}
+              >
+                Save policy
+              </Button>
+              <span className="retention-count">
+                {due.length} profile{due.length === 1 ? '' : 's'} due for review
+              </span>
+            </div>
+            {cloud && (
+              <p className="supporting-text">
+                Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked
+                files, history or verified privacy fulfillment. Use subject-request and erasure
+                review to record scope and decisions. Destructive execution remains pending.
+              </p>
+            )}
+            {!!due.length && (
+              <div className="retention-list">
+                {due.slice(0, 10).map((c) => (
+                  <div key={c.id} className="quality-row">
+                    <span>
+                      <strong>{c.name}</strong>
+                      <small className="anthro-id">{anthroIdFor(c)}</small>
+                      <small className="block">Last verified {c.verified}</small>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      className="small"
+                      disabled={busy || cloud}
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
+                          )
+                        )
+                          return;
+                        setBusy(true);
+                        if (await onSave('candidates', [anonymizeCandidate(c)])) {
+                          audit &&
+                            audit({
+                              entityType: 'candidate',
+                              entityId: c.id,
+                              action: 'anonymized',
+                              detail: c.name,
+                            });
+                          notify('Profile anonymized.');
+                        }
+                        setBusy(false);
+                      }}
+                    >
+                      Anonymize
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {cloud && (
+          <p className="supporting-text">
+            Configure cloud retention review in Operations and governance above. Selected jobs use
+            its versioned policy reference; profile and file deletion remain disabled.
+          </p>
+        )}
+      </FormSection>
+      <FormSection title="Interview feedback bar">
+        <div className="retention-row">
+          <Field label="Bar (overall rating out of 5)">
             <input
-              value={labels[st] || ''}
-              placeholder={st}
-              onChange={(e) => setLabels({ ...labels, [st]: e.target.value })}
+              type="number"
+              step="0.1"
+              min="1"
+              max="5"
+              value={bar}
+              onChange={(e) => setBar(Number(e.target.value))}
             />
           </Field>
-        ))}
-      </div>
-      <Button
-        className="small"
-        disabled={busy}
-        onClick={() => saveSettings({ stageLabels: labels })}
-      >
-        Save stage labels
-      </Button>
-      {!cloud && (
-        <>
-          <h3 className="history-heading">Retention policy</h3>
-          <div className="retention-row">
-            <Field label="Review profiles unverified for (months)">
-              <input
-                type="number"
-                min="1"
-                max="120"
-                value={months}
-                onChange={(e) => setMonths(Number(e.target.value))}
-              />
-            </Field>
-            <Button
-              className="small"
-              disabled={busy}
-              onClick={() => saveSettings({ retentionMonths: months })}
-            >
-              Save policy
-            </Button>
-            <span className="retention-count">
-              {due.length} profile{due.length === 1 ? '' : 's'} due for review
-            </span>
-          </div>
-          {cloud && (
-            <p className="supporting-text">
-              Cloud profile anonymization is unavailable: the legacy scrubber cannot cover linked
-              files, history or verified privacy fulfillment. Use subject-request and erasure review
-              to record scope and decisions. Destructive execution remains pending.
-            </p>
-          )}
-          {!!due.length && (
-            <div className="retention-list">
-              {due.slice(0, 10).map((c) => (
-                <div key={c.id} className="quality-row">
-                  <span>
-                    <strong>{c.name}</strong>
-                    <small className="anthro-id">{anthroIdFor(c)}</small>
-                    <small className="block">Last verified {c.verified}</small>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    className="small"
-                    disabled={busy || cloud}
-                    onClick={async () => {
-                      if (
-                        !window.confirm(
-                          `Anonymize profile fields for ${c.name}? Linked files and history remain. This does not fulfill an erasure request.`,
-                        )
-                      )
-                        return;
-                      setBusy(true);
-                      if (await onSave('candidates', [anonymizeCandidate(c)])) {
-                        audit &&
-                          audit({
-                            entityType: 'candidate',
-                            entityId: c.id,
-                            action: 'anonymized',
-                            detail: c.name,
-                          });
-                        notify('Profile anonymized.');
-                      }
-                      setBusy(false);
-                    }}
-                  >
-                    Anonymize
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-      {cloud && (
+          <Field label="Rating criteria" hint="Comma-separated, shown on every feedback form">
+            <input value={crit} onChange={(e) => setCrit(e.target.value)} />
+          </Field>
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={() =>
+              saveSettings({
+                feedbackThreshold: bar,
+                feedbackCriteria: crit
+                  .split(',')
+                  .map((x) => x.trim())
+                  .filter(Boolean),
+              })
+            }
+          >
+            Save feedback settings
+          </Button>
+        </div>
+      </FormSection>
+      <FormSection title="Email templates">
         <p className="supporting-text">
-          Configure cloud retention review in Operations and governance above. Selected jobs use its
-          versioned policy reference; profile and file deletion remain disabled.
+          Drafts for invites and follow-ups, composed in your mail client. Placeholders:{' '}
+          {'{name} {demand} {round} {mode} {date} {time}'}.
         </p>
-      )}
-      <h3 className="history-heading">Interview feedback bar</h3>
-      <div className="retention-row">
-        <Field label="Bar (overall rating out of 5)">
-          <input
-            type="number"
-            step="0.1"
-            min="1"
-            max="5"
-            value={bar}
-            onChange={(e) => setBar(Number(e.target.value))}
-          />
-        </Field>
-        <Field label="Rating criteria" hint="Comma-separated, shown on every feedback form">
-          <input value={crit} onChange={(e) => setCrit(e.target.value)} />
-        </Field>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() =>
-            saveSettings({
-              feedbackThreshold: bar,
-              feedbackCriteria: crit
-                .split(',')
-                .map((x) => x.trim())
-                .filter(Boolean),
-            })
-          }
-        >
-          Save feedback settings
-        </Button>
-      </div>
-      <h3 className="history-heading">Email templates</h3>
-      <p className="supporting-text">
-        Drafts for invites and follow-ups, composed in your mail client. Placeholders:{' '}
-        {'{name} {demand} {round} {mode} {date} {time}'}.
-      </p>
-      <div className="tpl-list">
-        {tpls.map((t, i) => (
-          <div key={i} className="tpl-card">
-            <Field label="Name">
-              <input
-                value={t.name}
-                onChange={(e) => {
-                  const next = [...tpls];
-                  next[i] = { ...t, name: e.target.value };
-                  setTpls(next);
-                }}
-              />
-            </Field>
-            <Field label="Subject">
-              <input
-                value={t.subject}
-                onChange={(e) => {
-                  const next = [...tpls];
-                  next[i] = { ...t, subject: e.target.value };
-                  setTpls(next);
-                }}
-              />
-            </Field>
-            <Field label="Body">
-              <textarea
-                rows={4}
-                value={t.body}
-                onChange={(e) => {
-                  const next = [...tpls];
-                  next[i] = { ...t, body: e.target.value };
-                  setTpls(next);
-                }}
-              />
-            </Field>
-            <Button
-              variant="ghost"
-              className="small"
-              disabled={busy}
-              onClick={() => setTpls(tpls.filter((_, j) => j !== i))}
-            >
-              Remove template
-            </Button>
-          </div>
-        ))}
-      </div>
-      <div className="tpl-actions">
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() => setTpls([...tpls, { name: 'New template', subject: '', body: '' }])}
-        >
-          Add template
-        </Button>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={async () => {
-            if (
-              await onSave('settings', [
-                {
-                  id: 'workspace',
-                  custom: { ...custom, emailTemplates: tpls.filter((t) => t.name.trim()) },
-                },
-              ])
-            )
-              notify('Email templates saved.');
-          }}
-        >
-          Save templates
-        </Button>
-      </div>
-      <h3 className="history-heading">Document templates</h3>
-      <p className="supporting-text">
-        Merge-field letter templates used by Generate letter on profiles and the offer letter modal.
-        Tokens like {'{{Candidate.name}}'} are replaced when the letter is generated - unknown
-        tokens stay visible so typos are easy to spot. Click a field to append it to a template.
-      </p>
-      <div className="tpl-list">
-        {docTpls.map((t, i) => (
-          <div key={t.id || i} className="tpl-card">
-            <Field label="Name">
-              <input
-                value={t.name}
-                onChange={(e) => {
-                  const next = [...docTpls];
-                  next[i] = { ...t, name: e.target.value };
-                  setDocTpls(next);
-                }}
-              />
-            </Field>
-            <Field label="Letter body">
-              <textarea
-                rows={6}
-                value={t.body}
-                onChange={(e) => {
-                  const next = [...docTpls];
-                  next[i] = { ...t, body: e.target.value };
-                  setDocTpls(next);
-                }}
-              />
-            </Field>
-            <div className="merge-chips">
-              {MERGE_FIELD_CATALOG.map(([g, f]) => (
-                <button
-                  type="button"
-                  key={g + '.' + f}
-                  className="chip"
-                  title={'Insert {{' + g + '.' + f + '}}'}
-                  onClick={() =>
-                    setDocTpls(
-                      docTpls.map((x, j) =>
-                        j === i ? { ...x, body: (x.body || '') + '{{' + g + '.' + f + '}}' } : x,
-                      ),
-                    )
-                  }
-                >
-                  {g + '.' + f}
-                </button>
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              className="small"
-              disabled={busy}
-              onClick={() => setDocTpls(docTpls.filter((_, j) => j !== i))}
-            >
-              Remove
-            </Button>
-          </div>
-        ))}
-      </div>
-      <div className="tpl-actions">
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() =>
-            setDocTpls([
-              ...docTpls,
-              { id: uid(), name: 'New letter template', body: 'Dear {{Candidate.name}},\n\n' },
-            ])
-          }
-        >
-          Add document template
-        </Button>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() => saveSettings({ documentTemplates: docTpls })}
-        >
-          Save document templates
-        </Button>
-      </div>
-      <h3 className="history-heading">Fair-process guardrails</h3>
-      <div className="retention-row">
-        <Field label="Cooling-off after a client rejection (days)">
-          <input
-            type="number"
-            min="0"
-            max="365"
-            value={coolingDays}
-            onChange={(e) => setCoolingDays(Number(e.target.value))}
-          />
-        </Field>
-        <label className="consent-check">
-          <input
-            type="checkbox"
-            checked={approvals}
-            onChange={(e) => setApprovals(e.target.checked)}
-          />
-          Require admin approval before offers are sent
-        </label>
-        <Button
-          className="small"
-          disabled={busy}
-          onClick={() => saveSettings({ coolingOffDays: coolingDays, offerApprovals: approvals })}
-        >
-          Save guardrails
-        </Button>
-      </div>
-      <p className="supporting-text">
-        Cooling-off shows a confirmation before re-submitting a candidate the same client rejected
-        within this window (Zoho-style fair evaluation). Offer approval holds new offers in
-        &ldquo;Pending approval&rdquo; until an admin releases them.
-      </p>
-      <h3 className="history-heading">Automation rules</h3>
-      <p className="supporting-text">
-        When a trigger fires — a candidate or demand stage change, an offer status, an interview
-        recommendation — ECOD applies the rule&rsquo;s actions (task, note, tag, next action) and
-        records it in the audit log. With server execution enabled, database changes queue these
-        actions for the background worker. Otherwise the browser applies them on save. Automated
-        email, webhooks and time-based rule conditions are not available yet.
-      </p>
-      <div className="rules-list">
-        {(data.workflowRules || []).map((r) => (
-          <article key={r.id} className={`rule-row${r.enabled ? '' : ' paused'}`}>
-            <div className="rule-main">
-              <strong>{r.name}</strong>
-              <small className="block">{describeRule(r)}</small>
-              <small className="block text-muted">{describeActions(r) || 'No actions'}</small>
-              {r.triggerTable === 'demands' &&
-                (r.actions || []).some((a) => ['note', 'tag', 'nextAction'].includes(a.type)) && (
-                  <small className="block text-amber">
-                    Candidate-only actions cannot run on a demand trigger. Duplicate this rule and
-                    use a task instead.
-                  </small>
-                )}
-            </div>
-            <div className="rule-actions">
-              <Button
-                variant={r.enabled ? 'ghost' : 'secondary'}
-                className="small"
-                disabled={
-                  busy ||
-                  (!r.enabled &&
-                    r.triggerTable === 'demands' &&
-                    (r.actions || []).some((a) => ['note', 'tag', 'nextAction'].includes(a.type)))
-                }
-                onClick={async () => {
-                  if (await onSave('workflowRules', [{ ...r, enabled: !r.enabled }]))
-                    notify(r.enabled ? `${r.name} enabled.` : `${r.name} paused.`);
-                }}
-              >
-                {r.enabled ? 'Pause' : 'Enable'}
-              </Button>
+        <div className="tpl-list">
+          {tpls.map((t, i) => (
+            <div key={i} className="tpl-card">
+              <Field label="Name">
+                <input
+                  value={t.name}
+                  onChange={(e) => {
+                    const next = [...tpls];
+                    next[i] = { ...t, name: e.target.value };
+                    setTpls(next);
+                  }}
+                />
+              </Field>
+              <Field label="Subject">
+                <input
+                  value={t.subject}
+                  onChange={(e) => {
+                    const next = [...tpls];
+                    next[i] = { ...t, subject: e.target.value };
+                    setTpls(next);
+                  }}
+                />
+              </Field>
+              <Field label="Body">
+                <textarea
+                  rows={4}
+                  value={t.body}
+                  onChange={(e) => {
+                    const next = [...tpls];
+                    next[i] = { ...t, body: e.target.value };
+                    setTpls(next);
+                  }}
+                />
+              </Field>
               <Button
                 variant="ghost"
                 className="small"
                 disabled={busy}
-                onClick={() =>
-                  setRuleDraft({
-                    name: `${r.name} (copy)`,
-                    triggerTable: r.triggerTable,
-                    triggerField: r.triggerField,
-                    op: r.op,
-                    value: r.value,
-                    actions: {
-                      task: true,
-                      taskTitle: (r.actions.find((a) => a.type === 'task') || {}).title || '',
-                      dueDays: (r.actions.find((a) => a.type === 'task') || {}).dueDays ?? 1,
-                      note: false,
-                      noteText: '',
-                      tag: false,
-                      tagText: '',
-                      nextAction: false,
-                      nextActionText: '',
-                    },
-                  })
-                }
+                onClick={() => setTpls(tpls.filter((_, j) => j !== i))}
               >
-                Duplicate
+                Remove template
               </Button>
             </div>
-          </article>
-        )) || null}
-        {!(data.workflowRules || []).length && (
-          <p className="supporting-text">No rules yet — create the first one below.</p>
-        )}
-      </div>
-      {!ruleDraft ? (
-        <Button
-          variant="secondary"
-          icon={Plus}
-          onClick={() =>
-            setRuleDraft({
-              name: '',
-              triggerTable: 'candidates',
-              triggerField: 'stage',
-              op: 'eq',
-              value: '',
-              actions: {
-                task: true,
-                taskTitle: '',
-                dueDays: 1,
-                note: false,
-                noteText: '',
-                tag: false,
-                tagText: '',
-                nextAction: false,
-                nextActionText: '',
-              },
-            })
-          }
-        >
-          New automation rule
-        </Button>
-      ) : (
-        <div className="rule-editor">
-          <div className="form-grid">
-            <Field label="Rule name">
-              <input
-                value={ruleDraft.name}
-                onChange={(e) => setRuleDraft({ ...ruleDraft, name: e.target.value })}
-                placeholder="e.g. Offer accepted → onboarding prep"
-              />
-            </Field>
-            <Field label="When this happens">
-              <select
-                value={`${ruleDraft.triggerTable}.${ruleDraft.triggerField}`}
-                onChange={(e) => {
-                  const [table, field] = e.target.value.split('.');
-                  setRuleDraft({
-                    ...ruleDraft,
-                    triggerTable: table,
-                    triggerField: field,
-                    value: '',
-                    actions: {
-                      ...ruleDraft.actions,
-                      ...(table === 'demands'
-                        ? { note: false, tag: false, nextAction: false }
-                        : {}),
-                    },
-                  });
-                }}
-              >
-                {TRIGGERS.map((t) => (
-                  <option key={`${t.table}.${t.field}`} value={`${t.table}.${t.field}`}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Match">
-              <select
-                value={ruleDraft.op}
-                onChange={(e) => setRuleDraft({ ...ruleDraft, op: e.target.value })}
-              >
-                <option value="eq">enters the value</option>
-                <option value="neq">changes away from the value</option>
-                <option value="changed">any change</option>
-              </select>
-            </Field>
-            {ruleDraft.op !== 'changed' && (
-              <Field label="Value">
-                {(() => {
-                  // Offered values come from the trigger's own vocabulary, so a rule cannot be saved
-                  // waiting on a value the field can never hold (which would silently never fire).
-                  const options =
-                    TRIGGER_VALUES[`${ruleDraft.triggerTable}.${ruleDraft.triggerField}`];
-                  return options ? (
-                    <select
-                      value={ruleDraft.value}
-                      onChange={(e) => setRuleDraft({ ...ruleDraft, value: e.target.value })}
-                    >
-                      <option value="">Select a value…</option>
-                      {options.map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      value={ruleDraft.value}
-                      onChange={(e) => setRuleDraft({ ...ruleDraft, value: e.target.value })}
-                    />
-                  );
-                })()}
-              </Field>
-            )}
-          </div>
-          <div className="rule-actions-picker">
-            <label className="consent-check">
-              <input
-                type="checkbox"
-                checked={!!ruleDraft.actions.task}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, task: e.target.checked },
-                  })
-                }
-              />
-              Create task
-            </label>
-            {ruleDraft.actions.task && (
-              <>
+          ))}
+        </div>
+        <div className="tpl-actions">
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={() => setTpls([...tpls, { name: 'New template', subject: '', body: '' }])}
+          >
+            Add template
+          </Button>
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={async () => {
+              if (
+                await onSave('settings', [
+                  {
+                    id: 'workspace',
+                    custom: { ...custom, emailTemplates: tpls.filter((t) => t.name.trim()) },
+                  },
+                ])
+              )
+                notify('Email templates saved.');
+            }}
+          >
+            Save templates
+          </Button>
+        </div>
+      </FormSection>
+      <FormSection title="Document templates">
+        <p className="supporting-text">
+          Merge-field letter templates used by Generate letter on profiles and the offer letter
+          modal. Tokens like {'{{Candidate.name}}'} are replaced when the letter is generated -
+          unknown tokens stay visible so typos are easy to spot. Click a field to append it to a
+          template.
+        </p>
+        <div className="tpl-list">
+          {docTpls.map((t, i) => (
+            <div key={t.id || i} className="tpl-card">
+              <Field label="Name">
                 <input
-                  value={ruleDraft.actions.taskTitle}
-                  onChange={(e) =>
-                    setRuleDraft({
-                      ...ruleDraft,
-                      actions: { ...ruleDraft.actions, taskTitle: e.target.value },
-                    })
-                  }
-                  placeholder="Task title"
+                  value={t.name}
+                  onChange={(e) => {
+                    const next = [...docTpls];
+                    next[i] = { ...t, name: e.target.value };
+                    setDocTpls(next);
+                  }}
                 />
+              </Field>
+              <Field label="Letter body">
+                <textarea
+                  rows={6}
+                  value={t.body}
+                  onChange={(e) => {
+                    const next = [...docTpls];
+                    next[i] = { ...t, body: e.target.value };
+                    setDocTpls(next);
+                  }}
+                />
+              </Field>
+              <div className="merge-chips">
+                {MERGE_FIELD_CATALOG.map(([g, f]) => (
+                  <button
+                    type="button"
+                    key={g + '.' + f}
+                    className="chip"
+                    title={'Insert {{' + g + '.' + f + '}}'}
+                    onClick={() =>
+                      setDocTpls(
+                        docTpls.map((x, j) =>
+                          j === i ? { ...x, body: (x.body || '') + '{{' + g + '.' + f + '}}' } : x,
+                        ),
+                      )
+                    }
+                  >
+                    {g + '.' + f}
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                className="small"
+                disabled={busy}
+                onClick={() => setDocTpls(docTpls.filter((_, j) => j !== i))}
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="tpl-actions">
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={() =>
+              setDocTpls([
+                ...docTpls,
+                { id: uid(), name: 'New letter template', body: 'Dear {{Candidate.name}},\n\n' },
+              ])
+            }
+          >
+            Add document template
+          </Button>
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={() => saveSettings({ documentTemplates: docTpls })}
+          >
+            Save document templates
+          </Button>
+        </div>
+      </FormSection>
+      <FormSection title="Fair-process guardrails">
+        <div className="retention-row">
+          <Field label="Cooling-off after a client rejection (days)">
+            <input
+              type="number"
+              min="0"
+              max="365"
+              value={coolingDays}
+              onChange={(e) => setCoolingDays(Number(e.target.value))}
+            />
+          </Field>
+          <label className="consent-check">
+            <input
+              type="checkbox"
+              checked={approvals}
+              onChange={(e) => setApprovals(e.target.checked)}
+            />
+            Require admin approval before offers are sent
+          </label>
+          <Button
+            className="small"
+            disabled={busy}
+            onClick={() => saveSettings({ coolingOffDays: coolingDays, offerApprovals: approvals })}
+          >
+            Save guardrails
+          </Button>
+        </div>
+        <p className="supporting-text">
+          Cooling-off shows a confirmation before re-submitting a candidate the same client rejected
+          within this window (Zoho-style fair evaluation). Offer approval holds new offers in
+          &ldquo;Pending approval&rdquo; until an admin releases them.
+        </p>
+      </FormSection>
+      <FormSection title="Automation rules">
+        <p className="supporting-text">
+          When a trigger fires — a candidate or demand stage change, an offer status, an interview
+          recommendation — ECOD applies the rule&rsquo;s actions (task, note, tag, next action) and
+          records it in the audit log. With server execution enabled, database changes queue these
+          actions for the background worker. Otherwise the browser applies them on save. Automated
+          email, webhooks and time-based rule conditions are not available yet.
+        </p>
+        <div className="rules-list">
+          {(data.workflowRules || []).map((r) => (
+            <article key={r.id} className={`rule-row${r.enabled ? '' : ' paused'}`}>
+              <div className="rule-main">
+                <strong>{r.name}</strong>
+                <small className="block">{describeRule(r)}</small>
+                <small className="block text-muted">{describeActions(r) || 'No actions'}</small>
+                {r.triggerTable === 'demands' &&
+                  (r.actions || []).some((a) => ['note', 'tag', 'nextAction'].includes(a.type)) && (
+                    <small className="block text-amber">
+                      Candidate-only actions cannot run on a demand trigger. Duplicate this rule and
+                      use a task instead.
+                    </small>
+                  )}
+              </div>
+              <div className="rule-actions">
+                <Button
+                  variant={r.enabled ? 'ghost' : 'secondary'}
+                  className="small"
+                  disabled={
+                    busy ||
+                    (!r.enabled &&
+                      r.triggerTable === 'demands' &&
+                      (r.actions || []).some((a) => ['note', 'tag', 'nextAction'].includes(a.type)))
+                  }
+                  onClick={async () => {
+                    if (await onSave('workflowRules', [{ ...r, enabled: !r.enabled }]))
+                      notify(r.enabled ? `${r.name} enabled.` : `${r.name} paused.`);
+                  }}
+                >
+                  {r.enabled ? 'Pause' : 'Enable'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="small"
+                  disabled={busy}
+                  onClick={() =>
+                    setRuleDraft({
+                      name: `${r.name} (copy)`,
+                      triggerTable: r.triggerTable,
+                      triggerField: r.triggerField,
+                      op: r.op,
+                      value: r.value,
+                      actions: {
+                        task: true,
+                        taskTitle: (r.actions.find((a) => a.type === 'task') || {}).title || '',
+                        dueDays: (r.actions.find((a) => a.type === 'task') || {}).dueDays ?? 1,
+                        note: false,
+                        noteText: '',
+                        tag: false,
+                        tagText: '',
+                        nextAction: false,
+                        nextActionText: '',
+                      },
+                    })
+                  }
+                >
+                  Duplicate
+                </Button>
+              </div>
+            </article>
+          )) || null}
+          {!(data.workflowRules || []).length && (
+            <p className="supporting-text">No rules yet — create the first one below.</p>
+          )}
+        </div>
+        {!ruleDraft ? (
+          <Button
+            variant="secondary"
+            icon={Plus}
+            onClick={() =>
+              setRuleDraft({
+                name: '',
+                triggerTable: 'candidates',
+                triggerField: 'stage',
+                op: 'eq',
+                value: '',
+                actions: {
+                  task: true,
+                  taskTitle: '',
+                  dueDays: 1,
+                  note: false,
+                  noteText: '',
+                  tag: false,
+                  tagText: '',
+                  nextAction: false,
+                  nextActionText: '',
+                },
+              })
+            }
+          >
+            New automation rule
+          </Button>
+        ) : (
+          <div className="rule-editor">
+            <div className="form-grid">
+              <Field label="Rule name">
                 <input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={ruleDraft.actions.dueDays}
+                  value={ruleDraft.name}
+                  onChange={(e) => setRuleDraft({ ...ruleDraft, name: e.target.value })}
+                  placeholder="e.g. Offer accepted → onboarding prep"
+                />
+              </Field>
+              <Field label="When this happens">
+                <select
+                  value={`${ruleDraft.triggerTable}.${ruleDraft.triggerField}`}
+                  onChange={(e) => {
+                    const [table, field] = e.target.value.split('.');
+                    setRuleDraft({
+                      ...ruleDraft,
+                      triggerTable: table,
+                      triggerField: field,
+                      value: '',
+                      actions: {
+                        ...ruleDraft.actions,
+                        ...(table === 'demands'
+                          ? { note: false, tag: false, nextAction: false }
+                          : {}),
+                      },
+                    });
+                  }}
+                >
+                  {TRIGGERS.map((t) => (
+                    <option key={`${t.table}.${t.field}`} value={`${t.table}.${t.field}`}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Match">
+                <select
+                  value={ruleDraft.op}
+                  onChange={(e) => setRuleDraft({ ...ruleDraft, op: e.target.value })}
+                >
+                  <option value="eq">enters the value</option>
+                  <option value="neq">changes away from the value</option>
+                  <option value="changed">any change</option>
+                </select>
+              </Field>
+              {ruleDraft.op !== 'changed' && (
+                <Field label="Value">
+                  {(() => {
+                    // Offered values come from the trigger's own vocabulary, so a rule cannot be saved
+                    // waiting on a value the field can never hold (which would silently never fire).
+                    const options =
+                      TRIGGER_VALUES[`${ruleDraft.triggerTable}.${ruleDraft.triggerField}`];
+                    return options ? (
+                      <select
+                        value={ruleDraft.value}
+                        onChange={(e) => setRuleDraft({ ...ruleDraft, value: e.target.value })}
+                      >
+                        <option value="">Select a value…</option>
+                        {options.map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={ruleDraft.value}
+                        onChange={(e) => setRuleDraft({ ...ruleDraft, value: e.target.value })}
+                      />
+                    );
+                  })()}
+                </Field>
+              )}
+            </div>
+            <div className="rule-actions-picker">
+              <label className="consent-check">
+                <input
+                  type="checkbox"
+                  checked={!!ruleDraft.actions.task}
                   onChange={(e) =>
                     setRuleDraft({
                       ...ruleDraft,
-                      actions: { ...ruleDraft.actions, dueDays: Number(e.target.value) },
+                      actions: { ...ruleDraft.actions, task: e.target.checked },
                     })
                   }
-                  title="Due in N days"
-                />{' '}
-                days
-              </>
-            )}
-            <label className="consent-check">
-              <input
-                type="checkbox"
-                checked={candidateActionsAvailable && !!ruleDraft.actions.note}
-                disabled={!candidateActionsAvailable}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, note: e.target.checked },
-                  })
-                }
-              />
-              Add note
-            </label>
-            {ruleDraft.actions.note && (
-              <input
-                value={ruleDraft.actions.noteText}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, noteText: e.target.value },
-                  })
-                }
-                placeholder="Note text"
-              />
-            )}
-            <label className="consent-check">
-              <input
-                type="checkbox"
-                checked={candidateActionsAvailable && !!ruleDraft.actions.tag}
-                disabled={!candidateActionsAvailable}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, tag: e.target.checked },
-                  })
-                }
-              />
-              Tag candidate
-            </label>
-            {ruleDraft.actions.tag && (
-              <input
-                value={ruleDraft.actions.tagText}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, tagText: e.target.value },
-                  })
-                }
-                placeholder="Tag"
-              />
-            )}
-            <label className="consent-check">
-              <input
-                type="checkbox"
-                checked={candidateActionsAvailable && !!ruleDraft.actions.nextAction}
-                disabled={!candidateActionsAvailable}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, nextAction: e.target.checked },
-                  })
-                }
-              />
-              Set next action
-            </label>
-            {ruleDraft.actions.nextAction && (
-              <input
-                value={ruleDraft.actions.nextActionText}
-                onChange={(e) =>
-                  setRuleDraft({
-                    ...ruleDraft,
-                    actions: { ...ruleDraft.actions, nextActionText: e.target.value },
-                  })
-                }
-                placeholder="Next action"
-              />
-            )}
-            {!candidateActionsAvailable && (
-              <p className="supporting-text">
-                Notes, tags and next actions need a candidate-linked trigger. Use a task for demand
-                events.
+                />
+                Create task
+              </label>
+              {ruleDraft.actions.task && (
+                <>
+                  <input
+                    value={ruleDraft.actions.taskTitle}
+                    onChange={(e) =>
+                      setRuleDraft({
+                        ...ruleDraft,
+                        actions: { ...ruleDraft.actions, taskTitle: e.target.value },
+                      })
+                    }
+                    placeholder="Task title"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={ruleDraft.actions.dueDays}
+                    onChange={(e) =>
+                      setRuleDraft({
+                        ...ruleDraft,
+                        actions: { ...ruleDraft.actions, dueDays: Number(e.target.value) },
+                      })
+                    }
+                    title="Due in N days"
+                  />{' '}
+                  days
+                </>
+              )}
+              <label className="consent-check">
+                <input
+                  type="checkbox"
+                  checked={candidateActionsAvailable && !!ruleDraft.actions.note}
+                  disabled={!candidateActionsAvailable}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, note: e.target.checked },
+                    })
+                  }
+                />
+                Add note
+              </label>
+              {ruleDraft.actions.note && (
+                <input
+                  value={ruleDraft.actions.noteText}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, noteText: e.target.value },
+                    })
+                  }
+                  placeholder="Note text"
+                />
+              )}
+              <label className="consent-check">
+                <input
+                  type="checkbox"
+                  checked={candidateActionsAvailable && !!ruleDraft.actions.tag}
+                  disabled={!candidateActionsAvailable}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, tag: e.target.checked },
+                    })
+                  }
+                />
+                Tag candidate
+              </label>
+              {ruleDraft.actions.tag && (
+                <input
+                  value={ruleDraft.actions.tagText}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, tagText: e.target.value },
+                    })
+                  }
+                  placeholder="Tag"
+                />
+              )}
+              <label className="consent-check">
+                <input
+                  type="checkbox"
+                  checked={candidateActionsAvailable && !!ruleDraft.actions.nextAction}
+                  disabled={!candidateActionsAvailable}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, nextAction: e.target.checked },
+                    })
+                  }
+                />
+                Set next action
+              </label>
+              {ruleDraft.actions.nextAction && (
+                <input
+                  value={ruleDraft.actions.nextActionText}
+                  onChange={(e) =>
+                    setRuleDraft({
+                      ...ruleDraft,
+                      actions: { ...ruleDraft.actions, nextActionText: e.target.value },
+                    })
+                  }
+                  placeholder="Next action"
+                />
+              )}
+              {!candidateActionsAvailable && (
+                <p className="supporting-text">
+                  Notes, tags and next actions need a candidate-linked trigger. Use a task for
+                  demand events.
+                </p>
+              )}
+            </div>
+            {ruleDraft.op !== 'changed' && !String(ruleDraft.value || '').trim() && (
+              <p className="form-error">
+                Choose the value this rule waits for, or switch the match to “any change”.
               </p>
             )}
+            <div className="modal-actions">
+              <Button
+                disabled={
+                  !ruleDraft.name.trim() ||
+                  (ruleDraft.op !== 'changed' && !String(ruleDraft.value || '').trim()) ||
+                  busy
+                }
+                onClick={async () => {
+                  const actions = [];
+                  const a = ruleDraft.actions;
+                  if (a.task)
+                    actions.push({
+                      type: 'task',
+                      title: a.taskTitle || `Follow up: ${ruleDraft.name}`,
+                      dueDays: a.dueDays ?? 1,
+                    });
+                  if (a.note) actions.push({ type: 'note', text: a.noteText || '' });
+                  if (a.tag && a.tagText.trim())
+                    actions.push({ type: 'tag', tag: a.tagText.trim() });
+                  if (a.nextAction && a.nextActionText.trim())
+                    actions.push({ type: 'nextAction', text: a.nextActionText.trim() });
+                  if (
+                    await onSave('workflowRules', [
+                      {
+                        id: uid(),
+                        name: ruleDraft.name.trim(),
+                        triggerTable: ruleDraft.triggerTable,
+                        triggerField: ruleDraft.triggerField,
+                        op: ruleDraft.op,
+                        value: ruleDraft.value,
+                        actions,
+                        enabled: true,
+                        created: today(),
+                      },
+                    ])
+                  ) {
+                    notify(`Rule “${ruleDraft.name.trim()}” saved.`);
+                    setRuleDraft(null);
+                  }
+                }}
+              >
+                Save rule
+              </Button>
+              <Button variant="ghost" onClick={() => setRuleDraft(null)}>
+                Cancel
+              </Button>
+            </div>
           </div>
-          {ruleDraft.op !== 'changed' && !String(ruleDraft.value || '').trim() && (
-            <p className="form-error">
-              Choose the value this rule waits for, or switch the match to “any change”.
+        )}
+      </FormSection>
+      <FormSection title="Audit log">
+        <div className="audit-list">
+          {rows.map((e) => (
+            <article key={e.id} className="audit-row">
+              <Badge tone={e.action === 'exported' || e.action === 'anonymized' ? 'amber' : 'gray'}>
+                {e.action}
+              </Badge>
+              <span>{e.detail || e.entityType}</span>
+              <small>
+                {new Date(e.date).toLocaleString()} · {e.actor}
+              </small>
+            </article>
+          ))}
+          {!rows.length && (
+            <p className="supporting-text">
+              Profile views, exports, submissions, merges, consent events and anonymizations will
+              appear here.
             </p>
           )}
-          <div className="modal-actions">
-            <Button
-              disabled={
-                !ruleDraft.name.trim() ||
-                (ruleDraft.op !== 'changed' && !String(ruleDraft.value || '').trim()) ||
-                busy
-              }
-              onClick={async () => {
-                const actions = [];
-                const a = ruleDraft.actions;
-                if (a.task)
-                  actions.push({
-                    type: 'task',
-                    title: a.taskTitle || `Follow up: ${ruleDraft.name}`,
-                    dueDays: a.dueDays ?? 1,
-                  });
-                if (a.note) actions.push({ type: 'note', text: a.noteText || '' });
-                if (a.tag && a.tagText.trim()) actions.push({ type: 'tag', tag: a.tagText.trim() });
-                if (a.nextAction && a.nextActionText.trim())
-                  actions.push({ type: 'nextAction', text: a.nextActionText.trim() });
-                if (
-                  await onSave('workflowRules', [
-                    {
-                      id: uid(),
-                      name: ruleDraft.name.trim(),
-                      triggerTable: ruleDraft.triggerTable,
-                      triggerField: ruleDraft.triggerField,
-                      op: ruleDraft.op,
-                      value: ruleDraft.value,
-                      actions,
-                      enabled: true,
-                      created: today(),
-                    },
-                  ])
-                ) {
-                  notify(`Rule “${ruleDraft.name.trim()}” saved.`);
-                  setRuleDraft(null);
-                }
-              }}
-            >
-              Save rule
-            </Button>
-            <Button variant="ghost" onClick={() => setRuleDraft(null)}>
-              Cancel
-            </Button>
-          </div>
         </div>
-      )}
-      <h3 className="history-heading">Audit log</h3>
-      <div className="audit-list">
-        {rows.map((e) => (
-          <article key={e.id} className="audit-row">
-            <Badge tone={e.action === 'exported' || e.action === 'anonymized' ? 'amber' : 'gray'}>
-              {e.action}
-            </Badge>
-            <span>{e.detail || e.entityType}</span>
-            <small>
-              {new Date(e.date).toLocaleString()} · {e.actor}
-            </small>
-          </article>
-        ))}
-        {!rows.length && (
-          <p className="supporting-text">
-            Profile views, exports, submissions, merges, consent events and anonymizations will
-            appear here.
-          </p>
-        )}
-      </div>
+      </FormSection>
     </section>
   );
 }

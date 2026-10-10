@@ -1,8 +1,11 @@
+import { FormSection, SectionTabs } from './ProgressiveUI.jsx';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
 import React, { useEffect, useState } from 'react';
-import { PageHeader, Button, Modal, Badge, Field } from './ui.jsx';
+import { PageHeader, Button, Modal, Badge, Field, Stat } from './ui.jsx';
+import { Users, BriefcaseBusiness, UserCheck, Clock, CheckCircle2 } from 'lucide-react';
 import { getRole, canWriteForRole } from './repository.js';
 import { repositoryRead } from './pagedRepository.js';
 import { signedUrlFor } from './documents.js';
@@ -167,20 +170,15 @@ export function PagedOverview({
       {error && <p role="alert">{error}</p>}
       {!stats && !error && <p role="status">Loading workspace totals…</p>}
       {stats && (
-        <div className="form-grid">
+        <div className="stats-grid">
           {[
-            ['candidates', 'Candidates'],
-            ['ready', 'Ready'],
-            ['fresh', 'Fresh profiles'],
-            ['stale', 'Stale profiles'],
-            ['openDemands', 'Open demands'],
-          ].map(([key, label]) => (
-            <section className="panel" key={key}>
-              <div className="settings-body">
-                <h3>{label}</h3>
-                <strong>{stats[key]}</strong>
-              </div>
-            </section>
+            ['candidates', 'Candidates', 'People in your talent network', Users],
+            ['ready', 'Ready', 'Profiles ready for an opportunity', UserCheck],
+            ['fresh', 'Fresh profiles', 'Recently verified information', CheckCircle2],
+            ['stale', 'Stale profiles', 'Ready for a fresh conversation', Clock],
+            ['openDemands', 'Open demands', 'Current hiring requirements', BriefcaseBusiness],
+          ].map(([key, label, detail, Icon]) => (
+            <Stat key={key} label={label} value={stats[key]} detail={detail} icon={Icon} />
           ))}
         </div>
       )}
@@ -359,53 +357,58 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
                 ))}
               </select>
             </Field>
-            {field('location', 'Location (exact)')}
-            {field('skill', 'Skill (exact)')}
-            {field('employer', 'Employer')}
-            {field('minExperience', 'Minimum experience', 'number')}
-            {field('maxExperience', 'Maximum experience', 'number')}
-            {field('maxNotice', 'Maximum notice days', 'number')}
-            {field('tag', 'Tag (exact)')}
-            <Field label="Sort candidates">
-              <select
-                aria-label="Sort candidates"
-                value={draft.sort || 'name'}
-                onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
-              >
-                {Object.entries(SORTS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Engagement">
-              <select
-                aria-label="Engagement"
-                value={draft.engagement || ''}
-                onChange={(e) => setDraft({ ...draft, engagement: e.target.value })}
-              >
-                {['', 'Permanent', 'Contract', 'C2H', 'Subcontract'].map((s) => (
-                  <option key={s} value={s}>
-                    {s || 'Any engagement'}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Work mode">
-              <select
-                aria-label="Work mode"
-                value={draft.mode || ''}
-                onChange={(e) => setDraft({ ...draft, mode: e.target.value })}
-              >
-                {['', 'Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
-                  <option key={s} value={s}>
-                    {s || 'Any mode'}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            {getRole() === 'admin' && field('maxExpected', 'Maximum expected (LPA)', 'number')}
+            <FormSection
+              title="More search filters"
+              description="Skills, location, experience, availability and sorting."
+            >
+              {field('location', 'Location (exact)')}
+              {field('skill', 'Skill (exact)')}
+              {field('employer', 'Employer')}
+              {field('minExperience', 'Minimum experience', 'number')}
+              {field('maxExperience', 'Maximum experience', 'number')}
+              {field('maxNotice', 'Maximum notice days', 'number')}
+              {field('tag', 'Tag (exact)')}
+              <Field label="Sort candidates">
+                <select
+                  aria-label="Sort candidates"
+                  value={draft.sort || 'name'}
+                  onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
+                >
+                  {Object.entries(SORTS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Engagement">
+                <select
+                  aria-label="Engagement"
+                  value={draft.engagement || ''}
+                  onChange={(e) => setDraft({ ...draft, engagement: e.target.value })}
+                >
+                  {['', 'Permanent', 'Contract', 'C2H', 'Subcontract'].map((s) => (
+                    <option key={s} value={s}>
+                      {s || 'Any engagement'}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Work mode">
+                <select
+                  aria-label="Work mode"
+                  value={draft.mode || ''}
+                  onChange={(e) => setDraft({ ...draft, mode: e.target.value })}
+                >
+                  {['', 'Flexible', 'Remote', 'Hybrid', 'Onsite'].map((s) => (
+                    <option key={s} value={s}>
+                      {s || 'Any mode'}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {getRole() === 'admin' && field('maxExpected', 'Maximum expected (LPA)', 'number')}
+            </FormSection>
           </div>
           <Button type="submit" disabled={pending}>
             Search repository
@@ -421,14 +424,20 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
           >
             Clear filters
           </Button>
-          <p>
-            Search matches words and quoted phrases; use a minus sign to exclude words. For semantic
-            ranking, shared legacy views, complete exports or matching, open More filters & bulk
-            actions.
-          </p>
+          <details className="search-help">
+            <summary>Search tips</summary>
+            <p>
+              Search matches words and quoted phrases; use a minus sign to exclude words. For
+              semantic ranking, shared legacy views, complete exports or matching, open More filters
+              & bulk actions.
+            </p>
+          </details>
         </div>
       </form>
-      <section className="panel" aria-label="Personal repository views">
+      <DisclosureSection
+        title="Saved search views"
+        description="Reuse, save or manage your personal searches."
+      >
         <div className="settings-body">
           <h3>My saved views</h3>
           <p>
@@ -499,7 +508,7 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
             Refresh saved views
           </Button>
         </div>
-      </section>
+      </DisclosureSection>
       {error && <p role="alert">{error}</p>}
       {pending && <p role="status">Loading candidates…</p>}
       {page && (
@@ -673,22 +682,17 @@ export function PagedCandidate360({
       wide
     >
       <div className="modal-body">
-        <div className="section-toolbar">
-          {SECTIONS.filter(([key]) => key !== 'compensationHistory' || getRole() === 'admin').map(
-            ([key, label]) => (
-              <Button
-                key={key}
-                variant={section === key ? 'primary' : 'secondary'}
-                onClick={() => {
-                  setSection(key);
-                  setOffset(0);
-                }}
-              >
-                {label}
-              </Button>
-            ),
-          )}
-        </div>
+        <SectionTabs
+          items={SECTIONS.filter(
+            ([key]) => key !== 'compensationHistory' || getRole() === 'admin',
+          ).map(([, label]) => label)}
+          value={SECTIONS.find(([key]) => key === section)?.[1]}
+          primary={['Profile', 'Contacts', 'Documents', 'Notes']}
+          onChange={(label) => {
+            setSection(SECTIONS.find(([, name]) => name === label)[0]);
+            setOffset(0);
+          }}
+        />
         {error && <p role="alert">{error}</p>}
         {section === 'communications' && (
           <>

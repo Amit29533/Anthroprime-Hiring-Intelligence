@@ -96,6 +96,7 @@ test('cloud careers sends the workspace scope and private status code through Po
   await submitVia('Submit application');
   assert.ok(screen.getByText(STATUS_TOKEN), 'the RPC status code is shown on confirmation');
 
+  await click(screen.getByRole('button', { name: /^Track your application/ }));
   await type('Your email', EMAIL);
   await type('Private application code', STATUS_TOKEN);
   await submitVia('Check status');

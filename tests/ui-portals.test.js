@@ -154,6 +154,7 @@ test('an applicant becomes a profile with a consent ledger they can then manage 
   assert.ok(app.statusToken, 'each new application receives a private status code');
   assert.ok(screen.getByText(app.statusToken), 'the code is shown once on the confirmation screen');
 
+  await click(screen.getByRole('button', { name: /^Track your application/ }));
   await type('Your email', 'priya.applicant@example.com');
   await type('Private application code', '00000000-0000-4000-8000-000000000000');
   await submitVia('Check status');
@@ -208,6 +209,10 @@ test('an applicant becomes a profile with a consent ledger they can then manage 
   await settle(6);
   await type('Your email', 'priya.applicant@example.com');
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   assert.ok(screen.getByText('Welcome, Priya'), 'the portal opens on their own record');
   assert.ok(screen.getByText('recruiting-contact'), 'their consent is shown back to them');
   await pressIn(rowOf('recruiting-contact'), 'Withdraw');
@@ -224,6 +229,10 @@ test('the portal refuses an email that is not in the workspace', async () => {
   await settle(6);
   await type('Your email', 'nobody@example.com');
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   assert.ok(
     screen.getByText('No profile with that email in the demo workspace.'),
     'a wrong email is refused rather than opening someone else’s record',
@@ -249,6 +258,10 @@ test('the portal shows the candidate their own record and hides the recruiter’
   await settle(6);
   await type('Your email', person.email);
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   await settle(3);
 
   assert.ok(screen.getByText(person.name), 'their profile is shown');
@@ -273,6 +286,10 @@ test('a candidate can update their own availability and the recruiter sees numbe
   await settle(6);
   await type('Your email', person.email);
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   await settle(3);
 
   await type('Notice period (days)', '15');
@@ -309,6 +326,10 @@ test('a candidate cannot bypass the shared notice cap from the portal', async ()
   await settle(6);
   await type('Your email', person.email);
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   await settle(3);
   await type('Notice period (days)', '366');
   await press('Save preferences');
@@ -339,6 +360,10 @@ test('a blank notice is stored as unknown rather than as zero or NaN', async () 
   await settle(6);
   await type('Your email', person.email);
   await submitVia('Open my record');
+  if (screen.queryByRole('button', { name: /^Update availability/ }))
+    await click(screen.getByRole('button', { name: /^Update availability/ }));
+  if (screen.queryByRole('button', { name: /^Privacy and consents/ }))
+    await click(screen.getByRole('button', { name: /^Privacy and consents/ }));
   await settle(3);
   await type('Notice period (days)', '');
   await type('Earliest start', '');

@@ -1,0 +1,224 @@
+.more-options {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.options-popover {
+  position: absolute;
+  z-index: 30;
+  inset: calc(100% + 8px) 0 auto auto;
+  width: max-content;
+  min-width: 230px;
+  max-width: min(360px, calc(100vw - 44px));
+  max-height: 60vh;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+  animation: ui-reveal 160ms ease-out;
+}
+.options-popover[hidden] {
+  display: none !important;
+}
+.options-popover > .button,
+.options-popover > label.button {
+  width: 100%;
+  justify-content: flex-start;
+  margin: 0;
+  white-space: normal;
+}
+.options-popover label:not(.button) {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+}
+.options-popover .column-chooser {
+  display: grid;
+  gap: 10px;
+}
+.options-popover .column-chooser label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.form-section {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  min-width: 0;
+}
+.form-section > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--ink);
+}
+.form-section > summary::-webkit-details-marker {
+  display: none;
+}
+.form-section > summary > svg:first-child {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.form-section > summary > svg:last-child {
+  margin-left: auto;
+  transition: transform 180ms ease;
+  flex-shrink: 0;
+}
+.form-section[open] > summary > svg:last-child {
+  transform: rotate(180deg);
+}
+.form-section > summary span {
+  display: grid;
+  gap: 3px;
+}
+.form-section > summary small {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.form-section-content {
+  padding: 0 16px 16px;
+}
+.section-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.section-tabs > button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.section-tabs > button.active {
+  background: var(--tint);
+  color: var(--accent);
+}
+.section-tabs .more-options {
+  margin-left: auto;
+}
+.section-tabs .options-popover {
+  z-index: 40;
+}
+.settings-categories {
+  display: grid;
+  gap: 12px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.settings-categories .disclosure-body > * + * {
+  margin-top: 14px;
+}
+.settings-categories .panel {
+  margin: 0;
+}
+.nav-group {
+  margin-top: 8px;
+}
+.nav-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  border-radius: 8px;
+}
+.nav-group > summary::-webkit-details-marker {
+  display: none;
+}
+.nav-group > summary > svg:last-child {
+  margin-left: auto;
+  transition: transform 180ms ease;
+}
+.nav-group[open] > summary > svg:last-child {
+  transform: rotate(180deg);
+}
+.nav-group > div {
+  padding-left: 9px;
+}
+.advanced-tools {
+  margin-bottom: 18px;
+}
+.search-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.compact-view-tools {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.compact-view-tools .form-section {
+  flex: 1;
+  min-width: 200px;
+}
+.repository .table-toolbar {
+  position: relative;
+  z-index: 3;
+  overflow: visible;
+}
+@keyframes ui-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 650px) {
+  .section-tabs {
+    padding: 10px 12px;
+  }
+  .section-tabs > button {
+    padding: 9px;
+    font-size: 12px;
+  }
+  .section-tabs .more-options {
+    margin-left: 0;
+  }
+  .options-popover {
+    min-width: 210px;
+  }
+  .form-section > summary {
+    padding: 13px;
+  }
+  .form-section-content {
+    padding: 0 13px 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .options-popover {
+    animation: none;
+  }
+  .form-section > summary svg,
+  .nav-group > summary svg {
+    transition: none;
+  }
+}

@@ -1,3 +1,5 @@
+import { MoreOptions } from './ProgressiveUI.jsx';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import { validateCustomValues } from './customFields.js';
 import { candidateLabel, anthroIdFor } from './anthroId.js';
@@ -568,54 +570,56 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
             Schedule interview
           </Button>
         )}
-        <Button
-          variant="secondary"
-          disabled={viewer}
-          title={viewer ? 'Viewer role cannot export workspace data' : ''}
-          onClick={() => {
-            const exported = exportSensitiveFile(
-              icsFor(data.interviews, data.candidates, data.demands),
-              'ecod-interviews.ics',
-              'text/calendar',
-              notify,
-            );
-            if (exported)
-              notify &&
-                notify('Calendar file downloaded - opens in Google/Outlook/Apple Calendar.');
-          }}
-        >
-          Export calendar (.ics)
-        </Button>
-        {!viewer && (
-          <label className="button secondary">
-            Import .ics
-            <input
-              type="file"
-              hidden
-              accept=".ics,.ical,text/calendar"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (!file) return;
-                try {
-                  if (file.size > 1048576)
-                    throw Error('Calendar import exceeds 1 MiB. Split the file before review.');
-                  const parsed = parseICS(await file.text()),
-                    issues = parsed.filter((ev) => ev.timeIssue);
-                  if (issues.length)
-                    notify?.(
-                      `Skipped ${issues.length} calendar event(s) with timezone issues: ${issues[0].timeIssue} Fix the source time before importing.`,
-                    );
-                  const events = parsed.filter((ev) => ev.start && ev.status !== 'CANCELLED'),
-                    drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
-                  setModal({ type: 'ics', drafts });
-                } catch (error) {
-                  notify?.(error.message);
-                }
-              }}
-            />
-          </label>
-        )}
+        <MoreOptions label="Calendar tools">
+          <Button
+            variant="secondary"
+            disabled={viewer}
+            title={viewer ? 'Viewer role cannot export workspace data' : ''}
+            onClick={() => {
+              const exported = exportSensitiveFile(
+                icsFor(data.interviews, data.candidates, data.demands),
+                'ecod-interviews.ics',
+                'text/calendar',
+                notify,
+              );
+              if (exported)
+                notify &&
+                  notify('Calendar file downloaded - opens in Google/Outlook/Apple Calendar.');
+            }}
+          >
+            Export calendar (.ics)
+          </Button>
+          {!viewer && (
+            <label className="button secondary">
+              Import .ics
+              <input
+                type="file"
+                hidden
+                accept=".ics,.ical,text/calendar"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  try {
+                    if (file.size > 1048576)
+                      throw Error('Calendar import exceeds 1 MiB. Split the file before review.');
+                    const parsed = parseICS(await file.text()),
+                      issues = parsed.filter((ev) => ev.timeIssue);
+                    if (issues.length)
+                      notify?.(
+                        `Skipped ${issues.length} calendar event(s) with timezone issues: ${issues[0].timeIssue} Fix the source time before importing.`,
+                      );
+                    const events = parsed.filter((ev) => ev.start && ev.status !== 'CANCELLED'),
+                      drafts = events.map((ev) => interviewDraftFromEvent(ev, data.candidates));
+                    setModal({ type: 'ics', drafts });
+                  } catch (error) {
+                    notify?.(error.message);
+                  }
+                }}
+              />
+            </label>
+          )}
+        </MoreOptions>
       </PageHeader>
       {view === 'calendar' ? (
         <InterviewCalendar
@@ -682,21 +686,27 @@ export function Interviews({ data, onSave, onOpen, busy, notify, audit, initialF
               )}
             </div>
           </section>
-          <section className="panel">
-            <PanelHeading
-              title="Past interviews"
-              subtitle="Completed, cancelled and no-show interviews with recorded feedback"
-            />
-            <div className="iv-list">
-              {past.map((iv) => row(iv, false))}
-              {!past.length && (
-                <Empty
-                  title="No history yet"
-                  text="Completed interviews and their feedback will appear here."
-                />
-              )}
-            </div>
-          </section>
+          <DisclosureSection
+            title="Interview history"
+            description="Completed, cancelled and missed interviews."
+            icon={Clock}
+          >
+            <section className="panel">
+              <PanelHeading
+                title="Past interviews"
+                subtitle="Completed, cancelled and no-show interviews with recorded feedback"
+              />
+              <div className="iv-list">
+                {past.map((iv) => row(iv, false))}
+                {!past.length && (
+                  <Empty
+                    title="No history yet"
+                    text="Completed interviews and their feedback will appear here."
+                  />
+                )}
+              </div>
+            </section>
+          </DisclosureSection>
           <OffersSection
             data={data}
             onSave={onSave}

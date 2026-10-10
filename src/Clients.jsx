@@ -1,3 +1,5 @@
+import { FormSection } from './ProgressiveUI.jsx';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import { CustomFieldInputs, CustomFieldValues } from './CustomFields.jsx';
 import { validateCustomValues } from './customFields.js';
 import { candidateLabel } from './anthroId.js';
@@ -133,19 +135,25 @@ export function ClientForm({ client, data, onClose, onSave, onCreated, busy }) {
               ))}
             </select>
           </Field>
-          <Field label="Tier">
-            <select value={form.tier} onChange={set('tier')}>
-              {CLIENT_TIERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Payment terms" hint="Recorded for reference only — no invoicing here.">
-            <input value={form.paymentTerms} onChange={set('paymentTerms')} placeholder="Net 30" />
-          </Field>
-          <Field label="Account notes" wide>
-            <textarea rows={3} value={form.notes} onChange={set('notes')} />
-          </Field>
+          <FormSection title="Commercial details and notes">
+            <Field label="Tier">
+              <select value={form.tier} onChange={set('tier')}>
+                {CLIENT_TIERS.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Payment terms" hint="Recorded for reference only — no invoicing here.">
+              <input
+                value={form.paymentTerms}
+                onChange={set('paymentTerms')}
+                placeholder="Net 30"
+              />
+            </Field>
+            <Field label="Account notes" wide>
+              <textarea rows={3} value={form.notes} onChange={set('notes')} />
+            </Field>
+          </FormSection>
         </div>
         <div className="form-grid">
           <CustomFieldInputs
@@ -730,14 +738,21 @@ export function ClientDetail({
         />
       </div>
 
-      <ClientCollaboration clientId={client.id} />
-      <ClientDocuments
-        client={client}
-        data={data}
-        onSave={onSave}
-        busy={busy}
-        uploadedBy={uploadedBy}
-      />
+      <DisclosureSection
+        className="advanced-tools"
+        title="Collaboration and documents"
+        description="Approved shortlists, client access and account documents."
+        icon={Building2}
+      >
+        <ClientCollaboration clientId={client.id} />
+        <ClientDocuments
+          client={client}
+          data={data}
+          onSave={onSave}
+          busy={busy}
+          uploadedBy={uploadedBy}
+        />
+      </DisclosureSection>
       <div className="client-columns">
         <section className="panel">
           <PanelHeading

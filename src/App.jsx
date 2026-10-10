@@ -1,3 +1,4 @@
+import './progressive-ui.css';
 import { MotionToggle } from './Visuals.jsx';
 import React, { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -251,9 +252,10 @@ export default function App() {
     const priorOverflow = document.body.style.overflow;
     const trigger = mobileTrigger.current;
     document.body.style.overflow = 'hidden';
-    const buttons = () => [
-      ...(mobileNav.current?.querySelectorAll('button:not(:disabled),a[href]') || []),
-    ];
+    const buttons = () =>
+      [
+        ...(mobileNav.current?.querySelectorAll('button:not(:disabled),a[href],summary') || []),
+      ].filter((el) => !el.closest('details:not([open])') || el.tagName === 'SUMMARY');
     buttons()[0]?.focus();
     const keys = (event) => {
       if (event.key === 'Escape') {
@@ -1163,24 +1165,68 @@ export default function App() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
-          {nav.map(([name, Icon]) => (
-            <button
-              className={page === name ? 'active' : ''}
-              aria-current={page === name ? 'page' : undefined}
-              key={name}
-              onClick={() => navigate(name)}
-              disabled={loading}
-            >
-              <Icon size={19} />
-              <span>{name}</span>
-              {!data.repositoryPartial && name === 'Candidates' && <b>{data.candidates.length}</b>}
-              {!data.repositoryPartial && name === 'Demands' && (
-                <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
-              )}
-              {!data.repositoryPartial && name === 'Clients' && (
-                <b>{(data.clients || []).length}</b>
-              )}
-            </button>
+          {nav
+            .filter(
+              ([name]) =>
+                ![
+                  'Talent pools',
+                  'Assessments',
+                  'Referrals',
+                  'Analytics',
+                  'Reports',
+                  'Interviews',
+                  'Activities',
+                ].includes(name),
+            )
+            .map(([name, Icon]) => (
+              <button
+                className={page === name ? 'active' : ''}
+                aria-current={page === name ? 'page' : undefined}
+                key={name}
+                onClick={() => navigate(name)}
+                disabled={loading}
+              >
+                <Icon size={19} />
+                <span>{name}</span>
+                {!data.repositoryPartial && name === 'Candidates' && (
+                  <b>{data.candidates.length}</b>
+                )}
+                {!data.repositoryPartial && name === 'Demands' && (
+                  <b>{data.demands.filter((d) => d.status === 'Open').length}</b>
+                )}
+                {!data.repositoryPartial && name === 'Clients' && (
+                  <b>{(data.clients || []).length}</b>
+                )}
+              </button>
+            ))}
+          {[
+            ['Daily work', CalendarClock, ['Interviews', 'Activities']],
+            ['Talent development', Layers, ['Talent pools', 'Assessments', 'Referrals']],
+            ['Insights and reports', ChartNoAxesCombined, ['Analytics', 'Reports']],
+          ].map(([label, GroupIcon, pages]) => (
+            <details className="nav-group" key={label} open={pages.includes(page) || undefined}>
+              <summary>
+                <GroupIcon size={17} aria-hidden="true" />
+                {label}
+                <ChevronDown size={15} aria-hidden="true" />
+              </summary>
+              <div>
+                {nav
+                  .filter(([name]) => pages.includes(name))
+                  .map(([name, Icon]) => (
+                    <button
+                      key={name}
+                      className={page === name ? 'active' : ''}
+                      aria-current={page === name ? 'page' : undefined}
+                      onClick={() => navigate(name)}
+                      disabled={loading}
+                    >
+                      <Icon size={18} aria-hidden="true" />
+                      <span>{name}</span>
+                    </button>
+                  ))}
+              </div>
+            </details>
           ))}
         </nav>
         <div className="sidebar-bottom">

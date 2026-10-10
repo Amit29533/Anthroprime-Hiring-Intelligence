@@ -1,3 +1,4 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
 import { anthroIdFor } from './anthroId.js';
 import React, { useState } from 'react';
 import { Plus, UserPlus, Gift, TrendingUp, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -236,7 +237,7 @@ export function Referrals({
     <>
       <PageHeader
         eyebrow="REFERRALS"
-        title="The best hires usually come from someone you know."
+        title="Referrals"
         description="Referrals from employees, clients and partners — tracked from introduction to reward."
       >
         {canEdit && (
@@ -390,33 +391,38 @@ export function Referrals({
       </section>
 
       {leaders.length > 0 && (
-        <section className="panel">
-          <PanelHeading
-            title="Who refers well"
-            subtitle="A hire rate needs at least three referrals before it means anything."
-          />
-          <ul className="client-list">
-            {leaders.slice(0, 8).map((l) => (
-              <li key={l.email || l.name}>
-                <div>
-                  <strong>{l.name}</strong>
-                  <small>
-                    {l.type}
-                    {l.email ? ` · ${l.email}` : ''} · {l.total} referral
-                    {l.total === 1 ? '' : 's'} · {l.inPipeline} in pipeline
-                  </small>
-                </div>
-                <span className="member-actions">
-                  {l.rewardsPending > 0 && (
-                    <Badge tone="amber">{l.rewardsPending} reward due</Badge>
-                  )}
-                  <Badge tone={l.hired ? 'green' : 'gray'}>{l.hired} hired</Badge>
-                  {l.hireRate !== null && <Badge tone="blue">{l.hireRate}%</Badge>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <DisclosureSection
+          title="Referral insights"
+          description="Referrer outcomes and pending rewards."
+        >
+          <section className="panel">
+            <PanelHeading
+              title="Who refers well"
+              subtitle="A hire rate needs at least three referrals before it means anything."
+            />
+            <ul className="client-list">
+              {leaders.slice(0, 8).map((l) => (
+                <li key={l.email || l.name}>
+                  <div>
+                    <strong>{l.name}</strong>
+                    <small>
+                      {l.type}
+                      {l.email ? ` · ${l.email}` : ''} · {l.total} referral
+                      {l.total === 1 ? '' : 's'} · {l.inPipeline} in pipeline
+                    </small>
+                  </div>
+                  <span className="member-actions">
+                    {l.rewardsPending > 0 && (
+                      <Badge tone="amber">{l.rewardsPending} reward due</Badge>
+                    )}
+                    <Badge tone={l.hired ? 'green' : 'gray'}>{l.hired} hired</Badge>
+                    {l.hireRate !== null && <Badge tone="blue">{l.hireRate}%</Badge>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </DisclosureSection>
       )}
     </>
   );

@@ -140,6 +140,8 @@ test('accepting self-update refreshes the paged profile header and its parent re
   });
   await settle();
   assert.ok(screen.getByRole('heading', { name: 'Original person' }));
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Feedback & self-updates' }));
   await settle();
   fireEvent.change(screen.getByLabelText('Review reason'), {

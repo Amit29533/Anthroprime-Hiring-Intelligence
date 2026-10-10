@@ -21,14 +21,14 @@ function lockDialogScroll(doc) {
 export function IconButton({ icon: Icon, label, ...props }) {
   return (
     <button className="icon-button" aria-label={label} title={label} {...props}>
-      <Icon size={18} />
+      <Icon size={18} aria-hidden="true" />
     </button>
   );
 }
 export function Button({ children, icon: Icon, variant = '', className = '', ...props }) {
   return (
     <button className={`button ${variant} ${className}`} {...props}>
-      {Icon && <Icon size={16} />} {children}
+      {Icon && <Icon size={16} aria-hidden="true" />} {children}
     </button>
   );
 }

@@ -118,6 +118,8 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   assert.ok(
     await screen.findByRole('heading', { name: 'Repository overview' }, { timeout: 30000 }),
   );
+  fireEvent.click(screen.getByRole('button', { name: /^Repository quality/ }));
+  await settle();
   assert.ok(
     await screen.findByRole('heading', { name: 'Repository quality review' }, { timeout: 30000 }),
   );
@@ -154,12 +156,18 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   assert.equal(screen.queryByRole('button', { name: 'More filters & bulk actions' }), null);
   fireEvent.click(screen.getByText('Full candidate'));
   await settle(5);
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Communication tests' }));
   await settle();
   assert.ok(screen.getByRole('heading', { name: 'Communication test workspace' }));
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Feedback & self-updates' }));
   await settle();
   assert.ok(screen.getByRole('heading', { name: 'Candidate feedback review' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Profile actions' }));
+  await settle();
   const invite = screen.getByRole('link', { name: 'Portal invite' });
   assert.match(decodeURIComponent(invite.getAttribute('href')), /administrator-approved grant/);
   assert.doesNotMatch(
@@ -169,15 +177,25 @@ test('cloud startup skips all candidate/document tables and explicitly expands f
   fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
   await navTo('Overview');
   await settle(10);
-  for (const name of [
-    'Communication test workspace',
-    'Feedback work queue',
-    'Internal SLA review',
-    'Repository quality review',
-  ])
+  for (const [title, name] of [
+    ['Tasks and follow-ups', 'Internal SLA review'],
+    ['Feedback and reviews', 'Feedback work queue'],
+    ['Candidate communication', 'Communication test workspace'],
+    ['Repository quality', 'Repository quality review'],
+  ]) {
+    fireEvent.click(screen.getByRole('button', { name: new RegExp('^' + title) }));
+    await settle();
     assert.ok(await screen.findByRole('heading', { name }, { timeout: 10000 }), name);
+  }
   fireEvent.click(screen.getByRole('button', { name: /Workspace settings/ }));
   await settle(10);
+  fireEvent.click(screen.getByRole('button', { name: /^Assignment and recruiting policies/ }));
+  await settle();
+  fireEvent.click(screen.getByText('Retention review', { selector: 'strong' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Operations and maintenance/ }));
+  await settle();
+  fireEvent.click(screen.getByRole('button', { name: /^Operational holds/ }));
+  await settle();
   assert.ok(screen.getByText(/Configure cloud retention review in Operations and governance/));
   assert.ok(screen.getByRole('heading', { name: 'Operations and governance' }));
   assert.equal(screen.queryByRole('button', { name: 'Anonymize' }), null);

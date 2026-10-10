@@ -10,16 +10,16 @@ const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const startsWith = (text) => new RegExp(`^${escapeRe(text)}`);
 const pageHeadings = {
   Candidates: 'Talent repository',
-  Demands: 'Find the people behind every possibility.',
+  Demands: 'Hiring demands',
   Clients: 'Client accounts',
   Pipeline: 'Hiring pipeline',
-  'Talent pools': 'A network, organized around possibility.',
-  Assessments: 'Build confidence in every candidate.',
+  'Talent pools': 'Talent pools',
+  Assessments: 'Assessments and training',
   Interviews: 'Interviews & offers',
-  Activities: 'Every conversation counts.',
-  Referrals: 'The best hires usually come from someone you know.',
-  Analytics: 'Talent intelligence, in perspective.',
-  Reports: 'Ask your own questions.',
+  Activities: 'Activities',
+  Referrals: 'Referrals',
+  Analytics: 'Analytics',
+  Reports: 'Reports',
 };
 
 /** The container a user can currently interact with: the open dialog, or the page. */
@@ -60,6 +60,7 @@ export async function navTo(page) {
     b.textContent.trim().startsWith(page),
   );
   assert.ok(button, `navigation item "${page}" exists`);
+  await revealControl(button);
   await click(button);
   const heading = pageHeadings[page];
   if (heading) await q().findByText(heading, { selector: 'h1' }, { timeout: 30000 });
@@ -81,10 +82,11 @@ export async function press(text, index = 0) {
     matches.length > index,
     `a button labelled "${text}" is on screen (found ${matches.length})`,
   );
+  await revealControl(matches[index]);
   await click(matches[index]);
   if (text === 'Workspace settings')
     await within(document.body).findByText(
-      'A foundation for better recruiting.',
+      'Workspace settings',
       { selector: 'h1' },
       { timeout: 30000 },
     );
@@ -103,6 +105,7 @@ export async function pressLink(text, index = 0) {
     (b) => b.textContent.trim() === text.trim(),
   );
   assert.ok(matches.length > index, `a control labelled "${text}" is on screen`);
+  await revealControl(matches[index]);
   await click(matches[index]);
   await settle(2);
   return matches[index];
@@ -111,6 +114,7 @@ export async function pressLink(text, index = 0) {
 /** Type into the control whose accessible label starts with `label`. */
 export async function type(label, value) {
   const el = q().getByLabelText(startsWith(label));
+  await revealControl(el);
   await change(el, value);
   return el;
 }
@@ -118,8 +122,27 @@ export async function type(label, value) {
 /** Choose an option in the select whose accessible label starts with `label`. */
 export async function choose(label, value) {
   const el = q().getByLabelText(startsWith(label));
+  await revealControl(el);
   await change(el, value);
   return el;
+}
+
+// Follow progressive disclosure through visible triggers before touching a control.
+export async function revealControl(el) {
+  const parents = [];
+  for (let p = el.parentElement; p; p = p.parentElement) parents.unshift(p);
+  for (const parent of parents) {
+    if (parent.tagName === 'DETAILS' && !parent.open) await click(parent.querySelector('summary'));
+    if (parent.hidden && parent.id) {
+      const trigger = document.querySelector(`[aria-controls="${parent.id}"]`);
+      if (trigger) await click(trigger);
+    }
+  }
+}
+
+export async function openSettingsSection(title) {
+  await click(q().getByRole('button', { name: startsWith(title) }));
+  await settle(2);
 }
 
 /** All controls whose accessible label starts with `label`. */

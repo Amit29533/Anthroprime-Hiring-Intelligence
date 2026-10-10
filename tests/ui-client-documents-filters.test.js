@@ -34,6 +34,7 @@ test('client documents upload privately and archive/restore without deleting the
   await navTo('Clients');
   await click(allText('Meridian Technologies')[0]);
   await settle(3);
+  await click(screen.getByRole('button', { name: /^Collaboration and documents/ }));
   assert.ok(screen.getByText('Agreements and documents'));
   const file = new File(['Client agreement terms'], 'Agreement.txt', { type: 'text/plain' });
   await act(async () =>

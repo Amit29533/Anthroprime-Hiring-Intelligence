@@ -92,17 +92,15 @@ async function selectCandidate(name) {
   return box;
 }
 
-async function openSettings() {
+async function openSettings(section = 'Assignment and recruiting policies') {
   const btn = [...document.querySelectorAll('button')].find((b) =>
     b.textContent.trim().startsWith('Workspace settings'),
   );
   assert.ok(btn, 'workspace settings is reachable from the sidebar');
   await click(btn);
-  await screen.findByText(
-    'A foundation for better recruiting.',
-    { selector: 'h1' },
-    { timeout: 30000 },
-  );
+  await screen.findByText('Workspace settings', { selector: 'h1' }, { timeout: 30000 });
+  await click(screen.getByRole('button', { name: new RegExp('^' + section) }));
+  await settle(2);
 }
 
 test('a pasted CSV becomes real profiles, with numbers as numbers and skills as a list', async () => {
@@ -582,7 +580,7 @@ test('resetting the demo workspace throws away edits and restores the sample dat
     'the edit is real',
   );
 
-  await openSettings();
+  await openSettings('Workspace and data');
   await press('Reset demo data');
   await settle(4);
 
@@ -824,6 +822,7 @@ test('an admin can enable the offer approval policy from workspace settings', as
   await mount(M.App, {});
   await settle(6);
   await openSettings();
+  await click(screen.getByText('Fair-process guardrails', { selector: 'strong' }));
   const approvalToggle = screen.getByLabelText('Require admin approval before offers are sent');
   assert.equal(approvalToggle.checked, false, 'the demo policy starts opt-in');
   await click(approvalToggle);
@@ -840,7 +839,7 @@ test('the workspace backup downloads JSON that describes every table', async () 
   await boot();
   await mount(M.App, {});
   await settle(6);
-  await openSettings();
+  await openSettings('Exports and backups');
   resetDownloads();
   await press('Download workspace backup (JSON)');
   await settle(3);

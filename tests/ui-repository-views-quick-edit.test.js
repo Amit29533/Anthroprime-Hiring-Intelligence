@@ -42,6 +42,9 @@ test('personal views save entered filters, reuse lost-ack IDs and apply without 
     },
   });
   await settle();
+  fireEvent.click(screen.getByText('More search filters', { selector: 'strong' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Saved search views/ }));
+  await settle();
   fireEvent.change(screen.getByLabelText('Minimum experience'), { target: { value: '7' } });
   fireEvent.change(screen.getByLabelText('Maximum experience'), { target: { value: '10' } });
   fireEvent.change(screen.getByLabelText('Sort candidates'), { target: { value: 'experience' } });
@@ -81,6 +84,8 @@ test('restricted saved compensation views do not silently broaden the active sea
         ? { views: [{ id: 'restricted', name: 'Private budget', filters: {}, restricted: true }] }
         : (pages.push(args), { rows: [], next: null }),
   });
+  await settle();
+  fireEvent.click(screen.getByRole('button', { name: /^Saved search views/ }));
   await settle();
   const before = pages.length;
   fireEvent.change(screen.getByLabelText('Saved repository view'), {

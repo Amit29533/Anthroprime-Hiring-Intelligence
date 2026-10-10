@@ -30,6 +30,7 @@ test('merge failure keeps the review open and never announces success or hides t
     audit: (event) => audits.push(event),
     onReload: () => reloads++,
   });
+  await click(screen.getByRole('button', { name: /^Operations and maintenance/ }));
   await click(screen.getByRole('button', { name: /Winner.*Duplicate/ }));
   await click(screen.getByRole('button', { name: 'Merge into Winner', exact: true }));
   assert.deepEqual(

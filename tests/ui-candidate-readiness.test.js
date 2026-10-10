@@ -118,6 +118,8 @@ test('paged Candidate 360 loads readiness with its scoped RPC instead of a gener
     },
   });
   await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Readiness review', exact: true }));
   await settle();
   assert.ok(screen.getByText('No general assessment'));

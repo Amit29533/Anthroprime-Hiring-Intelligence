@@ -3,7 +3,16 @@
 // candidate record.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, screen, cleanup, stopVite, settle, createHarness } from './ui-harness.js';
+import {
+  loadApp,
+  mount,
+  click,
+  screen,
+  cleanup,
+  stopVite,
+  settle,
+  createHarness,
+} from './ui-harness.js';
 import { navTo, press, type, choose, submitVia, allText } from './ui-drivers.js';
 import { makeSeed } from '../src/seed.js';
 import { normalizeData, TABLES } from '../src/schema.js';
@@ -86,6 +95,7 @@ test('referrals are listed with both sides and their state', async () => {
 
 test('a hire rate is withheld until enough referrals exist to justify one', async () => {
   await page([referral({ id: 'a', status: 'Hired' })]);
+  await click(screen.getByRole('button', { name: /^Referral insights/ }));
   assert.ok(allText(/1 hired/).length, 'the count is always shown');
   assert.equal(
     document.body.textContent.includes('100%'),
@@ -99,6 +109,7 @@ test('a hire rate is withheld until enough referrals exist to justify one', asyn
     referral({ id: 'b', status: 'New' }),
     referral({ id: 'c', status: 'Not proceeding' }),
   ]);
+  await click(screen.getByRole('button', { name: /^Referral insights/ }));
   assert.ok(document.body.textContent.includes('33%'), 'three referrals is enough to quote one');
   cleanup();
 });
@@ -224,7 +235,7 @@ test('the page is reachable from the sidebar and records a referral end to end',
   await mount(M.App, {});
   await settle(6);
   await navTo('Referrals');
-  assert.ok(screen.getByText('The best hires usually come from someone you know.'));
+  assert.ok(screen.getByRole('heading', { name: 'Referrals', level: 1 }));
   await press('Record referral');
   await type('Referrer name', 'Priya Raman');
   await type('Referrer email', 'priya@anthroprime.example');

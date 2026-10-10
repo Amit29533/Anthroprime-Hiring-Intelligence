@@ -56,6 +56,7 @@ test('viewer can inspect the dashboard and repository but cannot start mutations
   });
   assert.equal(screen.queryByRole('button', { name: 'Add candidate' }), null);
   assert.equal(screen.queryByRole('button', { name: 'Import candidates' }), null);
+  await click(screen.getByRole('button', { name: 'Search options' }));
   const exportButton = screen.getByRole('button', { name: /^Export/ });
   assert.equal(exportButton.disabled, true);
 });
@@ -81,8 +82,10 @@ test('candidate profiles expose read-only tabs but hide profile edits, notes, co
     assert.equal(screen.queryByRole('button', { name }), null, `${name} is unavailable`);
   assert.equal(screen.queryByRole('link', { name: 'Portal invite' }), null);
 
+  await click(screen.getByRole('button', { name: 'More sections' }));
   await click(screen.getByRole('button', { name: 'Notes & follow-ups' }));
   assert.equal(screen.queryByRole('button', { name: 'Save note' }), null);
+  await click(screen.getByRole('button', { name: 'More sections' }));
   await click(screen.getByRole('button', { name: 'Consent & privacy' }));
   assert.equal(screen.queryByRole('button', { name: "Export this profile's data" }), null);
   assert.equal(screen.queryByRole('button', { name: 'Record consent' }), null);
@@ -129,6 +132,7 @@ test('viewer workflow, demand, interview and settings controls cannot mutate or 
   });
   assert.equal(screen.queryByRole('button', { name: 'Schedule interview' }), null);
   assert.equal(screen.queryByRole('button', { name: 'Import .ics' }), null);
+  await click(screen.getByRole('button', { name: 'Calendar tools' }));
   const calendarExport = screen.getByRole('button', { name: 'Export calendar (.ics)' });
   assert.equal(calendarExport.disabled, true);
   assert.equal(screen.queryByRole('button', { name: 'New offer' }), null);
@@ -142,14 +146,12 @@ test('viewer workflow, demand, interview and settings controls cannot mutate or 
     audit: noop,
     onSave: noop,
   });
+  await click(screen.getByRole('button', { name: /^Exports and backups/ }));
   const csvExport = screen.getByRole('button', { name: 'Export candidate CSV' });
   const backupExport = screen.getByRole('button', { name: /Download workspace backup/ });
   assert.equal(csvExport.disabled, true);
   assert.equal(backupExport.disabled, true);
   assert.equal(screen.queryByText('Restore from backup'), null);
   assert.ok(screen.getByText(/viewer role is read-only/i));
-  assert.ok(
-    screen.getByText(/This release includes in-browser CV parsing, private document storage/),
-    'settings distinguishes shipped capabilities from future integrations',
-  );
+  assert.equal(screen.queryByRole('button', { name: /^Privacy and document governance/ }), null);
 });

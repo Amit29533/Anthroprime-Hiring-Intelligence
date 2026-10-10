@@ -1,3 +1,5 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
+import { Handshake, Search } from 'lucide-react';
 // Public careers portal (blueprint D1 + D3): explicitly published roles and an application form
 // whose consent checkboxes feed the §12 consent ledger when the application is accepted.
 // Demo mode renders the seed workspace and stores applications in this browser; cloud mode uses
@@ -16,6 +18,7 @@ import './dark.css';
 import './polish.css';
 import './modern.css';
 import './experience.css';
+import './consistency.css';
 
 const WS_KEY = 'ecod-careers-workspace';
 
@@ -635,8 +638,22 @@ export function CareersApp() {
           ))}
         </div>
       </main>
-      <ReferSomeone roles={roles} />
-      <StatusCheck />
+      <DisclosureSection
+        className="careers-secondary"
+        title="Refer someone"
+        description="Recommend someone for an open role."
+        icon={Handshake}
+      >
+        <ReferSomeone roles={roles} />
+      </DisclosureSection>
+      <DisclosureSection
+        className="careers-secondary"
+        title="Track your application"
+        description="Check the status of an application you have already submitted."
+        icon={Search}
+      >
+        <StatusCheck />
+      </DisclosureSection>
       <footer className="careers-footer">
         <span>AnthroPrime · ECOD Talent Intelligence</span>
         <span>Applications are handled by people, not algorithms.</span>

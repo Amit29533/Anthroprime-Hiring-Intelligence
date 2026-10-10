@@ -1,12 +1,12 @@
 import React, { useEffect, useId, useState, useRef } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Layers } from 'lucide-react';
 import './disclosure.css';
 
 // Mount on first use; closing a section preserves drafts and in-flight work.
 export function DisclosureSection({
   title,
   description,
-  icon: Icon,
+  icon: Icon = Layers,
   number,
   children,
   open: controlledOpen,

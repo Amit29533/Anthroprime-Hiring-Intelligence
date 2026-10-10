@@ -31,6 +31,7 @@ test('admin configures client fields and saves typed values, then archives witho
   await mount(M.App);
   await settle(6);
   await press('Workspace settings');
+  await click(screen.getByRole('button', { name: /^Branding and profile fields/ }));
   await settle(6);
   await choose('Field module', 'clients');
   await type('New field name', 'Account region');
@@ -64,6 +65,7 @@ test('admin configures client fields and saves typed values, then archives witho
   });
   assert.ok(screen.getByText('12.5'));
   await press('Workspace settings');
+  await click(screen.getByRole('button', { name: /^Branding and profile fields/ }));
   await settle(6);
   await choose('Field module', 'clients');
   await click(screen.getByRole('button', { name: 'Archive field Account region' }));

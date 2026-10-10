@@ -1,3 +1,5 @@
+import { DisclosureSection } from './DisclosureSection.jsx';
+import { FormSection } from './ProgressiveUI.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
 import { DemandJourney } from './DemandJourney.jsx';
 import { cloud } from './repository.js';
@@ -241,64 +243,69 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
               placeholder="Databricks, Unity Catalog, Python"
             />
           </Field>
-          <Field
-            label="Nice-to-have skills"
-            wide
-            hint="Shown as extra coverage signals; they never add hard failures."
+          <FormSection
+            title="Additional role details"
+            description="Nice-to-have skills, tags, ownership and business unit."
           >
-            <input
-              value={niceSkills}
-              onChange={(e) => setNiceSkills(e.target.value)}
-              placeholder="Snowflake, Power BI"
+            <Field
+              label="Nice-to-have skills"
+              wide
+              hint="Shown as extra coverage signals; they never add hard failures."
+            >
+              <input
+                value={niceSkills}
+                onChange={(e) => setNiceSkills(e.target.value)}
+                placeholder="Snowflake, Power BI"
+              />
+            </Field>
+            <Field label="Tags" wide hint="Internal labels for your own organisation of demands.">
+              <input
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="Data platform, High priority"
+              />
+            </Field>
+            <CustomFieldInputs
+              data={data}
+              module="demands"
+              values={form.custom}
+              onChange={(custom) => setForm({ ...form, custom })}
             />
-          </Field>
-          <Field label="Tags" wide hint="Internal labels for your own organisation of demands.">
-            <input
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="Data platform, High priority"
-            />
-          </Field>
-          <CustomFieldInputs
-            data={data}
-            module="demands"
-            values={form.custom}
-            onChange={(custom) => setForm({ ...form, custom })}
-          />
-          <Field label="Demand owner" hint="Who owns this requirement internally.">
-            <input
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              placeholder="Amit Singh"
-            />
-          </Field>
-          <Field
-            label="Business unit"
-            hint={
-              form.departmentId
-                ? 'Linked to a department record, so requisitions roll up to it.'
-                : 'Type a known department name to link this requisition to it.'
-            }
-          >
-            <input
-              value={businessUnit}
-              list="department-names"
-              onChange={(e) => {
-                const value = e.target.value;
-                setBusinessUnit(value);
-                const match = (data.departments || []).find(
-                  (dep) => dep.name.trim().toLowerCase() === value.trim().toLowerCase(),
-                );
-                setForm((f) => ({ ...f, departmentId: match ? match.id : null }));
-              }}
-              placeholder="Data & AI"
-            />
-            <datalist id="department-names">
-              {(data.departments || []).map((dep) => (
-                <option key={dep.id} value={dep.name} />
-              ))}
-            </datalist>
-          </Field>
+            <Field label="Demand owner" hint="Who owns this requirement internally.">
+              <input
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+                placeholder="Amit Singh"
+              />
+            </Field>
+            <Field
+              label="Business unit"
+              hint={
+                form.departmentId
+                  ? 'Linked to a department record, so requisitions roll up to it.'
+                  : 'Type a known department name to link this requisition to it.'
+              }
+            >
+              <input
+                value={businessUnit}
+                list="department-names"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBusinessUnit(value);
+                  const match = (data.departments || []).find(
+                    (dep) => dep.name.trim().toLowerCase() === value.trim().toLowerCase(),
+                  );
+                  setForm((f) => ({ ...f, departmentId: match ? match.id : null }));
+                }}
+                placeholder="Data & AI"
+              />
+              <datalist id="department-names">
+                {(data.departments || []).map((dep) => (
+                  <option key={dep.id} value={dep.name} />
+                ))}
+              </datalist>
+            </Field>
+          </FormSection>
           <Field label="Minimum relevant experience *">
             {field('minExperience', 'number', { required: true, min: 0, max: 50, step: 0.5 })}
           </Field>
@@ -384,49 +391,54 @@ export function DemandForm({ demand, data, onClose, onSave, onCreated, busy }) {
               )}
             </p>
           </div>
-          {skillList(skills).length > 0 && (
+          <FormSection
+            title="Skill thresholds and pipeline stages"
+            description="Fine-tune proficiency requirements and available stages."
+          >
+            {skillList(skills).length > 0 && (
+              <div className="per-skill-min wide">
+                <span>Minimum proficiency per must-have skill</span>
+                <div className="per-skill-grid">
+                  {skillList(skills).map((sk) => (
+                    <Field key={sk} label={sk}>
+                      <select
+                        value={(form.skillMinimums || {})[sk] || form.minProficiency || 'Working'}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            skillMinimums: { ...(form.skillMinimums || {}), [sk]: e.target.value },
+                          })
+                        }
+                      >
+                        {PROFICIENCY_LEVELS.map((l) => (
+                          <option key={l}>{l}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="per-skill-min wide">
-              <span>Minimum proficiency per must-have skill</span>
-              <div className="per-skill-grid">
-                {skillList(skills).map((sk) => (
-                  <Field key={sk} label={sk}>
-                    <select
-                      value={(form.skillMinimums || {})[sk] || form.minProficiency || 'Working'}
+              <span>Pipeline stages for this demand (none ticked = all ten)</span>
+              <div className="stage-set-grid">
+                {STAGES.map((s) => (
+                  <label key={s} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={stageSet.includes(s)}
                       onChange={(e) =>
-                        setForm({
-                          ...form,
-                          skillMinimums: { ...(form.skillMinimums || {}), [sk]: e.target.value },
-                        })
+                        setStageSet(
+                          e.target.checked ? [...stageSet, s] : stageSet.filter((x) => x !== s),
+                        )
                       }
-                    >
-                      {PROFICIENCY_LEVELS.map((l) => (
-                        <option key={l}>{l}</option>
-                      ))}
-                    </select>
-                  </Field>
+                    />{' '}
+                    {s}
+                  </label>
                 ))}
               </div>
             </div>
-          )}
-          <div className="per-skill-min wide">
-            <span>Pipeline stages for this demand (none ticked = all ten)</span>
-            <div className="stage-set-grid">
-              {STAGES.map((s) => (
-                <label key={s} className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={stageSet.includes(s)}
-                    onChange={(e) =>
-                      setStageSet(
-                        e.target.checked ? [...stageSet, s] : stageSet.filter((x) => x !== s),
-                      )
-                    }
-                  />{' '}
-                  {s}
-                </label>
-              ))}
-            </div>
-          </div>
+          </FormSection>
           <details className="weights-editor wide">
             <summary>
               <SlidersHorizontal size={15} /> Configure matching weights{' '}
@@ -486,7 +498,7 @@ export function Demands({ data, onNew, onOpen, initialFilter }) {
     <>
       <PageHeader
         eyebrow="FROM DEMAND TO DELIVERY"
-        title="Find the people behind every possibility."
+        title="Hiring demands"
         description="Capture client requirements and put your repository to work."
       >
         {!viewer && (
@@ -660,10 +672,22 @@ export function DemandDetail({
         audit={audit}
         busy={busy}
       />
-      {cloud && <DemandJourney demand={d} onOpenCandidate={onOpenCandidate} />}
       {cloud && (
-        <details>
-          <summary>Bounded demand discovery</summary>
+        <DisclosureSection
+          className="advanced-tools"
+          title="Demand journey and verified readiness"
+          description="Review validated requirements and stage progress."
+          icon={SlidersHorizontal}
+        >
+          <DemandJourney demand={d} onOpenCandidate={onOpenCandidate} />
+        </DisclosureSection>
+      )}
+      {cloud && (
+        <DisclosureSection
+          className="advanced-tools"
+          title="Advanced candidate discovery"
+          icon={FileSearch}
+        >
           <FoundationWorkbench
             key={d.id}
             initialTab="discovery"
@@ -672,7 +696,7 @@ export function DemandDetail({
             onOpenClient={onOpenClient}
             onOpenDemand={onOpenDemand}
           />
-        </details>
+        </DisclosureSection>
       )}
       {cloud && (
         <p className="supporting-text">
@@ -867,16 +891,17 @@ export function DemandDetail({
                 Prepare submission
               </Button>
             )}
-            <h3>Matching priorities</h3>
-            {Object.entries(d.weights).map(([k, v]) => (
-              <div className="weight-row" key={k}>
-                <span>{k}</span>
-                <div>
-                  <i style={{ width: `${v}%` }} />
+            <FormSection title="Matching priorities">
+              {Object.entries(d.weights).map(([k, v]) => (
+                <div className="weight-row" key={k}>
+                  <span>{k}</span>
+                  <div>
+                    <i style={{ width: `${v}%` }} />
+                  </div>
+                  <strong>{v}%</strong>
                 </div>
-                <strong>{v}%</strong>
-              </div>
-            ))}
+              ))}
+            </FormSection>{' '}
             <div className="matching-note">
               <ShieldIcon />
               <p>

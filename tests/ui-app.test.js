@@ -127,7 +127,7 @@ test('dashboard work counts open the matching records and the filter can be clea
   ];
   await boot(seed);
   await click(screen.getByRole('button', { name: /1\s*Overdue/ }));
-  await screen.findByRole('heading', { name: 'Every conversation counts.' }, { timeout: 30000 });
+  await screen.findByRole('heading', { name: 'Activities' }, { timeout: 30000 });
   assert.ok(screen.getByText('My overdue task'));
   assert.equal(screen.queryByText('Another recruiter task'), null);
   await click(screen.getByRole('button', { name: 'Show all' }));
@@ -175,20 +175,23 @@ test('every navigation item opens its own page', async () => {
   await boot();
   const expected = [
     ['Candidates', 'Talent repository'],
-    ['Demands', 'Find the people behind every possibility.'],
+    ['Demands', 'Hiring demands'],
     ['Pipeline', 'Hiring pipeline'],
-    ['Talent pools', 'A network, organized around possibility.'],
-    ['Assessments', 'Build confidence in every candidate.'],
+    ['Talent pools', 'Talent pools'],
+    ['Assessments', 'Assessments and training'],
     ['Interviews', 'Interviews & offers'],
-    ['Activities', 'Every conversation counts.'],
-    ['Analytics', 'Talent intelligence, in perspective.'],
+    ['Activities', 'Activities'],
+    ['Analytics', 'Analytics'],
   ];
   for (const [page, heading] of expected) {
     await navTo(page);
-    assert.ok(screen.getByText(heading), `${page} rendered "${heading}"`);
+    assert.ok(
+      screen.getByRole('heading', { name: heading, level: 1 }),
+      `${page} rendered "${heading}"`,
+    );
   }
   await press('Workspace settings');
-  assert.ok(screen.getByText('A foundation for better recruiting.'), 'settings rendered');
+  assert.ok(screen.getByRole('heading', { name: 'Workspace settings' }), 'settings rendered');
   cleanup();
 });
 

@@ -94,7 +94,7 @@ test('a note search opens Notes and Escape dismisses an empty result panel', asy
   assert.ok(hit);
   await act(async () => fireEvent.click(hit));
   await screen.findByRole('button', { name: 'Notes & follow-ups' }, { timeout: 30000 });
-  assert.ok(document.querySelector('.profile-tabs .active').textContent.includes('Notes'));
+  assert.ok(document.querySelector('.section-tabs > .active').textContent.includes('Notes'));
   await typeSearch('No matching regression result');
   assert.ok(document.querySelector('.search-results'));
   await act(async () => fireEvent.keyDown(searchBox(), { key: 'Escape' }));
@@ -145,8 +145,11 @@ test('the bell reports work that is actually due, and navigates to it', async ()
   await act(async () => {
     fireEvent.click(item);
   });
-  await screen.findByText('Every conversation counts.', { selector: 'h1' }, { timeout: 30000 });
-  assert.ok(screen.getByText('Every conversation counts.'), 'it took us to Activities');
+  await screen.findByText('Activities', { selector: 'h1' }, { timeout: 30000 });
+  assert.ok(
+    screen.getByRole('heading', { name: 'Activities', level: 1 }),
+    'it took us to Activities',
+  );
   cleanup();
 });
 

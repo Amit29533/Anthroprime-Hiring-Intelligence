@@ -126,6 +126,8 @@ test('viewers see bounded scorecards without submit controls and paged Candidate
   cleanup();
   await mount(Profile, { candidateId: 'one', onClose: () => {}, rpc });
   await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'More sections' }));
+  await settle();
   fireEvent.click(screen.getByRole('button', { name: 'Scorecards', exact: true }));
   await settle();
   assert.ok(screen.getByRole('heading', { name: 'Rubric scorecards' }));
