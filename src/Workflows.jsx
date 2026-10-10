@@ -1,5 +1,6 @@
 import { DisclosureSection } from './DisclosureSection.jsx';
 import { FormSection } from './ProgressiveUI.jsx';
+import { SkillBadge } from './SkillBadge.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
 import EnterpriseOperations from './EnterpriseOperations.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
@@ -1109,12 +1110,14 @@ export function Analytics({ data, navigate }) {
         />
         <Stat
           label="Assessed candidates"
+          tone="blue"
           value={new Set(data.assessments.map((a) => a.candidateId)).size}
           detail={`${data.assessments.length} recorded assessments`}
           icon={ClipboardCheck}
         />
         <Stat
           label="Active considerations"
+          tone="amber"
           value={
             data.considerations.filter(
               (a) => !['Deployed', 'Rejected', 'Withdrawn'].includes(a.stage),
@@ -1125,18 +1128,20 @@ export function Analytics({ data, navigate }) {
         />
         <Stat
           label="Deployed"
+          tone="green"
           value={data.considerations.filter((a) => a.stage === 'Deployed').length}
           detail="Recruiter-confirmed placements"
           icon={CheckCircle2}
         />
         <Stat
           label="Usable profiles"
+          tone="blue"
           value={usable}
           detail="Contactable, fresh, with skills — ready to work"
           icon={Database}
         />
       </div>
-      <div className="analytics-grid">
+      <div className="analytics-tools">
         <DisclosureSection
           className="advanced-tools"
           title="Lifecycle analysis"
@@ -1145,19 +1150,18 @@ export function Analytics({ data, navigate }) {
         >
           <LifecycleAnalytics />
         </DisclosureSection>
+      </div>
+      <div className="analytics-grid">
         <SkillInventoryPanel
           data={data}
           onOpenCandidate={(id) => navigate('Candidates', { personId: id })}
         />
         <section className="panel">
-          <PanelHeading
-            title="Skill inventory"
-            subtitle="People with each skill on their profile"
-          />
+          <PanelHeading title="Popular skills" subtitle="People with each skill on their profile" />
           <div className="horizontal-chart">
             {skills.map(([s, count]) => (
               <div key={s}>
-                <span>{s}</span>
+                <SkillBadge skill={s} />
                 <div>
                   <i
                     style={{ width: `${(count / Math.max(...skills.map((s) => s[1]), 1)) * 100}%` }}
@@ -1238,7 +1242,7 @@ export function Analytics({ data, navigate }) {
           <div className="heat-list">
             {heatRows.map((h) => (
               <div key={h.skill} className="heat-row">
-                <span>{h.skill}</span>
+                <SkillBadge skill={h.skill} />
                 <div className="heat-cells">
                   <i
                     className="critical"
@@ -1304,7 +1308,14 @@ export function Analytics({ data, navigate }) {
           <div className="velocity-list">
             <div>
               <span>Client funnel</span>
-              <strong>{funnel.map((f) => `${f.stage} ${f.count}`).join(' · ') || '—'}</strong>
+              <div className="metric-breakdown">
+                {funnel.map((f) => (
+                  <span key={f.stage}>
+                    <span>{f.stage}</span>
+                    <b>{f.count}</b>
+                  </span>
+                ))}
+              </div>
               <small>Current considerations in client-facing stages</small>
             </div>
             <div>
@@ -1357,10 +1368,7 @@ export function Analytics({ data, navigate }) {
           </div>
         </section>
         <section className="panel">
-          <PanelHeading
-            title="Velocity & audit"
-            subtitle="Blueprint measures over current records"
-          />
+          <PanelHeading title="Velocity & audit" subtitle="Hiring speed and repository activity" />
           <div className="velocity-list">
             <div>
               <span>Average time to shortlist</span>
@@ -1382,7 +1390,7 @@ export function Analytics({ data, navigate }) {
         <section className="panel">
           <PanelHeading
             title="Conversion & rediscovery"
-            subtitle="Blueprint §17 measures over current records"
+            subtitle="Readiness and reuse across hiring requirements"
           />
           <div className="velocity-list">
             <div>
@@ -1400,12 +1408,15 @@ export function Analytics({ data, navigate }) {
             </div>
             <div>
               <span>Source → ready</span>
-              <strong>
-                {srcConv
-                  .slice(0, 3)
-                  .map((x) => `${x.source} ${x.pct}%`)
-                  .join(' · ') || '—'}
-              </strong>
+              <div className="metric-breakdown">
+                {srcConv.slice(0, 3).map((x) => (
+                  <span key={x.source}>
+                    <span>{x.source}</span>
+                    <b>{x.pct}%</b>
+                  </span>
+                ))}
+                {!srcConv.length && <span>No sourcing data yet</span>}
+              </div>
               <small>Ready share by sourcing channel</small>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { anthroIdFor } from './anthroId.js';
+import { SkillBadge } from './SkillBadge.jsx';
 import React, { useState } from 'react';
 import { Plus, ShieldCheck, AlertTriangle, Clock, FileText } from 'lucide-react';
 import { PanelHeading, Button, Field, Badge, Empty } from './ui.jsx';
@@ -48,7 +49,7 @@ export function SkillEvidencePanel({ candidate, data, onSave, notify, busy, role
             <li key={row.id}>
               <div className="skill-evidence-head">
                 <div>
-                  <strong>{row.name}</strong>
+                  <SkillBadge skill={row.name} />
                   {row.skill?.domain && <small className="skill-domain">{row.skill.domain}</small>}
                 </div>
                 <span className="skill-evidence-tags">
@@ -278,7 +279,9 @@ export function SkillInventoryPanel({ data, onOpenCandidate }) {
               <tbody>
                 {inventory.slice(0, 20).map((r) => (
                   <tr key={r.skill.id}>
-                    <td>{r.skill.name}</td>
+                    <td>
+                      <SkillBadge skill={r.skill.name} />
+                    </td>
                     <td>{r.skill.domain || '—'}</td>
                     <td>{r.people}</td>
                     <td>

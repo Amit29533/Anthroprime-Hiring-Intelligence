@@ -197,19 +197,46 @@ export function ClientPortalView({ rpc = intelligenceRpc }) {
         <div key={client}>
           <FeedbackPortal clientId={client} rpc={rpc} />
           <h2>Approved demand progress</h2>
-          {view.demands.map((d) => (
-            <p key={d.id}>
-              {d.title} · {d.status} · {d.positions} positions · {d.activePlacements} active
-              placements
-              {d.target && ` · Target ${d.target}`}
-            </p>
-          ))}
-          <button disabled={!demandsOffset} onClick={() => setDemandsOffset(demandsOffset - 20)}>
-            Previous demands
-          </button>
-          <button disabled={!view.demandsMore} onClick={() => setDemandsOffset(demandsOffset + 20)}>
-            Next demands
-          </button>
+          <div className="table-scroll client-demand-progress">
+            <table aria-label="Approved demand progress">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Positions</th>
+                  <th scope="col">Active placements</th>
+                  <th scope="col">Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.demands.map((d) => (
+                  <tr key={d.id}>
+                    <th scope="row">{d.title}</th>
+                    <td>{d.status}</td>
+                    <td>{d.positions}</td>
+                    <td>{d.activePlacements}</td>
+                    <td>{d.target || 'Not set'}</td>
+                  </tr>
+                ))}
+                {!view.demands.length && (
+                  <tr>
+                    <td colSpan={5}>No approved demands available.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="pagination">
+            <button disabled={!demandsOffset} onClick={() => setDemandsOffset(demandsOffset - 20)}>
+              Previous demands
+            </button>
+            <button
+              disabled={!view.demandsMore}
+              onClick={() => setDemandsOffset(demandsOffset + 20)}
+            >
+              Next demands
+            </button>
+          </div>
           <h2>Approved shortlist</h2>
           {!view.packs.length && (
             <p>No current approved versions. Contact your recruiter for an updated shortlist.</p>

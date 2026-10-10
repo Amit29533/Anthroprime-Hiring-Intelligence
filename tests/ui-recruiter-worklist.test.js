@@ -43,7 +43,8 @@ test('worklist retries a lost acknowledgement with the same intent and opens the
     },
   });
   await settle();
-  assert.ok(screen.getByText('Tasks: 31 pending, 30 overdue, 1 completed / handled'));
+  assert.ok(screen.getByRole('table', { name: 'Worklist totals' }));
+  assert.ok(screen.getByRole('row', { name: 'Tasks 31 30 1' }));
   fireEvent.click(screen.getByRole('button', { name: 'Open candidate' }));
   assert.deepEqual(opened, ['candidate']);
   fireEvent.click(screen.getByRole('button', { name: 'Complete task' }));

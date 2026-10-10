@@ -1,3 +1,4 @@
+import { SkillBadge } from './SkillBadge.jsx';
 import { MoreOptions, FormSection, SectionTabs } from './ProgressiveUI.jsx';
 import { DisclosureSection } from './DisclosureSection.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
@@ -717,7 +718,7 @@ export function Candidates({
                     {columns.expertise !== false && (
                       <div className="skill-tags">
                         {c.skills.slice(0, 2).map((s) => (
-                          <span key={s}>{s}</span>
+                          <SkillBadge key={s} skill={s} />
                         ))}
                         {c.skills.length > 2 && (
                           <span title={c.skills.slice(2).join(', ')}>+{c.skills.length - 2}</span>
@@ -1407,7 +1408,7 @@ export function CandidateProfile({
                 <h3>Core expertise</h3>
                 <div className="skill-tags large-tags">
                   {c.skills.map((s) => (
-                    <span key={s}>{s}</span>
+                    <SkillBadge key={s} skill={s} />
                   ))}
                 </div>
               </div>

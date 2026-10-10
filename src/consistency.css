@@ -13,7 +13,7 @@
 :root:root:root
   :is(.settings-body, .profile-section, .completion-workbench, .careers-main, .modal-body)
   button:not([class]),
-:root:root:root .completion-workbench button {
+:root:root:root .completion-workbench button:not([class]) {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -320,4 +320,683 @@
 }
 :root:root:root .nav-group > summary svg {
   flex-shrink: 0;
+}
+
+/* Density and colour corrections: these contracts also apply to expanded tools. */
+:root:root:root {
+  --cyan: #08748c;
+  --cyan-soft: #e2f6fc;
+  --orange: #a9511b;
+  --orange-soft: #fff0e5;
+  --rose: #bb426d;
+  --rose-soft: #ffedf4;
+  --space-section: 20px;
+}
+:root:root:root[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #101829;
+  --surface: #18243a;
+  --surface-soft: #142034;
+  --surface-raised: #21324a;
+  --ink: #edf6ff;
+  --muted: #a7bbd3;
+  --soft-ink: #a7bbd3;
+  --border: #314862;
+  --accent: #b6a5ff;
+  --teal: #b6a5ff;
+  --tint: #302b52;
+  --lavender: #302b52;
+  --success: #68e4b7;
+  --success-soft: #173e38;
+  --warning: #ffd27d;
+  --warning-soft: #453722;
+  --danger: #ff9db4;
+  --danger-soft: #47283e;
+  --info: #8ebeff;
+  --info-soft: #1d385a;
+  --cyan: #71def2;
+  --cyan-soft: #163b4a;
+  --orange: #ffb383;
+  --orange-soft: #493429;
+  --rose: #ff9cc7;
+  --rose-soft: #472b44;
+}
+:root:root:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root:root:root[data-theme='dark'] .workspace-main {
+  background:
+    radial-gradient(ellipse at 94% 0, #483d792e, transparent 38%),
+    radial-gradient(ellipse at 20% 70%, #127f7512, transparent 45%), var(--canvas);
+}
+:root:root:root .topbar {
+  gap: 20px;
+  padding-inline: 28px;
+}
+:root:root:root .global-search-wrap {
+  flex: 1 1 360px;
+  min-width: 0;
+  max-width: 560px;
+}
+:root:root:root :is(.global-search, .search-box) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  cursor: text;
+  background: var(--surface-soft);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+:root:root:root :is(.global-search, .search-box) > svg {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+:root:root:root :is(.global-search, .search-box) input,
+:root:root:root :is(.global-search, .search-box) input:focus,
+:root:root:root :is(.global-search, .search-box) input:focus-visible {
+  flex: 1 1 0%;
+  width: 0;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+:root:root:root :is(.global-search, .search-box):focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+:root:root:root .global-search kbd {
+  margin-left: auto;
+  flex-shrink: 0;
+  pointer-events: none;
+  font-size: 10px;
+}
+:root:root:root :is(.search-clear, .search-box > button) {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px;
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+:root:root:root .workspace-main > main {
+  padding: 28px;
+}
+:root:root:root .page-heading {
+  margin-bottom: 24px;
+  gap: 20px;
+}
+:root:root:root .page-heading h1 {
+  font-size: clamp(25px, 2vw, 32px);
+  line-height: 1.25;
+}
+:root:root:root .page-heading p {
+  margin-top: 8px;
+  max-width: 70ch;
+  font-size: 13px;
+  line-height: 1.6;
+}
+:root:root:root .eyebrow {
+  margin-bottom: 8px;
+}
+:root:root:root .panel-heading {
+  padding: 20px 22px 16px;
+}
+:root:root:root .settings-body {
+  padding: 0 22px 22px;
+}
+:root:root:root .settings-body > p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0 16px;
+}
+:root:root:root .settings-body > .form-grid {
+  margin-bottom: 16px;
+}
+:root:root:root .settings-body > .button + .button {
+  margin-inline-start: 8px;
+  margin-top: 8px;
+}
+:root:root:root :is(.action-row, .pagination-row, .member-actions) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+:root:root:root .action-row {
+  margin-block: 14px;
+}
+:root:root:root .pagination-row {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+:root:root:root :is(.report-tools, .report-layout) {
+  margin: 0 0 var(--space-section);
+}
+:root:root:root .report-tools:empty {
+  display: none;
+}
+:root:root:root .report-layout {
+  grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.5fr);
+  gap: var(--space-section);
+}
+:root:root:root .report-layout .client-list {
+  padding: 0 20px 20px;
+}
+:root:root:root .report-layout .client-list > li {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+}
+:root:root:root .report-layout .client-list .text-link {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.5;
+}
+:root:root:root .report-layout .client-list small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+:root:root:root .report-save {
+  margin-top: 20px;
+  padding-top: 20px;
+}
+:root:root:root .report-total {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--info-soft);
+}
+:root:root:root .report-total > strong {
+  color: var(--info);
+  font-size: 32px;
+}
+:root:root:root .report-total > span {
+  color: var(--ink);
+}
+:root:root:root .analytics-grid {
+  gap: var(--space-section);
+  align-items: start;
+}
+:root:root:root .stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+:root:root:root .stat {
+  --stat-colour: var(--accent);
+  --stat-tint: var(--tint);
+  padding: 20px;
+  border-top: 3px solid var(--stat-colour);
+}
+:root:root:root .stat-blue {
+  --stat-colour: var(--info);
+  --stat-tint: var(--info-soft);
+}
+:root:root:root .stat-green {
+  --stat-colour: var(--success);
+  --stat-tint: var(--success-soft);
+}
+:root:root:root .stat-amber {
+  --stat-colour: var(--warning);
+  --stat-tint: var(--warning-soft);
+}
+:root:root:root .stat .stat-icon {
+  background: var(--stat-tint);
+  color: var(--stat-colour);
+}
+:root:root:root .stat::after {
+  background: var(--stat-tint);
+}
+:root:root:root .stat-detail {
+  display: block;
+  line-height: 1.5;
+  font-size: 11px;
+}
+:root:root:root .stat-top {
+  gap: 10px;
+  font-size: 12px;
+  min-height: 32px;
+}
+:root:root:root .velocity-list {
+  padding: 0 22px 22px;
+  gap: 0;
+}
+:root:root:root .velocity-list > div {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 6px;
+}
+:root:root:root .velocity-list > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+:root:root:root .velocity-list > div > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+:root:root:root .velocity-list strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+:root:root:root .velocity-list small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+:root:root:root .metric-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+:root:root:root .metric-breakdown > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--info-soft);
+  color: var(--info);
+}
+:root:root:root .metric-breakdown b {
+  font-variant-numeric: tabular-nums;
+}
+:root:root:root .horizontal-chart i {
+  background: linear-gradient(90deg, var(--info), var(--cyan));
+}
+:root:root:root .horizontal-chart > div > div {
+  background: var(--surface-soft);
+}
+:root:root:root .heat-cells .critical {
+  background: var(--danger);
+}
+:root:root:root .heat-cells .trainable {
+  background: var(--warning);
+}
+:root:root:root .heat-cells .contextual {
+  background: var(--info);
+}
+:root:root:root .funnel-bar {
+  opacity: 1;
+  background: color-mix(in srgb, var(--info) 28%, var(--surface));
+}
+:root:root:root .analytics-insight {
+  background: var(--success-soft);
+  color: var(--success);
+}
+:root:root:root .analytics-insight p {
+  color: var(--success);
+}
+:root:root:root .match-banner {
+  background: linear-gradient(115deg, var(--tint), var(--info-soft));
+}
+:root:root:root .my-work {
+  margin: 0 0 20px;
+}
+:root:root:root .my-work-grid {
+  gap: 10px;
+  padding: 0 22px 20px;
+}
+:root:root:root .my-work-cell {
+  background: var(--info-soft);
+  color: var(--info);
+  padding: 16px;
+}
+:root:root:root .my-work-cell strong {
+  color: var(--info);
+}
+:root:root:root .my-work-cell strong.text-red {
+  color: var(--danger);
+  background: transparent;
+}
+:root:root:root .skill-tags {
+  align-items: flex-start;
+  gap: 6px;
+}
+:root:root:root .demand-card .skill-tags {
+  min-height: 0;
+  margin-block: 16px;
+}
+:root:root:root .demand-card {
+  padding: 20px 22px 0;
+}
+:root:root:root .demand-card-top {
+  margin-bottom: 14px;
+}
+:root:root:root .demand-card h2 .card-title-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.45;
+  text-align: left;
+  border-radius: 4px;
+}
+:root:root:root .demand-card h2 .card-title-link:hover {
+  color: var(--accent);
+}
+:root:root:root .card-meta {
+  gap: 12px;
+  margin-block: 12px;
+  flex-wrap: wrap;
+}
+:root:root:root .demand-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-block: 16px;
+  margin-top: 16px;
+  border-color: var(--border);
+}
+:root:root:root .demand-card-metrics strong {
+  color: var(--info);
+  font-size: 24px;
+}
+:root:root:root .demand-card-bottom {
+  border-color: var(--border);
+}
+:root:root:root .skill-badge {
+  --skill-colour: var(--accent);
+  --skill-tint: var(--tint);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: start;
+  flex-shrink: 0;
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  border: 1px solid color-mix(in srgb, var(--skill-colour) 24%, transparent);
+  background: var(--skill-tint);
+  color: var(--skill-colour);
+  border-radius: 7px;
+  white-space: nowrap;
+}
+:root:root:root .skill-badge svg {
+  flex-shrink: 0;
+}
+:root:root:root .skill-cyan {
+  --skill-colour: var(--cyan);
+  --skill-tint: var(--cyan-soft);
+}
+:root:root:root .skill-blue {
+  --skill-colour: var(--info);
+  --skill-tint: var(--info-soft);
+}
+:root:root:root .skill-green,
+:root:root:root .skill-teal {
+  --skill-colour: var(--success);
+  --skill-tint: var(--success-soft);
+}
+:root:root:root .skill-amber {
+  --skill-colour: var(--warning);
+  --skill-tint: var(--warning-soft);
+}
+:root:root:root .skill-orange {
+  --skill-colour: var(--orange);
+  --skill-tint: var(--orange-soft);
+}
+:root:root:root .skill-rose {
+  --skill-colour: var(--rose);
+  --skill-tint: var(--rose-soft);
+}
+:root:root:root .horizontal-chart > div > .skill-badge {
+  width: 130px;
+  white-space: normal;
+}
+:root:root:root .large-tags .skill-badge {
+  font-size: 12px;
+}
+:root:root:root .disclosure-section {
+  --section-colour: var(--accent);
+  --section-tint: var(--tint);
+}
+:root:root:root .disclosure-section:nth-child(4n + 2) {
+  --section-colour: var(--info);
+  --section-tint: var(--info-soft);
+}
+:root:root:root .disclosure-section:nth-child(4n + 3) {
+  --section-colour: var(--success);
+  --section-tint: var(--success-soft);
+}
+:root:root:root .disclosure-section:nth-child(4n + 4) {
+  --section-colour: var(--warning);
+  --section-tint: var(--warning-soft);
+}
+:root:root:root .disclosure-icon {
+  background: var(--section-tint);
+  color: var(--section-colour);
+}
+:root:root:root .disclosure-trigger {
+  padding: 16px;
+  min-height: 72px;
+  border: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+:root:root:root .disclosure-icon {
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+:root:root:root .disclosure-trigger:hover {
+  background: var(--surface-soft);
+}
+:root:root:root .disclosure-body > .panel {
+  border-radius: 10px;
+}
+:root:root:root .disclosure-body > .panel + .panel {
+  margin-top: 16px;
+}
+:root:root:root .recruiter-worklist .settings-body {
+  padding: 20px;
+}
+:root:root:root .worklist-filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+:root:root:root .worklist-totals {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+:root:root:root .worklist-totals th,
+:root:root:root .worklist-totals td {
+  padding: 12px;
+}
+:root:root:root .worklist-totals tbody th {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+:root:root:root .worklist-items {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+:root:root:root .worklist-items li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 10px;
+}
+:root:root:root .worklist-items li > div:first-child {
+  flex: 1;
+  min-width: 170px;
+}
+:root:root:root .worklist-items small {
+  display: block;
+  margin-top: 4px;
+}
+:root:root:root .worklist-items .action-row {
+  margin: 0;
+}
+:root:root:root .sidebar {
+  scrollbar-color: var(--border) transparent;
+}
+:root:root:root .sidebar nav {
+  scrollbar-width: none;
+}
+:root:root:root .sidebar nav::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 1000px) {
+  :root:root:root .report-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root:root:root .global-search kbd {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  :root:root:root .topbar {
+    padding-inline: 16px;
+    gap: 12px;
+  }
+  :root:root:root .workspace-main > main {
+    padding: 20px 16px;
+  }
+  :root:root:root .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  :root:root:root .stat {
+    padding: 16px;
+  }
+  :root:root:root .worklist-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root:root:root .velocity-list {
+    padding-inline: 16px;
+  }
+  :root:root:root .settings-body {
+    padding-inline: 16px;
+  }
+  :root:root:root .table-toolbar .search-box {
+    flex-basis: 100%;
+  }
+}
+
+:root:root:root .analytics-tools {
+  margin-bottom: 20px;
+}
+:root:root:root .analytics-tools .advanced-tools {
+  margin-bottom: 0;
+}
+:root:root:root .analytics-grid > .panel .table-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+}
+:root:root:root .analytics-grid > .panel .table-scroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+:root:root:root .stat {
+  isolation: isolate;
+}
+:root:root:root .stat::after {
+  z-index: -1;
+  opacity: 0.5;
+}
+
+:root:root:root .pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+:root:root:root .paged-candidate-card .settings-body {
+  padding-top: 20px;
+}
+:root:root:root .paged-candidate-card .skill-tags {
+  max-width: none;
+}
+:root:root:root .intelligence-panel .section-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+:root:root:root .intelligence-panel .section-toolbar > label {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+:root:root:root .panel > :is(.supporting-text, p) {
+  padding: 0 22px 20px;
+  margin: 0;
+}
+:root:root:root .sidebar nav button {
+  min-height: 39px;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+:root:root:root .sidebar nav {
+  gap: 2px;
+}
+:root:root:root .nav-group {
+  margin-top: 6px;
+}
+:root:root:root .nav-group > summary {
+  min-height: 34px;
+  padding-block: 8px;
+}
+
+:root:root:root .client-demand-progress {
+  margin-block: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+:root:root:root .client-demand-progress tbody th {
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+:root:root:root .client-snapshot {
+  display: grid;
+  gap: 8px;
+}
+:root:root:root .client-snapshot > :is(p, small) {
+  margin: 0;
+  line-height: 1.6;
+}
+:root:root:root .client-snapshot .skill-tags {
+  max-width: none;
+}
+:root:root:root .client-portal-shell .panel > .client-snapshot {
+  padding: 20px;
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SkillBadge } from './SkillBadge.jsx';
 import { cloud, getRole, canWriteForRole } from './repository.js';
 import { intelligenceRpc } from './intelligence.js';
 import { FeedbackReview } from './FeedbackLoops.jsx';
@@ -6,7 +7,7 @@ import { FeedbackReview } from './FeedbackLoops.jsx';
 export function Snapshot({ pack }) {
   const p = pack.content;
   return (
-    <div>
+    <div className="client-snapshot">
       <strong>
         {p.name} · {p.anthroId}
       </strong>
@@ -14,7 +15,11 @@ export function Snapshot({ pack }) {
       <p>
         {p.demandTitle} · version {pack.version}
       </p>
-      <p>{p.skills?.join(', ')}</p>
+      <div className="skill-tags">
+        {(p.skills || []).map((skill) => (
+          <SkillBadge key={skill} skill={skill} />
+        ))}
+      </div>
       {p.demandReadiness?.validatedReady && (
         <p>
           Validated for this demand until {p.demandReadiness.validUntil}. Requirements version{' '}

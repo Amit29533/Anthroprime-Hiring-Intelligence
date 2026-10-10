@@ -1,3 +1,4 @@
+import { SkillBadge } from './SkillBadge.jsx';
 import { DisclosureSection } from './DisclosureSection.jsx';
 import { Handshake, Search } from 'lucide-react';
 // Public careers portal (blueprint D1 + D3): explicitly published roles and an application form
@@ -628,7 +629,7 @@ export function CareersApp() {
               {r.skills && (
                 <div className="careers-skills">
                   {r.skills.map((s) => (
-                    <span key={s}>{s}</span>
+                    <SkillBadge key={s} skill={s} />
                   ))}
                 </div>
               )}

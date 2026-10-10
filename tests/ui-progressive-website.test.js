@@ -20,6 +20,35 @@ import { normalizeData } from '../src/schema.js';
 afterEach(cleanup);
 test.after(stopVite);
 
+test('repository search focuses from its surface and clearing keeps focus without submitting a parent form', async () => {
+  const { SearchBox } = await load('/src/ui.jsx');
+  let submitted = 0;
+  function SearchForm() {
+    const [value, setValue] = React.useState('React');
+    return React.createElement(
+      'form',
+      {
+        onSubmit: (event) => {
+          event.preventDefault();
+          submitted++;
+        },
+      },
+      React.createElement(SearchBox, { value, onChange: setValue }),
+    );
+  }
+  await mount(SearchForm);
+  const input = screen.getByRole('textbox', { name: 'Search candidates, skills, companies…' });
+  await click(input.parentElement);
+  assert.equal(document.activeElement === input, true);
+  input.blur();
+  await click(input.parentElement.querySelector('svg'));
+  assert.equal(document.activeElement === input, true);
+  await click(screen.getByRole('button', { name: 'Clear search' }));
+  assert.equal(input.value, '');
+  assert.equal(document.activeElement === input, true);
+  assert.equal(submitted, 0);
+});
+
 test('optional actions dismiss with Escape and outside clicks, keeping a usable keyboard destination', async () => {
   const { MoreOptions } = await load('/src/ProgressiveUI.jsx');
   const invoked = [];

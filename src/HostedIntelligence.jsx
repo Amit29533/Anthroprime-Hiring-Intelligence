@@ -120,12 +120,15 @@ export function HostedIntelligence({
             </Button>
           )}
         </div>
-        <p>
-          Shared-index search uses locally computed text features without an external provider. AI
-          search requires AI indexing of candidates with the same provider model; use shared search
-          when filters are selected. With the index worker deployed, new and changed profiles are
-          indexed automatically. Manual refresh remains available.
-        </p>
+        <details className="search-help">
+          <summary>Shared search and AI search</summary>
+          <p>
+            Shared-index search uses locally computed text features without an external provider. AI
+            search requires AI indexing of candidates with the same provider model; use shared
+            search when filters are selected. With the index worker deployed, new and changed
+            profiles are indexed automatically. Manual refresh remains available.
+          </p>
+        </details>
         {writable && (
           <Button
             variant="secondary"
@@ -209,12 +212,15 @@ export function HostedIntelligence({
                 Load drafts
               </Button>
             </div>
-            <p>
-              Create new cited highlights in the Stage 4 controlled workflows panel. Legacy AI
-              indexing receives title, skills, experience, location and work mode. Contact details,
-              CV files, employer names and notes are excluded. Review facts before approving.
-              Approved drafts stay separate from candidate profiles.
-            </p>
+            <details className="search-help">
+              <summary>What AI indexing uses</summary>
+              <p>
+                Indexing uses title, skills, experience, location and work mode. Contact details, CV
+                files, employer names and notes are excluded. Create cited highlights in Controlled
+                workflows. Review facts before approving; approved drafts stay separate from
+                profiles.
+              </p>
+            </details>
             {drafts.map((draft) => (
               <div key={draft.id} className="panel settings-body">
                 <strong>

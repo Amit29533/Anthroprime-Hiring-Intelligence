@@ -1,4 +1,5 @@
 import { DisclosureSection } from './DisclosureSection.jsx';
+import { SkillBadge } from './SkillBadge.jsx';
 import { CalendarClock, ShieldCheck } from 'lucide-react';
 // Candidate portal (/portal.html) — cloud mode signs in with Supabase Auth and reads the
 // curated RPCs through explicit account grants; demo mode opens a fictional profile by email.
@@ -66,7 +67,7 @@ function Overview({ view, onSave, busy, msg, onBook, booking }) {
         {p.skills?.length > 0 && (
           <div className="careers-skills" style={{ marginTop: 10 }}>
             {p.skills.slice(0, 10).map((s) => (
-              <span key={s}>{s}</span>
+              <SkillBadge key={s} skill={s} />
             ))}
           </div>
         )}

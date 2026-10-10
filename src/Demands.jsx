@@ -1,3 +1,4 @@
+import { SkillBadge } from './SkillBadge.jsx';
 import { DisclosureSection } from './DisclosureSection.jsx';
 import { FormSection } from './ProgressiveUI.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
@@ -543,7 +544,9 @@ export function Demands({ data, onNew, onOpen, initialFilter }) {
               </div>
               <span className="card-eyebrow">{d.client}</span>
               <h2>
-                <button onClick={() => onOpen(d.id)}>{d.title}</button>
+                <button className="card-title-link" onClick={() => onOpen(d.id)}>
+                  {d.title}
+                </button>
               </h2>
               <div className="card-meta">
                 <span>
@@ -557,7 +560,7 @@ export function Demands({ data, onNew, onOpen, initialFilter }) {
               </div>
               <div className="skill-tags">
                 {d.skills.map((s) => (
-                  <span key={s}>{s}</span>
+                  <SkillBadge key={s} skill={s} />
                 ))}
               </div>
               <div className="demand-card-metrics">
@@ -711,7 +714,7 @@ export function DemandDetail({
             <h3>Must-have skills</h3>
             <div className="skill-tags large-tags">
               {d.skills.map((s) => (
-                <span key={s}>{s}</span>
+                <SkillBadge key={s} skill={s} />
               ))}
             </div>
             {(d.tags || []).length > 0 && (
@@ -1292,7 +1295,7 @@ export function Pipeline({ data, selectedDemand, setSelectedDemand, onOpen, onNe
                         </div>
                         <div className="skill-tags">
                           {c.skills.slice(0, 2).map((s) => (
-                            <span key={s}>{s}</span>
+                            <SkillBadge key={s} skill={s} />
                           ))}
                         </div>
                         <label>

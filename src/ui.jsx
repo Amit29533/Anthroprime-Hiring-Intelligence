@@ -99,10 +99,17 @@ export function SearchBox({
   placeholder = 'Search candidates, skills, companies…',
   ...rest
 }) {
+  const input = useRef(null);
   return (
-    <div className="search-box">
-      <Search size={18} />
+    <div
+      className="search-box"
+      onClick={(event) => {
+        if (!event.target.closest('button')) input.current?.focus();
+      }}
+    >
+      <Search size={18} aria-hidden="true" />
       <input
+        ref={input}
         aria-label={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -110,8 +117,15 @@ export function SearchBox({
         {...rest}
       />
       {value && (
-        <button aria-label="Clear search" onClick={() => onChange('')}>
-          <X size={15} />
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={() => {
+            onChange('');
+            input.current?.focus();
+          }}
+        >
+          <X size={15} aria-hidden="true" />
         </button>
       )}
     </div>
@@ -199,7 +213,7 @@ export function Stat({ label, value, detail, icon: Icon, tone = 'teal' }) {
       <div className="stat-top">
         <span>{label}</span>
         <span className={`stat-icon ${tone}`}>
-          <Icon size={18} />
+          <Icon size={18} aria-hidden="true" />
         </span>
       </div>
       <strong>{value}</strong>

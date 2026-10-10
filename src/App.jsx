@@ -170,6 +170,7 @@ export default function App() {
     [toast, setToast] = useState(''),
     [mobile, setMobile] = useState(false),
     [query, setQuery] = useState(''),
+    [workspaceQuery, setWorkspaceQuery] = useState(''),
     [modal, setModal] = useState(null),
     [personId, setPersonId] = useState(null),
     [personTab, setPersonTab] = useState('Overview'),
@@ -205,6 +206,7 @@ export default function App() {
         setPageFilter(null);
         setPage('Overview');
         setQuery('');
+        setWorkspaceQuery('');
         setPersonId(null);
         setPersonTab('Overview');
         setDemandId(null);
@@ -348,6 +350,7 @@ export default function App() {
         setCandidateFilter(null);
         setPipelineDemand(null);
         setQuery('');
+        setWorkspaceQuery('');
         setPage('Overview');
         setWorkspaces(getWorkspaces());
         setActiveWorkspace(next);
@@ -432,6 +435,7 @@ export default function App() {
     setData(cleared);
     setPage('Overview');
     setQuery('');
+    setWorkspaceQuery('');
     setPersonId(null);
     setPersonTab('Overview');
     setDemandId(null);
@@ -542,6 +546,7 @@ export default function App() {
     setClientId(null);
     setCandidateFilter(filter);
     if (p !== 'Candidates') setQuery('');
+    setWorkspaceQuery('');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const openClient = (id) => {
@@ -787,6 +792,7 @@ export default function App() {
     setClientId(null);
     setMobile(false);
     setQuery('');
+    setWorkspaceQuery('');
   }
   if (!cloud && demoSignedOut)
     return (
@@ -1283,8 +1289,8 @@ export default function App() {
             <GlobalSearch
               data={data}
               isAdmin={getRole() === 'admin'}
-              query={query}
-              setQuery={setQuery}
+              query={workspaceQuery}
+              setQuery={setWorkspaceQuery}
               onOpen={openSearchResult}
             />
           )}

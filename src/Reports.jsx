@@ -3,7 +3,7 @@ import { FormSection } from './ProgressiveUI.jsx';
 import CompletionWorkbench from './CompletionWorkbench.jsx';
 import FoundationWorkbench from './FoundationWorkbench.jsx';
 import React, { useMemo, useState } from 'react';
-import { Plus, Save, Trash2, Download, BarChart3, Info } from 'lucide-react';
+import { Plus, Save, Trash2, Download, BarChart3, Info, Clock, ClipboardCheck } from 'lucide-react';
 import { PageHeader, PanelHeading, Button, Field, Badge } from './ui.jsx';
 import { uid, today } from './domain.js';
 import { canWriteForRole, getRole } from './repository.js';
@@ -130,26 +130,28 @@ export function Reports({
         </Button>
       </PageHeader>
 
-      {cloud && (
-        <DisclosureSection title="Repository analytics">
-          <FoundationWorkbench
-            initialTab="report"
-            onOpen={onOpen}
-            onOpenClient={onOpenClient}
-            onOpenDemand={onOpenDemand}
-          />
-        </DisclosureSection>
-      )}
-      {cloud && (
-        <DisclosureSection title="Historical reports and conversion cohorts">
-          <CompletionWorkbench role={role} initialTab="history" />
-        </DisclosureSection>
-      )}
-      {cloud && (
-        <DisclosureSection title="Demand readiness analysis">
-          <DemandReadinessReport demands={data.demands || []} role={role} />
-        </DisclosureSection>
-      )}
+      <div className="report-tools disclosure-stack">
+        {cloud && (
+          <DisclosureSection title="Repository analytics" icon={BarChart3}>
+            <FoundationWorkbench
+              initialTab="report"
+              onOpen={onOpen}
+              onOpenClient={onOpenClient}
+              onOpenDemand={onOpenDemand}
+            />
+          </DisclosureSection>
+        )}
+        {cloud && (
+          <DisclosureSection title="Historical reports and conversion cohorts" icon={Clock}>
+            <CompletionWorkbench role={role} initialTab="history" />
+          </DisclosureSection>
+        )}
+        {cloud && (
+          <DisclosureSection title="Demand readiness analysis" icon={ClipboardCheck}>
+            <DemandReadinessReport demands={data.demands || []} role={role} />
+          </DisclosureSection>
+        )}
+      </div>
 
       <div className="report-layout">
         <section className="panel">
@@ -193,7 +195,7 @@ export function Reports({
         <section className="panel">
           <PanelHeading
             title="Report builder"
-            subtitle="Results are calculated live — nothing is cached, so a saved report is never stale."
+            subtitle="Results update as you change the report."
           />
           <div className="settings-body">
             <div className="form-grid">

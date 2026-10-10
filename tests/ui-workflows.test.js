@@ -83,7 +83,10 @@ async function reviewCsv(rows) {
  * what a recruiter does and what makes the row addressable.
  */
 async function selectCandidate(name) {
-  await change(screen.getByLabelText('Search your workspace'), name);
+  await change(
+    screen.getByRole('textbox', { name: 'Search candidates, skills, companies…' }),
+    name,
+  );
   await settle(2);
   const box = allLabelled(`Select ${name}`)[0];
   assert.ok(box, `${name} is listed and selectable`);

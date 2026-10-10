@@ -1,4 +1,5 @@
 import { FormSection, SectionTabs } from './ProgressiveUI.jsx';
+import { SkillBadge } from './SkillBadge.jsx';
 import { DisclosureSection } from './DisclosureSection.jsx';
 import ControlledWorkflows from './ControlledWorkflows.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
@@ -172,13 +173,26 @@ export function PagedOverview({
       {stats && (
         <div className="stats-grid">
           {[
-            ['candidates', 'Candidates', 'People in your talent network', Users],
-            ['ready', 'Ready', 'Profiles ready for an opportunity', UserCheck],
-            ['fresh', 'Fresh profiles', 'Recently verified information', CheckCircle2],
-            ['stale', 'Stale profiles', 'Ready for a fresh conversation', Clock],
-            ['openDemands', 'Open demands', 'Current hiring requirements', BriefcaseBusiness],
-          ].map(([key, label, detail, Icon]) => (
-            <Stat key={key} label={label} value={stats[key]} detail={detail} icon={Icon} />
+            ['candidates', 'Candidates', 'People in your talent network', Users, 'teal'],
+            ['ready', 'Ready', 'Profiles ready for an opportunity', UserCheck, 'green'],
+            ['fresh', 'Fresh profiles', 'Recently verified information', CheckCircle2, 'blue'],
+            ['stale', 'Stale profiles', 'Ready for a fresh conversation', Clock, 'amber'],
+            [
+              'openDemands',
+              'Open demands',
+              'Current hiring requirements',
+              BriefcaseBusiness,
+              'blue',
+            ],
+          ].map(([key, label, detail, Icon, tone]) => (
+            <Stat
+              key={key}
+              label={label}
+              value={stats[key]}
+              detail={detail}
+              icon={Icon}
+              tone={tone}
+            />
           ))}
         </div>
       )}
@@ -519,14 +533,18 @@ export function PagedCandidates({ rpc = repositoryRead, onFull, initialFilter })
           {!page.rows.length && <p>No candidates match this search.</p>}
           <div className="cv-review-list">
             {page.rows.map((c) => (
-              <article className="panel" key={c.id}>
+              <article className="panel paged-candidate-card" key={c.id}>
                 <div className="settings-body">
                   <Button variant="secondary" onClick={() => setSelected(c.id)}>
                     {c.name}
                   </Button>{' '}
                   <Badge>{c.anthroId}</Badge> <Badge>{c.status}</Badge>
                   <p>{[c.title, c.company, c.location].filter(Boolean).join(' · ')}</p>
-                  <p>{(c.skills || []).join(' · ')}</p>
+                  <div className="skill-tags">
+                    {(c.skills || []).map((skill) => (
+                      <SkillBadge key={skill} skill={skill} />
+                    ))}
+                  </div>
                 </div>
               </article>
             ))}
@@ -762,7 +780,11 @@ export function PagedCandidate360({
               ))}
             </dl>
             <h3>Skills</h3>
-            <p>{(profile.skills || []).join(' · ') || 'No skills recorded'}</p>
+            <div className="skill-tags large-tags">
+              {profile.skills?.length
+                ? profile.skills.map((skill) => <SkillBadge key={skill} skill={skill} />)
+                : 'No skills recorded'}
+            </div>
             {canWriteForRole(getRole()) && (
               <>
                 <CandidateProfileEditor

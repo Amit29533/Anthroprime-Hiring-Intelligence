@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { intelligenceRpc } from './intelligence.js';
 import { getRole, canWriteForRole } from './repository.js';
-import { Button, Field } from './ui.jsx';
+import { Button, Field, Badge } from './ui.jsx';
+import { Bookmark, RefreshCw } from 'lucide-react';
 
 const buckets = {
   tasks: 'Tasks',
@@ -130,13 +131,10 @@ export function RecruiterWorklist({
     }
   };
   return (
-    <section className="panel" aria-label="Recruiter worklist">
+    <section className="panel recruiter-worklist" aria-label="Recruiter worklist">
       <div className="settings-body">
         <h2>Recruiter worklist</h2>
-        <p>
-          Shared workspace queues. Dates and overdue counts use UTC. Display settings do not change
-          reminder workers.
-        </p>
+        <p>Tasks, follow-ups, interviews and feedback in one place.</p>
         {error && <p role="alert">{error}</p>}
         {notice && <p role="status">{notice}</p>}
         {failed && (
@@ -174,7 +172,7 @@ export function RecruiterWorklist({
         )}
         {ready && (
           <>
-            <div className="form-grid">
+            <div className="form-grid worklist-filters">
               <Field label="Worklist queue">
                 <select
                   value={view.bucket}
@@ -218,54 +216,88 @@ export function RecruiterWorklist({
                 </select>
               </Field>
             </div>
-            <Button variant="secondary" disabled={busy} onClick={save}>
-              Remember this view
-            </Button>
-            <Button variant="secondary" disabled={busy} onClick={() => setRevision((n) => n + 1)}>
-              Refresh worklist
-            </Button>
+            <div className="action-row">
+              <Button icon={Bookmark} variant="secondary" disabled={busy} onClick={save}>
+                Remember this view
+              </Button>
+              <Button
+                icon={RefreshCw}
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setRevision((n) => n + 1)}
+              >
+                Refresh worklist
+              </Button>
+            </div>
             {!page && !error && <p role="status">Loading queue…</p>}
             {page && (
               <>
-                <ul>
-                  {Object.entries(buckets).map(([kind, label]) => {
-                    const counts = page.counts[kind] || {};
-                    return (
-                      <li key={kind}>
-                        {label}: {counts.pending || 0} pending, {counts.overdue || 0} overdue,{' '}
-                        {counts.completed || 0} completed / handled
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p>
-                  Totals cover all matching records within the horizon, including past deadlines and
-                  undated tasks. Client feedback includes all outstanding reviews.
-                </p>
+                <div className="table-scroll worklist-totals">
+                  <table aria-label="Worklist totals">
+                    <thead>
+                      <tr>
+                        <th scope="col">Queue</th>
+                        <th scope="col">Pending</th>
+                        <th scope="col">Overdue</th>
+                        <th scope="col">Completed / handled</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(buckets).map(([kind, label]) => {
+                        const counts = page.counts[kind] || {};
+                        return (
+                          <tr key={kind}>
+                            <th scope="row">{label}</th>
+                            <td>{counts.pending || 0}</td>
+                            <td>
+                              <Badge tone={counts.overdue ? 'red' : 'gray'}>
+                                {counts.overdue || 0}
+                              </Badge>
+                            </td>
+                            <td>{counts.completed || 0}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <details className="search-help">
+                  <summary>How these totals are calculated</summary>
+                  <p>
+                    Dates and overdue counts use UTC. Totals include past deadlines and undated
+                    tasks within the selected horizon, and all outstanding client reviews. Display
+                    preferences do not change reminder schedules.
+                  </p>
+                </details>
                 {page.rows.length === 0 && <p>No matching work on this page.</p>}
-                <ul>
+                <ul className="worklist-items">
                   {page.rows.map((row) => (
                     <li key={row.id}>
-                      <strong>{row.title || buckets[row.kind]}</strong> — {row.due || 'No deadline'}
-                      {row.overdue ? ' · Overdue' : ''}
-                      {row.candidate_id && onOpen && (
-                        <Button
-                          variant="secondary"
-                          disabled={busy}
-                          onClick={() => onOpen(row.candidate_id)}
-                        >
-                          Open candidate
-                        </Button>
-                      )}
-                      {editable && ['tasks', 'client-feedback'].includes(row.kind) && (
-                        <Button disabled={busy || failed} onClick={() => decide(row)}>
-                          {row.state
-                            ? 'Reopen'
-                            : row.kind === 'tasks'
-                              ? 'Complete task'
-                              : 'Mark feedback handled'}
-                        </Button>
-                      )}
+                      <div>
+                        <strong>{row.title || buckets[row.kind]}</strong>
+                        <small>{row.due || 'No deadline'}</small>
+                      </div>
+                      {row.overdue && <Badge tone="red">Overdue</Badge>}
+                      <div className="action-row">
+                        {row.candidate_id && onOpen && (
+                          <Button
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => onOpen(row.candidate_id)}
+                          >
+                            Open candidate
+                          </Button>
+                        )}
+                        {editable && ['tasks', 'client-feedback'].includes(row.kind) && (
+                          <Button disabled={busy || failed} onClick={() => decide(row)}>
+                            {row.state
+                              ? 'Reopen'
+                              : row.kind === 'tasks'
+                                ? 'Complete task'
+                                : 'Mark feedback handled'}
+                          </Button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -281,20 +313,22 @@ export function RecruiterWorklist({
                     workflow.
                   </p>
                 )}
-                <Button
-                  variant="secondary"
-                  disabled={busy || offset === 0}
-                  onClick={() => setOffset((n) => Math.max(0, n - 25))}
-                >
-                  Previous worklist page
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busy || !page.more || offset >= 10000}
-                  onClick={() => setOffset((n) => n + 25)}
-                >
-                  Next worklist page
-                </Button>
+                <div className="action-row pagination-row">
+                  <Button
+                    variant="secondary"
+                    disabled={busy || offset === 0}
+                    onClick={() => setOffset((n) => Math.max(0, n - 25))}
+                  >
+                    Previous worklist page
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={busy || !page.more || offset >= 10000}
+                    onClick={() => setOffset((n) => n + 25)}
+                  >
+                    Next worklist page
+                  </Button>
+                </div>
               </>
             )}
           </>

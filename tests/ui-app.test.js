@@ -50,6 +50,11 @@ const putStore = (data) => localStorage.setItem('ecod-demo-v1', JSON.stringify(d
 test('workspace search supports shortcuts, accessible results and clear/dismiss actions', async () => {
   await boot();
   const search = screen.getByRole('combobox', { name: 'Search your workspace' });
+  await click(search.closest('form'));
+  assert.equal(document.activeElement === search, true, 'empty search surface focuses the input');
+  search.blur();
+  await click(search.closest('form').querySelector('svg'));
+  assert.equal(document.activeElement === search, true, 'search icon focuses the input');
   await act(async () => fireEvent.keyDown(document, { key: 'k', ctrlKey: true }));
   assert.equal(document.activeElement, search);
   await change(search, 'Aarav');
@@ -316,10 +321,31 @@ test('one ceiling governs the form, the validator and the CSV importer', async (
   );
 });
 
+test('header search and repository filtering keep independent text and clear actions', async () => {
+  await boot();
+  await navTo('Candidates');
+  const local = screen.getByRole('textbox', { name: 'Search candidates, skills, companies…' });
+  const global = screen.getByRole('combobox', { name: 'Search your workspace' });
+  await change(local, 'React');
+  assert.equal(global.value, '');
+  await click(global);
+  await change(global, 'Meridian');
+  assert.equal(local.value, 'React');
+  assert.ok(screen.getByRole('listbox', { name: 'Search results' }));
+  await click(screen.getByRole('button', { name: 'Clear workspace search' }));
+  assert.equal(global.value, '');
+  assert.equal(local.value, 'React');
+  await click(screen.getByRole('button', { name: 'Clear search', exact: true }));
+  assert.equal(local.value, '');
+});
+
 test('saving a view persists the search, filters and sort', async () => {
   await boot();
   await navTo('Candidates');
-  await change(screen.getByLabelText('Search your workspace'), 'databricks');
+  await change(
+    screen.getByRole('textbox', { name: 'Search candidates, skills, companies…' }),
+    'databricks',
+  );
   await settle();
   await withWindow(
     'prompt',

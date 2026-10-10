@@ -91,12 +91,15 @@ export function GlobalSearch({ data, isAdmin, onOpen, query, setQuery }) {
     <div className="global-search-wrap" ref={box}>
       <form
         className="global-search"
+        onClick={(event) => {
+          if (!event.target.closest('button')) input.current?.focus();
+        }}
         onSubmit={(e) => {
           e.preventDefault();
           if (expanded && results[active]) choose(results[active]);
         }}
       >
-        <Search size={16} />
+        <Search size={18} aria-hidden="true" />
         <input
           ref={input}
           role="combobox"
