@@ -9,9 +9,10 @@ worker. No credentials are bundled or sent to the website.
 
 ### Quick Windows command
 
-In Candidates → Import candidates, enter the candidate's public LinkedIn URL
-or handle. Keep **Remember LinkedIn login locally for up to 24 hours** checked,
-then click **Copy extraction command**. Open Windows PowerShell,
+In Candidates → Import candidates, open **LinkedIn profile**. In **Step 1 · Open
+the helper**, enter the candidate's public LinkedIn URL or handle. Keep
+**Remember LinkedIn login locally for up to 24 hours** checked, then click
+**Copy extraction command**. Open Windows PowerShell,
 paste the entire command and press Enter. Python 3.10 or newer must already
 be installed; the command handles the remaining first-time setup.
 
@@ -27,7 +28,8 @@ It does not require admin access, an extension or execution-policy changes.
 Sign in to LinkedIn in the opened dedicated browser and press Enter in
 PowerShell. An existing login in another browser is not reused. After a
 successful extraction, the new JSON is copied to your clipboard. Return to
-the portal and click **Paste extracted profile**, review and save. This
+the portal, open **Step 2 · Bring back the result**, and click **Paste extracted
+profile**. Step 3 opens for review and saving. This
 clipboard read happens only on that explicit button click, and does not save
 a candidate automatically. Contact details still need manual entry.
 
@@ -38,11 +40,13 @@ clipboard or the portal. Clipboard managers/history may retain the profile
 JSON; clear it after importing if needed.
 
 Keep the helper window open. For the next candidate, use **Copy profile URL
-for open helper**, paste into its prompt and press Enter. No setup command or
+for open helper** under **Helper already open? Import another profile**, paste
+into its prompt and press Enter. No setup command or
 fresh sign-in is needed for each profile. Type `retry` to retry the current
 profile, `refresh` to remove its local login and sign in again, `revoke` to
 remove its local login and close, or `quit` to close while retaining login for
-the remaining reuse window. The portal's **Copy forget-login command** works
+the remaining reuse window. **Manage login and setup** contains the refresh
+and forget controls. The portal's **Copy forget-login command** works
 after the helper has closed; it does not visit a profile. Forgetting locally
 does not revoke other LinkedIn browser sessions or delete saved profile JSON.
 

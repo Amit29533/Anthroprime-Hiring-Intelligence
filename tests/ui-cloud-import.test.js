@@ -2,7 +2,7 @@
 // uses the real App, repository adapter and Supabase JS client; fetch fakes the HTTP boundary.
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadApp, mount, change, screen, cleanup, stopVite, settle } from './ui-harness.js';
+import { loadApp, mount, change, click, screen, cleanup, stopVite, settle } from './ui-harness.js';
 import { byPlaceholder, navTo, press, type } from './ui-drivers.js';
 
 process.env.VITE_SUPABASE_URL = 'https://cloud-conflict-test.supabase.co';
@@ -167,6 +167,9 @@ test('cloud import recovers a lost staging receipt and reports a later duplicate
 
   await navTo('Candidates');
   await press('Import candidates');
+  await click(screen.getByRole('button', { name: /^Spreadsheet/ }));
+  await click(screen.getByText('Paste CSV instead'));
+  await settle();
   await change(
     byPlaceholder('name,email,title,skills…'),
     [
@@ -191,6 +194,7 @@ test('cloud import recovers a lost staging receipt and reports a later duplicate
   assert.equal(batch.id, originalId);
   assert.equal(stageCount, 2);
   assert.equal(upsertCount, 0);
+  await press('Open saved imports');
   await press('Refresh saved imports');
   await settle(8);
   await press('Pasted CSV');

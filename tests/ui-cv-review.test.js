@@ -22,13 +22,10 @@ async function draft(data, saved) {
     busy: false,
     notify: () => {},
   });
-  fireEvent.click(screen.getByText('Paste email content'));
-  fireEvent.change(
-    screen.getByPlaceholderText(
-      'Paste the forwarded application email here — headers are stripped automatically…',
-    ),
-    { target: { value: 'Application\nReact developer' } },
-  );
+  fireEvent.click(screen.getByRole('button', { name: /^Application email/ }));
+  fireEvent.change(screen.getByPlaceholderText('Paste the forwarded application email here…'), {
+    target: { value: 'Application\nReact developer' },
+  });
   fireEvent.click(screen.getByRole('button', { name: 'Extract CV from email' }));
   await settle();
 }

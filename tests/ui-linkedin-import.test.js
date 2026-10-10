@@ -8,6 +8,28 @@ test.before(async () => {
 afterEach(cleanup);
 test.after(stopVite);
 
+function openStep(number) {
+  const button = screen.getByRole('button', { name: new RegExp(`Step ${number}`) });
+  if (button.getAttribute('aria-expanded') !== 'true') fireEvent.click(button);
+}
+function openSection(title) {
+  const button = screen.getByRole('button', { name: new RegExp(`^${title}`) });
+  if (button.getAttribute('aria-expanded') !== 'true') fireEvent.click(button);
+}
+function jsonRoute() {
+  openStep(2);
+  const summary = screen.getByText('Choose a saved JSON file instead');
+  if (!summary.parentElement.open) fireEvent.click(summary);
+}
+function otherRoute(title) {
+  openSection('Other import methods');
+  openSection(title);
+}
+function pasteResult() {
+  openStep(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+}
+
 test('quick extraction copies a profile-bound command and clipboard import requires review without automatic saving', async () => {
   const copied = [],
     saves = [];
@@ -36,7 +58,7 @@ test('quick extraction copies a profile-bound command and clipboard import requi
   assert.match(copied[0], /--session --session-root/);
   assert.match(copied[0], /https:\/\/www.linkedin.com\/in\/mira-testcandidate\//);
   assert.equal(screen.getByLabelText('LinkedIn extraction command').value, copied[0]);
-  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  pasteResult();
   await settle();
   assert.equal(screen.getByLabelText('LinkedIn draft name').value, 'Mira Testcandidate');
   assert.equal(
@@ -58,6 +80,7 @@ test('cloud command uses fresh release and supports helper URL, refresh and forg
     writeClipboard: async (value) => copied.push(value),
     onSave: async () => true,
   });
+  openSection('Manage login and setup');
   fireEvent.click(screen.getByRole('button', { name: 'Copy forget-login command' }));
   await settle();
   assert.match(copied[0], /--forget-session/);
@@ -65,6 +88,8 @@ test('cloud command uses fresh release and supports helper URL, refresh and forg
   fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
     target: { value: 'mira-testcandidate' },
   });
+  const existingHelper = screen.getByText('Helper already open? Import another profile');
+  if (!existingHelper.parentElement.open) fireEvent.click(existingHelper);
   fireEvent.click(screen.getByRole('button', { name: 'Copy profile URL for open helper' }));
   await settle();
   assert.equal(copied[1], 'https://www.linkedin.com/in/mira-testcandidate/');
@@ -120,16 +145,16 @@ test('clipboard denial or wrong-profile data clears stale drafts and viewer cann
     },
     onSave: async () => assert.fail('No save expected'),
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  pasteResult();
   await settle();
   assert.ok(screen.getByLabelText('LinkedIn draft name'));
   content = JSON.stringify({ url: 'https://www.linkedin.com/in/another-person', name: 'Other' });
-  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  pasteResult();
   await settle();
   assert.match(screen.getByRole('alert').textContent, /different/);
   assert.equal(screen.queryByLabelText('LinkedIn draft name'), null);
   content = new Error('Clipboard permission denied');
-  fireEvent.click(screen.getByRole('button', { name: 'Paste extracted profile' }));
+  pasteResult();
   await settle();
   assert.match(screen.getByRole('alert').textContent, /permission denied/);
   cleanup();
@@ -140,6 +165,7 @@ test('clipboard denial or wrong-profile data clears stale drafts and viewer cann
     onSave: async () => assert.fail('No save'),
   });
   assert.equal(screen.getByRole('button', { name: 'Copy extraction command' }).disabled, true);
+  openStep(2);
   assert.equal(screen.getByRole('button', { name: 'Paste extracted profile' }).disabled, true);
 });
 test('pasted LinkedIn profiles require contact/review and save through normal candidate persistence with stable retry identity', async () => {
@@ -162,6 +188,7 @@ test('pasted LinkedIn profiles require contact/review and save through normal ca
   fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
     target: { value: 'priya-sharma' },
   });
+  otherRoute('Paste profile text');
   fireEvent.change(screen.getByLabelText('LinkedIn profile text'), {
     target: { value: 'Priya Sharma\nSoftware Engineer\nPython' },
   });
@@ -212,6 +239,7 @@ test('duplicate canonical LinkedIn profiles are refused before provider lookup',
   fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
     target: { value: 'priya-sharma' },
   });
+  otherRoute('Provider lookup');
   fireEvent.click(screen.getByRole('button', { name: 'Look up LinkedIn ID' }));
   await settle();
   assert.match(screen.getByRole('alert').textContent, /Already in your repository/);
@@ -238,6 +266,7 @@ test('local JSON import needs evidence/contact review, saves bounded claims and 
     skills: [['React']],
     warnings: ['Additional entries collapsed'],
   };
+  jsonRoute();
   fireEvent.change(screen.getByLabelText('LinkedIn JSON export'), {
     target: {
       files: [{ name: 'profile.json', size: 800, text: async () => JSON.stringify(exported) }],
@@ -277,12 +306,14 @@ test('wrong-profile or failed replacement file clears stale draft and duplicate 
     canImport: true,
     onSave: async () => assert.fail('No save expected'),
   });
-  const choose = (data) =>
+  const choose = (data) => {
+    jsonRoute();
     fireEvent.change(screen.getByLabelText('LinkedIn JSON export'), {
       target: {
         files: [{ name: 'profile.json', size: 100, text: async () => JSON.stringify(data) }],
       },
     });
+  };
   choose({ url: 'https://linkedin.com/in/mira-testcandidate', name: 'Mira' });
   await settle();
   assert.ok(screen.getByLabelText('LinkedIn draft name'));
@@ -316,7 +347,9 @@ test('viewer cannot import local exports or pasted profiles', async () => {
     canImport: false,
     onSave: async () => assert.fail('Viewer cannot save'),
   });
+  jsonRoute();
   assert.equal(screen.getByLabelText('LinkedIn JSON export').disabled, true);
+  otherRoute('Paste profile text');
   assert.equal(
     screen.getByRole('button', { name: 'Extract pasted LinkedIn profile' }).disabled,
     true,
@@ -352,6 +385,7 @@ test('test-account session lookup is a separate, disclosed option and still requ
     },
   });
   await settle();
+  otherRoute('Provider lookup');
   assert.match(document.body.textContent, /not a LinkedIn-approved integration/);
   fireEvent.change(screen.getByLabelText('LinkedIn profile URL or ID'), {
     target: { value: '123456789' },

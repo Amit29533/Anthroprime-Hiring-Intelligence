@@ -77,6 +77,7 @@ async function openImport() {
     audit: () => {},
     busy: false,
   });
+  fireEvent.click(screen.getByRole('button', { name: /^Spreadsheet/ }));
   await settle(3);
   return { data, writes };
 }

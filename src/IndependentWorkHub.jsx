@@ -3,7 +3,21 @@ import EnterpriseOperations from './EnterpriseOperations.jsx';
 import GoogleWorkspace from './GoogleWorkspace.jsx';
 import ProcessingRecovery from './ProcessingRecovery.jsx';
 import DeliverySandbox from './DeliverySandbox.jsx';
-import React, { lazy, Suspense, useRef } from 'react';
+import React, { lazy, Suspense, useRef, useState, useEffect } from 'react';
+import {
+  ListTodo,
+  MessageSquare,
+  Mail,
+  ShieldCheck,
+  ChartNoAxesCombined,
+  Search,
+  Plug,
+  ArchiveRestore,
+  CalendarDays,
+  Building2,
+  Sparkles,
+} from 'lucide-react';
+import { DisclosureSection } from './DisclosureSection.jsx';
 const CompletionWorkbench = lazy(() => import('./CompletionWorkbench.jsx'));
 const FoundationWorkbench = lazy(() => import('./FoundationWorkbench.jsx'));
 import { cloud, getRole, getWorkspaceId, canWriteForRole } from './repository.js';
@@ -26,80 +40,155 @@ export default function IndependentWorkHub({
   onSettings,
 }) {
   const root = useRef(null);
+  const [activeTool, setActiveTool] = useState('');
+  const scrollTarget = useRef(false);
   const openTool = (tool) => {
-    const detail = root.current?.querySelector(`details[data-completion-target="${tool}"]`);
-    if (detail) {
-      detail.open = true;
-      detail.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
-    }
+    if (!root.current?.querySelector(`[data-completion-target="${tool}"]`)) return;
+    scrollTarget.current = true;
+    setActiveTool(tool);
   };
+  useEffect(() => {
+    if (!scrollTarget.current) return;
+    scrollTarget.current = false;
+    root.current
+      ?.querySelector(`[data-completion-target="${activeTool}"]`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [activeTool]);
   if (!isCloud || !['admin', 'recruiter', 'viewer'].includes(role)) return null;
+  const section = (id, title, description, Icon, children) => (
+    <DisclosureSection
+      key={id}
+      title={title}
+      description={description}
+      icon={Icon}
+      data-completion-target={id}
+      open={activeTool === id}
+      onToggle={(open) => setActiveTool(open ? id : '')}
+    >
+      {children}
+    </DisclosureSection>
+  );
   return (
-    <section ref={root} aria-label="Independent feature work queues" key={`${scope}:${role}`}>
-      <details>
-        <summary>Completion tools: historical reports, campaigns and operational health</summary>
-        <Suspense fallback={<p role="status">Loading completion tools…</p>}>
-          <CompletionWorkbench
-            isCloud={isCloud}
-            role={role}
-            scope={scope}
+    <section
+      ref={root}
+      className="workspace-tool-groups"
+      aria-label="Independent feature work queues"
+      key={`${scope}:${role}`}
+    >
+      <h2>Your workspace tools</h2>
+      <p>Open the area you need. Each section keeps your work when you switch.</p>
+      <div className="disclosure-stack">
+        {section(
+          'tasks',
+          'Tasks and follow-ups',
+          'Recruiter worklist, deadlines and reminders',
+          ListTodo,
+          <>
+            <RecruiterWorklist rpc={rpc} editable={canWriteForRole(role)} onOpen={onOpen} />
+            <SlaWorklist rpc={rpc} scope={scope} onOpen={onOpen} />
+          </>,
+        )}
+        {section(
+          'feedback',
+          'Feedback and reviews',
+          'Candidate responses, client feedback and placement reviews',
+          MessageSquare,
+          <FeedbackQueue rpc={rpc} onOpen={onOpen} onOpenClient={onOpenClient} />,
+        )}
+        {section(
+          'messages',
+          'Candidate communication',
+          'Templates, recipient segments and test delivery',
+          Mail,
+          <CandidateCommunications rpc={rpc} role={role} />,
+        )}
+        {section(
+          'quality',
+          'Repository quality',
+          'Find profile issues and keep candidate information current',
+          ShieldCheck,
+          <RepositoryQuality
             rpc={rpc}
-            onOpenTool={openTool}
-          />
-        </Suspense>
-      </details>
-      <details>
-        <summary>Foundation tools: filters, quality, discovery, reports and ownership</summary>
-        <Suspense fallback={<p role="status">Loading foundation workbench…</p>}>
-          <FoundationWorkbench
-            isCloud={isCloud}
-            role={role}
-            scope={scope}
-            rpc={rpc}
+            admin={role === 'admin'}
             onOpen={onOpen}
-            onOpenClient={onOpenClient}
-            onOpenDemand={onOpenDemand}
-          />
-        </Suspense>
-      </details>
-      <details data-completion-target="delivery">
-        <summary>Dependent delivery sandbox</summary>
-        <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
-      </details>
-      {role === 'admin' && (
-        <details data-completion-target="processing">
-          <summary>Private processing and recovery</summary>
-          <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
-        </details>
-      )}
-      {['admin', 'recruiter'].includes(role) && (
-        <details data-completion-target="google">
-          <summary>Google Workspace communication and scheduling</summary>
-          <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
-        </details>
-      )}
-      {role === 'admin' && (
-        <details>
-          <summary>Enterprise operation and fulfillment</summary>
-          <EnterpriseOperations isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
-        </details>
-      )}
-      {['admin', 'recruiter'].includes(role) && (
-        <details data-completion-target="controlled">
-          <summary>Controlled intelligence and external workflows</summary>
-          <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />
-        </details>
-      )}
-      <CandidateCommunications rpc={rpc} role={role} />
-      <FeedbackQueue rpc={rpc} onOpen={onOpen} onOpenClient={onOpenClient} />
-      <RecruiterWorklist rpc={rpc} editable={canWriteForRole(role)} onOpen={onOpen} />
-      <SlaWorklist rpc={rpc} scope={scope} onOpen={onOpen} />
-      <RepositoryQuality
-        rpc={rpc}
-        admin={role === 'admin'}
-        onOpen={onOpen}
-        onSettings={onSettings}
-      />
+            onSettings={onSettings}
+          />,
+        )}
+      </div>
+      <h3 className="import-section-kicker">Reports, integrations and administration</h3>
+      <div className="disclosure-stack">
+        {section(
+          'completion',
+          'Reports and operational health',
+          'Historical reports, campaigns and recovery guidance',
+          ChartNoAxesCombined,
+          <Suspense fallback={<p role="status">Loading reports…</p>}>
+            <CompletionWorkbench
+              isCloud={isCloud}
+              role={role}
+              scope={scope}
+              rpc={rpc}
+              onOpenTool={openTool}
+            />
+          </Suspense>,
+        )}
+        {section(
+          'foundation',
+          'Search and repository tools',
+          'Saved filters, discovery, reports and ownership',
+          Search,
+          <Suspense fallback={<p role="status">Loading repository tools…</p>}>
+            <FoundationWorkbench
+              isCloud={isCloud}
+              role={role}
+              scope={scope}
+              rpc={rpc}
+              onOpen={onOpen}
+              onOpenClient={onOpenClient}
+              onOpenDemand={onOpenDemand}
+            />
+          </Suspense>,
+        )}
+        {section(
+          'delivery',
+          'Integration testing',
+          'Provider connections and delivery sandbox',
+          Plug,
+          <DeliverySandbox isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+        )}
+        {role === 'admin' &&
+          section(
+            'processing',
+            'Document processing and recovery',
+            'Private scanning, OCR, backups and isolated restore',
+            ArchiveRestore,
+            <ProcessingRecovery isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          )}
+        {['admin', 'recruiter'].includes(role) &&
+          section(
+            'google',
+            'Google Workspace',
+            'Email, mailbox review and calendar scheduling',
+            CalendarDays,
+            <GoogleWorkspace isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          )}
+        {role === 'admin' &&
+          section(
+            'enterprise',
+            'Enterprise access and retention',
+            'Workspace sign-in and retention requests',
+            Building2,
+            <EnterpriseOperations isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          )}
+        {['admin', 'recruiter'].includes(role) &&
+          section(
+            'controlled',
+            'AI and external workflows',
+            'Reviewed AI highlights, enrichment, job export and offer signing',
+            Sparkles,
+            <ControlledWorkflows isCloud={isCloud} role={role} scope={scope} rpc={rpc} />,
+          )}
+      </div>
     </section>
   );
 }

@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CvEvidenceReview } from './CvEvidenceReview.jsx';
 import { evidenceReady } from './cvEvidence.js';
 import Papa from 'papaparse';
-import { Upload, Download, ArrowRight } from 'lucide-react';
+import {
+  Upload,
+  Download,
+  ArrowRight,
+  Linkedin,
+  FileText,
+  Table2,
+  Mail,
+  History,
+} from 'lucide-react';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import { Button, Field, Modal, Badge } from './ui.jsx';
 import { uid, today, duplicate } from './domain.js';
 import { readCSV, previewImport, sameImportReview, IMPORT_FIELDS } from './import.js';
@@ -31,6 +41,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
     cloud &&
     (data.settings?.find((row) => row.id === 'workspace')?.custom?.durableCvImports === true ||
       data.settings?.find((row) => row.id === 'workspace')?.custom?.privateDocuments === true);
+  const [activeSource, setActiveSource] = useState('');
   const [savedBatchId, setSavedBatchId] = useState('');
   const [savingReview, setSavingReview] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
@@ -44,6 +55,11 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
   const [cvRows, setCvRows] = useState(null),
     [cvBusy, setCvBusy] = useState(false),
     [emailText, setEmailText] = useState('');
+  const workflowStart = useRef(null);
+  const importStage = cvRows || preview ? 3 : raw ? 2 : 0;
+  useEffect(() => {
+    if (importStage) workflowStart.current?.focus();
+  }, [importStage]);
   async function pasteEmail() {
     if (!emailText.trim()) return;
     setError('');
@@ -407,34 +423,53 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
       wide
     >
       <div className="modal-body">
-        <LinkedinImport data={data} onSave={onSave} onImported={onClose} />
-        {durableCvEnabled && <DurableCvUploads />}
-        {cloud && (
-          <SavedImports
-            onReload={onReload}
-            notify={notify}
-            onResume={(batch) => {
-              setResumeTarget(batch);
-              setRaw(null);
-              setPreview(null);
-              setCvRows(null);
-              setSavedBatchId(batch.id);
-              setSavedMessage(
-                'Resuming saved import. Choose the original spreadsheet again; its fingerprint will be checked.',
-              );
-            }}
-          />
-        )}
-        {savedMessage && <p role="status">{savedMessage}</p>}
-        <div className="import-steps">
-          <span className={!raw ? 'active' : ''}>1 · Choose data</span>
-          <span className={raw && !preview ? 'active' : ''}>2 · Map fields</span>
-          <span className={preview ? 'active' : ''}>3 · Review & import</span>
-        </div>
-        {!raw && !cvRows ? (
-          <>
+        <div className="import-source-picker disclosure-stack" hidden={Boolean(raw || cvRows)}>
+          <p className="import-intro">
+            Choose how you want to add candidates. Open one section to get started.
+          </p>
+          <DisclosureSection
+            title="LinkedIn profile"
+            description="A guided, three-step import"
+            icon={Linkedin}
+            open={activeSource === 'linkedin'}
+            onToggle={(open) => setActiveSource(open ? 'linkedin' : '')}
+          >
+            <LinkedinImport data={data} onSave={onSave} onImported={onClose} />
+          </DisclosureSection>
+          <DisclosureSection
+            title="CV documents"
+            description="Upload resumes and review extracted details"
+            icon={FileText}
+            open={activeSource === 'cv'}
+            onToggle={(open) => setActiveSource(open ? 'cv' : '')}
+          >
+            {durableCvEnabled ? (
+              <DurableCvUploads onSaved={onReload} />
+            ) : (
+              <label className="file-drop">
+                <Upload size={28} aria-hidden="true" />
+                <strong>Upload CVs</strong>
+                <span>PDF · DOCX · TXT · MD · CSV — review before saving</span>
+                <input
+                  type="file"
+                  aria-label="CV files"
+                  multiple
+                  accept=".pdf,.docx,.txt,.md,.csv"
+                  onChange={cvChanged}
+                  disabled={cvBusy}
+                />
+              </label>
+            )}
+          </DisclosureSection>
+          <DisclosureSection
+            title="Spreadsheet"
+            description="Import a CSV or Excel candidate list"
+            icon={Table2}
+            open={activeSource === 'sheet'}
+            onToggle={(open) => setActiveSource(open ? 'sheet' : '')}
+          >
             <label className="file-drop">
-              <Upload size={32} />
+              <Upload size={28} aria-hidden="true" />
               <strong>Choose a candidate spreadsheet</strong>
               <span>Excel .xlsx or UTF-8 .csv · up to 5 MB · 5,000 rows</span>
               <input
@@ -444,43 +479,6 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
                 onChange={fileChanged}
               />
             </label>
-            {!durableCvEnabled && (
-              <label className="file-drop">
-                <Upload size={32} />
-                <strong>Or upload CVs</strong>
-                <span>PDF · DOCX · TXT · MD · CSV — parsed into reviewable drafts</span>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.docx,.txt,.md,.csv"
-                  onChange={cvChanged}
-                />
-              </label>
-            )}
-            <label className="file-drop">
-              <Upload size={32} />
-              <strong>Or paste a forwarded application email</strong>
-              <span>
-                Resume-inbox groundwork — the body is extracted and parsed into the same reviewable
-                draft
-              </span>
-            </label>
-            <details className="paste-csv">
-              <summary>Paste email content</summary>
-              <textarea
-                rows={5}
-                value={emailText}
-                onChange={(e) => setEmailText(e.target.value)}
-                placeholder="Paste the forwarded application email here — headers are stripped automatically…"
-              />
-              <Button
-                variant="secondary"
-                disabled={!emailText.trim() || cvBusy}
-                onClick={pasteEmail}
-              >
-                {cvBusy ? 'Extracting…' : 'Extract CV from email'}
-              </Button>
-            </details>
             <Button
               variant="ghost"
               icon={Download}
@@ -494,9 +492,10 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
               Download CSV template
             </Button>
             <details className="paste-csv">
-              <summary>Or paste CSV data</summary>
+              <summary>Paste CSV instead</summary>
               <textarea
                 rows={5}
+                aria-label="Pasted CSV data"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="name,email,title,skills…"
@@ -505,8 +504,91 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
                 Read pasted CSV
               </Button>
             </details>
-          </>
-        ) : cvRows ? (
+          </DisclosureSection>
+          <DisclosureSection
+            title="Application email"
+            description="Paste a forwarded application to create a draft"
+            icon={Mail}
+            open={activeSource === 'email'}
+            onToggle={(open) => setActiveSource(open ? 'email' : '')}
+          >
+            <Field label="Application email content">
+              <textarea
+                rows={6}
+                aria-label="Application email content"
+                value={emailText}
+                onChange={(e) => setEmailText(e.target.value)}
+                placeholder="Paste the forwarded application email here…"
+              />
+            </Field>
+            <Button
+              variant="secondary"
+              icon={FileText}
+              disabled={!emailText.trim() || cvBusy}
+              onClick={pasteEmail}
+            >
+              {cvBusy ? 'Extracting…' : 'Extract CV from email'}
+            </Button>
+          </DisclosureSection>
+          {cloud && (
+            <DisclosureSection
+              title="Saved imports"
+              description="Resume a review or check processing progress"
+              icon={History}
+              open={activeSource === 'saved'}
+              onToggle={(open) => setActiveSource(open ? 'saved' : '')}
+            >
+              <SavedImports
+                onReload={onReload}
+                notify={notify}
+                onResume={(batch) => {
+                  setResumeTarget(batch);
+                  setRaw(null);
+                  setPreview(null);
+                  setCvRows(null);
+                  setSavedBatchId(batch.id);
+                  setActiveSource('sheet');
+                  setSavedMessage(
+                    'Resuming saved import. Choose the original spreadsheet again; its fingerprint will be checked.',
+                  );
+                }}
+              />
+            </DisclosureSection>
+          )}
+        </div>
+        {savedMessage && (
+          <div>
+            <p role="status">{savedMessage}</p>
+            {cloud && (
+              <Button
+                variant="secondary"
+                icon={History}
+                onClick={() => {
+                  setRaw(null);
+                  setPreview(null);
+                  setCvRows(null);
+                  setActiveSource('saved');
+                }}
+              >
+                Open saved imports
+              </Button>
+            )}
+          </div>
+        )}
+        {(raw || cvRows) && (
+          <div
+            ref={workflowStart}
+            tabIndex={-1}
+            role="group"
+            className="import-steps"
+            aria-label="Import progress"
+          >
+            <span>1 · Choose data</span>
+            <span className={raw && !preview ? 'active' : ''}>2 · Map fields</span>
+            <span className={preview || cvRows ? 'active' : ''}>3 · Review &amp; import</span>
+          </div>
+        )}
+        {cvRows ? (
           <>
             <p className="supporting-text">
               {cvRows.length} CV files read. Parsed drafts are suggestions — fix details before
@@ -586,7 +668,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
               ))}
             </div>
           </>
-        ) : !preview ? (
+        ) : raw && !preview ? (
           <>
             <p className="supporting-text">
               {raw.rows.length} rows detected. Map your columns. Name and an email or phone are
@@ -608,7 +690,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
               ))}
             </div>
           </>
-        ) : (
+        ) : preview ? (
           <>
             <div className="import-totals">
               <div>
@@ -680,7 +762,7 @@ export function ImportModal({ data, onClose, onSave, busy, notify, onReload }) {
               </Button>
             )}
           </>
-        )}
+        ) : null}
         {error && (
           <p className="form-error" role="alert">
             {error}

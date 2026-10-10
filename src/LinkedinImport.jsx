@@ -1,7 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './linkedinImport.css';
 import { cloud, getRole, getSupabase } from './repository.js';
-import { Button, Field, PanelHeading } from './ui.jsx';
+import { Button, Field } from './ui.jsx';
+import {
+  Copy,
+  ClipboardPaste,
+  ArrowRight,
+  RefreshCw,
+  LogOut,
+  Settings2,
+  FileText,
+  Search,
+} from 'lucide-react';
+import { DisclosureSection } from './DisclosureSection.jsx';
 import { duplicate, skillList, today, uid, validateCandidate } from './domain.js';
 import { candidateLabel } from './anthroId.js';
 import { linkedinProfile, linkedinLookup, pastedLinkedinDraft } from './linkedin.js';
@@ -59,6 +70,16 @@ export function LinkedinImport({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [confirmed, setConfirmed] = useState(false);
+  const [step, setStep] = useState(1);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const focusReview = useRef(false);
+  const reviewStart = useRef(null);
+  useEffect(() => {
+    if (step === 3 && draft && focusReview.current) {
+      focusReview.current = false;
+      reviewStart.current?.focus();
+    }
+  }, [step, draft]);
   const candidateId = useRef(null);
   const [commandNotice, setCommandNotice] = useState('');
   const [command, setCommand] = useState('');
@@ -101,6 +122,9 @@ export function LinkedinImport({
       ...(result.warnings ? { warnings: result.warnings, completeness: result.completeness } : {}),
     });
     candidateId.current = uid();
+    focusReview.current = true;
+    setOtherOpen(false);
+    setStep(3);
   }
   const [evidenceText, setEvidenceText] = useState('');
   async function copyCommand(mode = 'extract') {
@@ -302,72 +326,73 @@ export function LinkedinImport({
     }
   }
   return (
-    <section className="panel">
-      <PanelHeading title="Import from LinkedIn" />
-      <div className="settings-body">
-        <p>
-          Enter a member profile URL, public handle (for example, priya-sharma) or numeric LinkedIn
-          ID. Import a local extractor file, extract pasted profile text, or look it up through
-          People Data Labs when enabled. Review the candidate before saving.
-        </p>
-        {!canImport && (
-          <p role="status">Candidate import requires an administrator or recruiter role.</p>
-        )}
-        <Field label="LinkedIn profile URL or ID">
-          <input
-            aria-label="LinkedIn profile URL or ID"
-            value={profile}
-            maxLength={500}
-            disabled={busy || !canImport}
-            placeholder="https://www.linkedin.com/in/priya-sharma"
-            onChange={(event) => {
-              setProfile(event.target.value);
-              setCommand('');
-              setCommandNotice('');
-              resetDraft();
-              setEvidenceText('');
-            }}
-          />
-        </Field>
-        <section className="linkedin-export-import" aria-label="Quick LinkedIn extraction">
-          <h3>Extract with one command</h3>
-          <p>
-            Start the local helper once in Windows PowerShell and sign in to LinkedIn. Keep the
-            helper open, paste further profile URLs there, and return here to review each result.
+    <section className="linkedin-guided" aria-label="LinkedIn import guide">
+      <p className="import-intro">
+        Open the helper, bring back its result, then review the candidate. Your LinkedIn login stays
+        on your computer.
+      </p>
+      {!canImport && (
+        <p role="status">Candidate import requires an administrator or recruiter role.</p>
+      )}
+      <div className="disclosure-stack linkedin-steps">
+        <DisclosureSection
+          title="Step 1 · Open the helper"
+          description="Enter a profile URL and copy the command"
+          number={1}
+          open={step === 1}
+          onToggle={(open) => setStep(open ? 1 : 0)}
+        >
+          <Field label="LinkedIn profile URL or ID">
+            <input
+              aria-label="LinkedIn profile URL or ID"
+              value={profile}
+              maxLength={500}
+              disabled={busy || !canImport}
+              placeholder="https://www.linkedin.com/in/priya-sharma"
+              onChange={(event) => {
+                setProfile(event.target.value);
+                setCommand('');
+                setCommandNotice('');
+                resetDraft();
+                setEvidenceText('');
+              }}
+            />
+          </Field>
+          <p className="linkedin-step-instruction">
+            Paste the command into PowerShell. Sign in in the opened browser, then press Enter in
+            PowerShell.
           </p>
-          <label>
+          <label className="linkedin-remember">
             <input
               type="checkbox"
               checked={rememberLogin}
               disabled={!canImport || commandBusy}
-              onChange={(event) => setRememberLogin(event.target.checked)}
-            />{' '}
+              onChange={(event) => {
+                setRememberLogin(event.target.checked);
+                setCommand('');
+                setCommandNotice('');
+              }}
+            />
             Remember LinkedIn login locally for up to 24 hours
           </label>
-          <div className="linkedin-command-actions">
-            <Button disabled={busy || commandBusy || !canImport} onClick={() => copyCommand()}>
-              Copy extraction command
-            </Button>
-            <Button disabled={busy || !canImport} onClick={() => copyHelperInput('profile')}>
-              Copy profile URL for open helper
-            </Button>
-            <Button disabled={busy || !canImport} onClick={() => copyHelperInput('refresh')}>
-              Copy refresh login instruction
-            </Button>
-            <Button
-              disabled={busy || commandBusy || !canImport}
-              onClick={() => copyCommand('forget')}
-            >
-              Copy forget-login command
-            </Button>
-            <Button variant="secondary" disabled={busy || !canImport} onClick={pasteExport}>
-              Paste extracted profile
-            </Button>
-          </div>
-          {commandNotice && <p role="status">{commandNotice}</p>}
+          <Button
+            icon={Copy}
+            disabled={busy || commandBusy || !canImport}
+            onClick={() => copyCommand()}
+          >
+            {commandBusy ? 'Preparing command…' : 'Copy extraction command'}
+          </Button>
+          {commandNotice && (
+            <p className="linkedin-feedback" role="status">
+              {commandNotice}
+            </p>
+          )}
           {command && (
-            <details open>
-              <summary>Your PowerShell command</summary>
+            <details
+              className="linkedin-command-details"
+              open={commandNotice.startsWith('Clipboard access') || undefined}
+            >
+              <summary>View or manually copy the command</summary>
               <textarea
                 aria-label="LinkedIn extraction command"
                 className="linkedin-command-text"
@@ -376,245 +401,388 @@ export function LinkedinImport({
               />
             </details>
           )}
-          <p>
-            Requires{' '}
-            <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noreferrer">
-              Python 3.10 or newer
-            </a>{' '}
-            on Windows. First run installs Playwright and uses installed Edge or Chrome. Chromium is
-            downloaded only if neither is found; later runs reuse the setup. No extension or
-            administrator access is needed. Remembered mode uses a dedicated browser profile on this
-            computer; it never reads your regular browser’s cookies. Type refresh in the helper to
-            sign in again, revoke to remove its local login, or quit to close and retain it until
-            expiry. Close the helper before running the forget-login command. The 24-hour limit is
-            checked before each import and when restarting; expired data is removed on the next use.
-            LinkedIn may require login sooner. Uncheck remembered mode for a temporary login that
-            closes after each run. The portal cannot inspect local login status or extract until you
-            start the helper.
-          </p>
-          <p>
-            The command copies the extracted profile JSON to your clipboard. “Paste extracted
-            profile” reads it for review; it does not save a candidate automatically. A local JSON
-            file remains available as a fallback. No password or cookie is sent to this portal.
-          </p>
-        </section>
-        <section aria-label="Import local LinkedIn export" className="linkedin-export-import">
-          <h3>Import a local LinkedIn export</h3>
-          <p>
-            Sign in to LinkedIn in the local extractor’s browser, then choose its JSON file here. No
-            cookie copying is needed. Your LinkedIn login stays on your computer.
-          </p>
-          <a className="button secondary" href="/linkedin-local-extractor.zip" download>
-            Download local LinkedIn extractor
-          </a>
-          <details>
-            <summary>How to create the export</summary>
-            <ol>
-              <li>
-                Download and unzip the tool. Follow its README to install Python and Playwright.
-              </li>
-              <li>
-                Run the command below with the profile URL. Sign in directly to LinkedIn in the
-                opened browser, then press Enter in your terminal.
-                <pre>
-                  <code>
-                    {
-                      '.\\.venv-linkedin\\Scripts\\python.exe tools/linkedin_profile_extractor.py "https://www.linkedin.com/in/YOUR-HANDLE/" --login --out profile.json'
-                    }
-                  </code>
-                </pre>
-              </li>
-              <li>
-                Choose the exported JSON below. Review warnings and evidence, add a known contact,
-                then save.
-              </li>
-            </ol>
+          <details className="linkedin-helper-existing">
+            <summary>Helper already open? Import another profile</summary>
             <p>
-              This captures visible profile sections and may miss collapsed entries. It stops at
-              verification screens. LinkedIn does not support session-cookie extraction and may
-              restrict automated access.
+              Copy this profile URL, paste it at the helper’s “Next profile URL” prompt, and press
+              Enter.
             </p>
-          </details>
-          <Field label="LinkedIn JSON export">
-            <input
-              type="file"
-              accept=".json,application/json"
-              aria-label="LinkedIn JSON export"
+            <Button
+              variant="secondary"
+              icon={Copy}
               disabled={busy || !canImport}
-              onChange={importExport}
-            />
-          </Field>
-          <p className="muted">
-            One profile per file · maximum 200 KiB. An entered profile URL must match the export.
-          </p>
-        </section>
-        <Field label="LinkedIn profile text">
-          <textarea
-            aria-label="LinkedIn profile text"
-            value={text}
-            maxLength={50000}
-            disabled={busy || !canImport}
-            placeholder="Paste the candidate's profile text here"
-            onChange={(e) => {
-              setText(e.target.value);
-              resetDraft();
-              setEvidenceText('');
-            }}
-          />
-        </Field>
-        <Button
-          disabled={busy || !canImport || !profile.trim() || !text.trim()}
-          onClick={() => extract(false)}
-        >
-          Extract pasted LinkedIn profile
-        </Button>
-        <Button
-          disabled={
-            busy ||
-            !canImport ||
-            !isCloud ||
-            !config?.configured ||
-            !config?.enabled ||
-            !profile.trim()
-          }
-          onClick={() => extract(true)}
-        >
-          Look up LinkedIn ID
-        </Button>
-        <Button
-          disabled={
-            busy ||
-            !canImport ||
-            !isCloud ||
-            !config?.sessionWorker ||
-            !config?.enabled ||
-            !profile.trim() ||
-            /^\d{5,20}$/.test(profile.trim())
-          }
-          onClick={() => extract(true, 'session')}
-        >
-          Look up with LinkedIn test-account session
-        </Button>
-        {isCloud && config?.sessionWorker && (
-          <p>
-            The session option reads the profile page through a self-hosted worker signed in with a
-            dedicated test LinkedIn account. It is not a LinkedIn-approved integration, may break or
-            get that account restricted, and uses the same workspace limit of 20 attempts per UTC
-            day. Contact details are not returned; add an email or phone during review.
-          </p>
-        )}
-        <p>
-          {isCloud && config?.configured
-            ? 'Provider lookup sends the profile URL to People Data Labs and may use billable credits. Workspace limit: 20 attempts per UTC day, including unsuccessful attempts.'
-            : 'Automatic lookup needs a configured enrichment provider in the shared Netlify workspace. Pasted text works without a key.'}
-        </p>
-        {isCloud && isAdmin && (config?.configured || config?.sessionWorker) && (
-          <Button
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError('');
-              try {
-                await setEnabled(!config.enabled);
-                setConfig(await request({ action: 'status' }));
-              } catch (err) {
-                setError(err.message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {config.enabled
-              ? 'Disable workspace LinkedIn lookup'
-              : 'Enable workspace LinkedIn lookup'}
+              onClick={() => copyHelperInput('profile')}
+            >
+              Copy profile URL for open helper
+            </Button>
+          </details>
+          <Button variant="secondary" icon={ArrowRight} onClick={() => setStep(2)}>
+            Continue to import result
           </Button>
-        )}
-        {error && <p role="alert">{error}</p>}
-        {draft && (
-          <>
-            <p role="status">
-              Draft from {metadata.provider}
-              {metadata.likelihood != null
-                ? `; provider match score ${metadata.likelihood}/10`
-                : ''}
-              . Contact and skill details may be missing or outdated.
+          <DisclosureSection
+            title="Manage login and setup"
+            description="Refresh, forget or read setup requirements"
+            icon={Settings2}
+          >
+            <p>
+              Type refresh in the open helper to sign in again, revoke to remove its local login, or
+              quit to close it while retaining login within the 24-hour window.
             </p>
-            {metadata.warnings && (
-              <section aria-label="LinkedIn extraction warnings">
-                <p>{metadata.completeness}</p>
-                <ul>
-                  {metadata.warnings.map((warning, index) => (
-                    <li key={index}>{warning}</li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {['name', 'email', 'phone', 'title', 'company', 'location', 'skills'].map((key) => (
-              <Field label={`LinkedIn draft ${key}`} key={key}>
+            <div className="linkedin-command-actions">
+              <Button
+                variant="secondary"
+                icon={RefreshCw}
+                disabled={busy || !canImport}
+                onClick={() => copyHelperInput('refresh')}
+              >
+                Copy refresh login instruction
+              </Button>
+              <Button
+                variant="secondary"
+                icon={LogOut}
+                disabled={busy || commandBusy || !canImport}
+                onClick={() => copyCommand('forget')}
+              >
+                Copy forget-login command
+              </Button>
+            </div>
+            <p>
+              Close the helper before running the forget-login command. This removes the helper’s
+              local login; it does not sign out other browsers or remove saved JSON files.
+            </p>
+            <details>
+              <summary>Requirements and login privacy</summary>
+              <p>
+                Requires{' '}
+                <a
+                  href="https://www.python.org/downloads/windows/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Python 3.10 or newer
+                </a>{' '}
+                on Windows. First run installs Playwright and uses installed Edge or Chrome.
+                Chromium is downloaded if neither is found. No extension or administrator access is
+                needed.
+              </p>
+              <p>
+                Remembered mode uses a dedicated browser profile and never reads your regular
+                browser’s cookies. The fixed 24-hour limit is checked before imports and on restart;
+                expired data is removed on the next use. LinkedIn may require login sooner. Uncheck
+                remembered mode for a temporary login. The portal cannot inspect your local login or
+                extract until you start the helper.
+              </p>
+            </details>
+          </DisclosureSection>
+        </DisclosureSection>
+        <DisclosureSection
+          title="Step 2 · Bring back the result"
+          description="Paste the extracted profile or choose its saved JSON file"
+          number={2}
+          open={step === 2}
+          onToggle={(open) => setStep(open ? 2 : 0)}
+        >
+          <p className="linkedin-step-instruction">
+            Wait until PowerShell says “Ready.” Then click below to load the copied profile for
+            review.
+          </p>
+          <Button icon={ClipboardPaste} disabled={busy || !canImport} onClick={pasteExport}>
+            {busy ? 'Reading profile…' : 'Paste extracted profile'}
+          </Button>
+          <p className="muted">
+            Nothing is saved yet. Contact details and extracted information are reviewed in Step 3.
+          </p>
+          <details className="linkedin-file-alternative">
+            <summary>Choose a saved JSON file instead</summary>
+            <section aria-label="Import local LinkedIn export" className="linkedin-export-import">
+              <h3>Import a local LinkedIn export</h3>
+              <p>
+                Sign in to LinkedIn in the local extractor’s browser, then choose its JSON file
+                here. No cookie copying is needed. Your LinkedIn login stays on your computer.
+              </p>
+              <a className="button secondary" href="/linkedin-local-extractor.zip" download>
+                Download local LinkedIn extractor
+              </a>
+              <details>
+                <summary>How to create the export</summary>
+                <ol>
+                  <li>
+                    Download and unzip the tool. Follow its README to install Python and Playwright.
+                  </li>
+                  <li>
+                    Run the command below with the profile URL. Sign in directly to LinkedIn in the
+                    opened browser, then press Enter in your terminal.
+                    <pre>
+                      <code>
+                        {
+                          '.\\.venv-linkedin\\Scripts\\python.exe tools/linkedin_profile_extractor.py "https://www.linkedin.com/in/YOUR-HANDLE/" --login --out profile.json'
+                        }
+                      </code>
+                    </pre>
+                  </li>
+                  <li>
+                    Choose the exported JSON below. Review warnings and evidence, add a known
+                    contact, then save.
+                  </li>
+                </ol>
+                <p>
+                  This captures visible profile sections and may miss collapsed entries. It stops at
+                  verification screens. LinkedIn does not support session-cookie extraction and may
+                  restrict automated access.
+                </p>
+              </details>
+              <Field label="LinkedIn JSON export">
                 <input
-                  aria-label={`LinkedIn draft ${key}`}
-                  value={draft[key] || ''}
-                  maxLength={key === 'skills' ? 4000 : 254}
-                  disabled={busy}
+                  type="file"
+                  accept=".json,application/json"
+                  aria-label="LinkedIn JSON export"
+                  disabled={busy || !canImport}
+                  onChange={importExport}
+                />
+              </Field>
+              <p className="muted">
+                One profile per file · maximum 200 KiB. An entered profile URL must match the
+                export.
+              </p>
+            </section>
+          </details>
+          <Button variant="ghost" onClick={() => setStep(1)}>
+            Back to helper setup
+          </Button>
+        </DisclosureSection>
+        <DisclosureSection
+          title="Step 3 · Review and save"
+          description={draft ? 'Your draft is ready to check' : 'A profile result is needed first'}
+          number={3}
+          open={step === 3}
+          onToggle={(open) => setStep(open ? 3 : 0)}
+        >
+          {!draft && (
+            <div className="linkedin-review-empty">
+              <FileText size={28} aria-hidden="true" />
+              <p>
+                Import a result in Step 2 to review identity, contact details and evidence here.
+              </p>
+              <Button variant="secondary" onClick={() => setStep(2)}>
+                Go to import result
+              </Button>
+            </div>
+          )}
+          {draft && (
+            <>
+              <h3 ref={reviewStart} tabIndex={-1}>
+                Check candidate details
+              </h3>
+              <p role="status">
+                Draft from {metadata.provider}
+                {metadata.likelihood != null
+                  ? `; provider match score ${metadata.likelihood}/10`
+                  : ''}
+                . Contact and skill details may be missing or outdated.
+              </p>
+              {metadata.warnings?.length > 0 && (
+                <details aria-label="LinkedIn extraction warnings">
+                  <summary>Extraction notes ({metadata.warnings.length})</summary>
+                  <p>{metadata.completeness}</p>
+                  <ul>
+                    {metadata.warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <div className="linkedin-review-fields">
+                {['name', 'email', 'phone', 'title', 'company', 'location', 'skills'].map((key) => (
+                  <Field
+                    label={
+                      {
+                        name: 'Full name',
+                        email: 'Email',
+                        phone: 'Phone',
+                        title: 'Headline / role',
+                        company: 'Company',
+                        location: 'Location',
+                        skills: 'Skills',
+                      }[key]
+                    }
+                    key={key}
+                  >
+                    <input
+                      aria-label={`LinkedIn draft ${key}`}
+                      value={draft[key] || ''}
+                      maxLength={key === 'skills' ? 4000 : 254}
+                      disabled={busy || !canImport}
+                      onChange={(e) => {
+                        setDraft({ ...draft, [key]: e.target.value });
+                        setConfirmed(false);
+                      }}
+                    />
+                  </Field>
+                ))}
+              </div>
+              <Field label="Profile summary">
+                <textarea
+                  aria-label="LinkedIn draft summary"
+                  value={draft.summary || ''}
+                  maxLength={10000}
+                  disabled={busy || !canImport}
                   onChange={(e) => {
-                    setDraft({ ...draft, [key]: e.target.value });
+                    setDraft({ ...draft, summary: e.target.value });
                     setConfirmed(false);
                   }}
                 />
               </Field>
-            ))}
-            <Field label="LinkedIn draft summary">
-              <textarea
-                aria-label="LinkedIn draft summary"
-                value={draft.summary || ''}
-                maxLength={10000}
+              {evidenceText && (
+                <details>
+                  <summary>Export text for checking evidence</summary>
+                  <pre className="linkedin-export-text">{evidenceText}</pre>
+                </details>
+              )}
+              <CvEvidenceReview
+                label="LinkedIn"
+                value={draft.cvEvidence}
                 disabled={busy || !canImport}
-                onChange={(e) => {
-                  setDraft({ ...draft, summary: e.target.value });
+                onChange={(value) => {
+                  setDraft({ ...draft, cvEvidence: value });
                   setConfirmed(false);
                 }}
               />
+              {!evidenceReady(draft.cvEvidence) && (
+                <p role="status">Review or remove each LinkedIn evidence excerpt before saving.</p>
+              )}
+              <p>
+                A name and email or phone are required. Unknown experience, availability and
+                compensation are left blank. The normal candidate save assigns the Anthro-ID.
+              </p>
+              <label>
+                <input
+                  aria-label="Confirm LinkedIn profile review"
+                  type="checkbox"
+                  checked={confirmed}
+                  disabled={busy}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                />{' '}
+                I reviewed the identity, contact and profile details.
+              </label>
+              <Button
+                disabled={busy || !canImport || !confirmed || !evidenceReady(draft.cvEvidence)}
+                onClick={save}
+              >
+                Save reviewed LinkedIn candidate
+              </Button>
+            </>
+          )}
+        </DisclosureSection>
+      </div>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="linkedin-other-methods">
+        <DisclosureSection
+          title="Other import methods"
+          description="Paste profile text or use a configured provider"
+          icon={Search}
+          open={otherOpen}
+          onToggle={setOtherOpen}
+        >
+          <p>Enter the profile URL or ID in Step 1 before using these methods.</p>
+          <DisclosureSection
+            title="Paste profile text"
+            description="Use text you have copied from a profile"
+            icon={FileText}
+          >
+            <Field label="LinkedIn profile text">
+              <textarea
+                aria-label="LinkedIn profile text"
+                value={text}
+                maxLength={50000}
+                disabled={busy || !canImport}
+                placeholder="Paste the candidate's profile text here"
+                onChange={(e) => {
+                  setText(e.target.value);
+                  resetDraft();
+                  setEvidenceText('');
+                }}
+              />
             </Field>
-            {evidenceText && (
-              <details>
-                <summary>Export text for checking evidence</summary>
-                <pre className="linkedin-export-text">{evidenceText}</pre>
-              </details>
-            )}
-            <CvEvidenceReview
-              label="LinkedIn"
-              value={draft.cvEvidence}
-              disabled={busy || !canImport}
-              onChange={(value) => {
-                setDraft({ ...draft, cvEvidence: value });
-                setConfirmed(false);
-              }}
-            />
-            {!evidenceReady(draft.cvEvidence) && (
-              <p role="status">Review or remove each LinkedIn evidence excerpt before saving.</p>
+            <Button
+              disabled={busy || !canImport || !profile.trim() || !text.trim()}
+              onClick={() => extract(false)}
+            >
+              Extract pasted LinkedIn profile
+            </Button>
+          </DisclosureSection>
+          <DisclosureSection
+            title="Provider lookup"
+            description="Optional workspace integrations and administrator controls"
+            icon={Search}
+          >
+            <Button
+              disabled={
+                busy ||
+                !canImport ||
+                !isCloud ||
+                !config?.configured ||
+                !config?.enabled ||
+                !profile.trim()
+              }
+              onClick={() => extract(true)}
+            >
+              Look up LinkedIn ID
+            </Button>
+            <Button
+              disabled={
+                busy ||
+                !canImport ||
+                !isCloud ||
+                !config?.sessionWorker ||
+                !config?.enabled ||
+                !profile.trim() ||
+                /^\d{5,20}$/.test(profile.trim())
+              }
+              onClick={() => extract(true, 'session')}
+            >
+              Look up with LinkedIn test-account session
+            </Button>
+            {isCloud && config?.sessionWorker && (
+              <p>
+                The session option reads the profile page through a self-hosted worker signed in
+                with a dedicated test LinkedIn account. It is not a LinkedIn-approved integration,
+                may break or get that account restricted, and uses the same workspace limit of 20
+                attempts per UTC day. Contact details are not returned; add an email or phone during
+                review.
+              </p>
             )}
             <p>
-              A name and email or phone are required. Unknown experience, availability and
-              compensation are left blank. The normal candidate save assigns the Anthro-ID.
+              {isCloud && config?.configured
+                ? 'Provider lookup sends the profile URL to People Data Labs and may use billable credits. Workspace limit: 20 attempts per UTC day, including unsuccessful attempts.'
+                : 'Automatic lookup needs a configured enrichment provider in the shared Netlify workspace. Pasted text works without a key.'}
             </p>
-            <label>
-              <input
-                aria-label="Confirm LinkedIn profile review"
-                type="checkbox"
-                checked={confirmed}
+            {isCloud && isAdmin && (config?.configured || config?.sessionWorker) && (
+              <Button
                 disabled={busy}
-                onChange={(e) => setConfirmed(e.target.checked)}
-              />{' '}
-              I reviewed the identity, contact and profile details.
-            </label>
-            <Button
-              disabled={busy || !canImport || !confirmed || !evidenceReady(draft.cvEvidence)}
-              onClick={save}
-            >
-              Save reviewed LinkedIn candidate
-            </Button>
-          </>
-        )}
+                onClick={async () => {
+                  setBusy(true);
+                  setError('');
+                  try {
+                    await setEnabled(!config.enabled);
+                    setConfig(await request({ action: 'status' }));
+                  } catch (err) {
+                    setError(err.message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {config.enabled
+                  ? 'Disable workspace LinkedIn lookup'
+                  : 'Enable workspace LinkedIn lookup'}
+              </Button>
+            )}
+          </DisclosureSection>
+        </DisclosureSection>
       </div>
     </section>
   );

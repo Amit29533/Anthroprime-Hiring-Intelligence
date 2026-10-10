@@ -60,6 +60,8 @@ async function reviewCsv(rows) {
   await settle(6);
   await navTo('Candidates');
   await press('Import candidates');
+  await click(screen.getByRole('button', { name: /^Spreadsheet/ }));
+  await click(screen.getByText('Paste CSV instead'));
   await change(byPlaceholder('name,email,title,skills…'), [HEADER, ...rows].join('\n'));
   await press('Read pasted CSV');
   assert.ok(
@@ -167,6 +169,8 @@ test('an equal-count repository change refreshes the exact duplicate row before 
     notify: () => {},
   };
   const modal = await mount(M.ImportModal, props);
+  await click(screen.getByRole('button', { name: /^Spreadsheet/ }));
+  await click(screen.getByText('Paste CSV instead'));
   await change(
     screen.getByPlaceholderText('name,email,title,skills…'),
     'name,email\nFirst Import,first@example.com\nSecond Import,second@example.com',

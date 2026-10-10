@@ -33,9 +33,111 @@
 }
 .linkedin-command-text {
   width: 100%;
-  min-height: 210px;
+  min-height: 150px;
   font-family: ui-monospace, monospace;
   font-size: 12px;
   line-height: 1.6;
   resize: vertical;
+}
+.linkedin-guided {
+  display: grid;
+  gap: 16px;
+}
+.linkedin-guided .import-intro {
+  margin: 0;
+}
+.linkedin-guided .disclosure-body {
+  display: grid;
+  gap: 14px;
+}
+.linkedin-guided .disclosure-body[hidden] {
+  display: none;
+}
+.linkedin-guided .disclosure-body > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.linkedin-guided .disclosure-body > .button {
+  justify-self: start;
+}
+.linkedin-guided details {
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--surface-soft, var(--canvas));
+  font-size: 13px;
+  min-width: 0;
+}
+.linkedin-guided summary {
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 550;
+}
+.linkedin-guided details[open] > summary {
+  margin-bottom: 12px;
+}
+.linkedin-guided details p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 10px 0;
+}
+.linkedin-guided .linkedin-command-text {
+  margin-top: 12px;
+}
+.linkedin-remember {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--ink);
+}
+.linkedin-remember input {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.linkedin-feedback {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--tint);
+  color: var(--ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.linkedin-review-empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  color: var(--muted);
+  padding: 12px 0;
+}
+.linkedin-review-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.linkedin-other-methods {
+  margin-top: 4px;
+}
+.linkedin-guided pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.linkedin-guided .linkedin-export-import {
+  padding: 14px;
+  background: var(--surface);
+}
+@media (max-width: 600px) {
+  .linkedin-review-fields {
+    grid-template-columns: 1fr;
+  }
+  .linkedin-command-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .linkedin-guided .button {
+    white-space: normal;
+    text-align: center;
+    max-width: 100%;
+  }
 }

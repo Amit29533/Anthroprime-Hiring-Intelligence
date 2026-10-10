@@ -57,7 +57,18 @@ test('shared hub wires five live queues and UUID candidate/client navigation for
     onOpen: (id) => candidates.push(id),
     onOpenClient: (id) => clients.push(id),
   });
-  await settle(8);
+  await settle(2);
+  assert.deepEqual(calls, [], 'closed tools do not load queues');
+  assert.equal(screen.queryByRole('heading', { name: 'Recruiter worklist' }), null);
+  for (const title of [
+    'Tasks and follow-ups',
+    'Feedback and reviews',
+    'Candidate communication',
+    'Repository quality',
+  ]) {
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${title}`) }));
+    await settle(8);
+  }
   for (const name of [
     'api_test_communications',
     'api_feedback_queue',
@@ -68,7 +79,9 @@ test('shared hub wires five live queues and UUID candidate/client navigation for
     assert.ok(calls.includes(name), name);
   assert.equal(calls.includes('api_anthro_id_capacity'), false);
   assert.equal(screen.queryByRole('button', { name: 'Configure test transport' }), null);
+  fireEvent.click(screen.getByRole('button', { name: /^Tasks and follow-ups/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Open candidate for task' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Feedback and reviews/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Open account feedback' }));
   assert.deepEqual(candidates, ['candidate']);
   assert.deepEqual(clients, ['client']);
@@ -99,6 +112,7 @@ test('workspace changes remount every queue and discard late prior-workspace rep
         })
       : response(name, args);
   const view = await mount(Hub, { isCloud: true, role: 'viewer', scope: 'old', rpc });
+  fireEvent.click(screen.getByRole('button', { name: /^Feedback and reviews/ }));
   await settle();
   view.rerender(
     React.createElement(Hub, {
