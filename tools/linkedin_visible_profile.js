@@ -62,6 +62,22 @@
     )
       break;
   }
+  // Contact and company can sit in sibling columns of the same intro card.
+  // Expand only within the one-heading boundary, stopping before other sections.
+  if (header && !header.querySelector('svg[id^="company-accent-"]')) {
+    let parent = header.parentElement;
+    for (
+      let i = 0;
+      parent && parent.tagName !== 'MAIN' && i < 8;
+      i++, parent = parent.parentElement
+    ) {
+      if (parent.querySelectorAll('h1, h2, h3, [role="heading"]').length !== 1) break;
+      if (parent.querySelector('svg[id^="company-accent-"]')) {
+        header = parent;
+        break;
+      }
+    }
+  }
   const paragraphs = header
     ? Array.from(header.querySelectorAll('p'))
         .filter(visible)
@@ -72,24 +88,35 @@
     (x) =>
       x !== '·' &&
       x !== name?.innerText.trim() &&
-      !/^(He\/Him|She\/Her|They\/Them)(\/\w+)?$|^Contact info$|^\d[\d,+.]* (connections|followers)$/i.test(
+      !/^(He\/Him|She\/Her|They\/Them)(\/\w+)?$|^[·\s]*(1st|2nd|3rd|\d+th)\+?$|^Contact info$|^\d[\d,+.]* (connections|followers)$/i.test(
         x,
       ),
   );
-  // Require the observed three-field header shape; leave uncertain values blank.
+  // A non-self profile can put the company control after Contact info, leaving
+  // headline/location before it. Use its company-specific icon, never action
+  // button labels or unrelated sidebar companies, to recognize that layout.
+  const companyControls = Array.from(
+    header?.querySelectorAll('button, [role="button"]') || [],
+  ).filter((el) => visible(el) && el.querySelector('svg[id^="company-accent-"]'));
+  const companyLabel =
+    companyControls.length === 1 && companyControls[0].querySelectorAll('p').length === 1
+      ? companyControls[0].querySelector('p').innerText.trim()
+      : null;
+  const separatedCompany = intro.length === 2 && Boolean(companyLabel);
+  // Require a recognized header shape; leave uncertain values blank.
   const data = {
     format: 'anthro-linkedin-profile',
     version: 1,
     url: window.location.href,
     name: visible(name) ? name.innerText.trim() : null,
-    headline: intro.length === 3 ? intro[0] : null,
-    company: intro.length === 3 ? intro[1] : null,
-    location: intro.length === 3 ? intro[2] : null,
+    headline: intro.length === 3 || separatedCompany ? intro[0] : null,
+    company: intro.length === 3 ? intro[1] : separatedCompany ? companyLabel : null,
+    location: intro.length === 3 ? intro[2] : separatedCompany ? intro[1] : null,
     about: null,
     sections: {},
     warnings: [],
   };
-  if (visible(name) && intro.length !== 3)
+  if (visible(name) && intro.length !== 3 && !separatedCompany)
     data.warnings.push('intro: unfamiliar header shape; fill headline/company/location manually');
   // Explicit legacy field selectors remain useful when the modern header varies.
   const field = (selector) =>
@@ -134,10 +161,18 @@
     if (!heading) continue;
     const card = cardFor(heading);
     if (!card) continue;
+    const skillRows = '[componentkey^="com.linkedin.sdui.profile.skill("]';
     let entries = Array.from(
-      card.querySelectorAll('[componentkey^="entity-collection-item"]'),
+      card.querySelectorAll(
+        key === 'skills' && card.querySelector(skillRows)
+          ? skillRows
+          : '[componentkey^="entity-collection-item"]',
+      ),
     ).filter(
-      (el) => visible(el) && !el.parentElement.closest('[componentkey^="entity-collection-item"]'),
+      (el) =>
+        visible(el) &&
+        !el.parentElement.closest('[componentkey^="entity-collection-item"]') &&
+        (key !== 'skills' || !el.getAttribute('componentkey')?.endsWith('-divider')),
     );
     if (!entries.length)
       entries = Array.from(card.querySelectorAll('li')).filter(
@@ -201,9 +236,11 @@
     const text = Array.from(aboutCard.querySelectorAll('p, span[aria-hidden="true"]'))
       .filter(visible)
       .map((x) => x.innerText.trim())
-      .filter(Boolean);
+      .filter((x) => x && !/^[…\.\s]*more$/i.test(x));
     if (text.length) {
       data.about = text.join('\n\n').slice(0, 10000);
+      if (/[…\.]{1,3}\s*more\b/i.test(aboutCard.innerText))
+        data.warnings.push('about: text may be collapsed; review the visible excerpt');
     }
   }
   return data;

@@ -69,12 +69,19 @@ is solved automatically.
 The extractor captures the intro before scrolling and merges visible section
 rows during a bounded 12-step rendering pass. It supports semantic section
 headings and outer list rows as well as the observed component-key layout.
+Scrolling focuses the profile's main content so nested scroll containers load
+their sections even when the mouse is over the navigation bar. Connection
+degrees are excluded from intro fields, and SDUI skill rows are read separately.
 Hidden rows and unrelated sidebar content are excluded. Collapsed entries
 still require manual review; the tool does not guarantee a complete profile.
 If no professional sections are captured, the terminal prints an explicit
 warning. Existing exports are snapshots: refresh the portal, copy a new command
 and extract again to use parser fixes. Reimporting an old JSON cannot recover
 content that was never captured.
+
+An already running helper keeps its loaded parser. After an extractor release,
+type `quit`, refresh the portal and copy a fresh extraction command once.
+Restarting reuses the dedicated login if its 24-hour window is still valid.
 
 After Enter, the terminal immediately prints `Sign-in confirmed; loading the
 requested profile`, then header, scroll and section progress. Output is

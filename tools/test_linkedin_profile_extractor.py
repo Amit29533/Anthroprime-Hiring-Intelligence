@@ -66,10 +66,17 @@ class Page:
     def wheel(self, x, y):
         pass
 
+    def scroll(self, key, **kwargs):
+        pass
+
     def wait_for_timeout(self, timeout):
         pass
 
     def locator(self, selector):
+        if selector == "main":
+            main = Locator()
+            main.press = self.scroll
+            return main
         if selector == "main h1":
             return Locator(self.name)
         if selector.startswith("iframe"):
@@ -306,13 +313,25 @@ class ExtractorTests(unittest.TestCase):
     def test_scroll_snapshots_retain_sections_removed_by_virtual_rendering(self):
         page = Page(name="")
         page.modern = {"name": "Mira", "headline": "Engineer", "sections": {}, "warnings": []}
-        def wheel(x, y):
+        def scroll(key, **kwargs):
             page.modern = {"name": None, "sections": {"skills": [["React"]]}, "warnings": []}
-        page.wheel = wheel
+        page.scroll = scroll
         result = extractor.scrape(URL, "SECRET", playwright_factory=factory_for(Browser(page)))
         self.assertEqual(result["name"], "Mira")
         self.assertEqual(result["headline"], "Engineer")
         self.assertEqual(result["skills"], [["React"]])
+
+    def test_nested_workspace_scroll_targets_main_instead_of_navigation_bar(self):
+        page = Page()
+        keys = []
+        def focus_scroll(key, **kwargs):
+            keys.append(key)
+            page.modern = {"name": "Mira", "sections": {"education": [["Fictional University"]]}, "warnings": []}
+        page.scroll = focus_scroll
+        page.wheel = lambda *_: self.fail("Untargeted wheel would hit the navigation bar")
+        result = extractor.scrape(URL, "SECRET_COOKIE", playwright_factory=factory_for(Browser(page)))
+        self.assertEqual(keys, ["PageDown"] * 12)
+        self.assertEqual(result["education"], [["Fictional University"]])
 
     def test_merged_rows_are_unique_bounded_and_preserve_warning(self):
         first = {"name": "Mira", "sections": {"skills": [[str(i)] for i in range(15)]}, "warnings": []}

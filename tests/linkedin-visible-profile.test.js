@@ -55,6 +55,34 @@ test('contact link instead of paragraph preserves modern header fields', () => {
   assert.equal(result.company, 'Example Labs');
   assert.equal(result.location, 'Example City');
 });
+
+test('connection degree cannot shift headline and company in a non-self profile', () => {
+  const result = extract(
+    '<main><section><h2>Fictional Candidate</h2><p>She/Her</p><p>· 3rd</p><p>Accounting Analyst</p><p>Example Company</p><p>Example City</p><p>·</p><a><p>Contact info</p></a><p>Example Company</p><p>228</p><p>connections</p></section></main>',
+  );
+  assert.equal(result.headline, 'Accounting Analyst');
+  assert.equal(result.company, 'Example Company');
+  assert.equal(result.location, 'Example City');
+});
+
+test('SDUI skill rows stay separate and dividers are excluded', () => {
+  const result = extract(
+    `<main>${header}<section><h2>Skills (22)</h2><div><div componentkey="com.linkedin.sdui.profile.skill(fake, 1)"><p>CRM</p>\n<p>Fictional job context</p></div><div componentkey="com.linkedin.sdui.profile.skill(fake, 1)-divider"><hr></div><div componentkey="com.linkedin.sdui.profile.skill(fake, 2)"><p>Final Accounts</p>\n<p>Fictional job context</p></div></div><a>Show all</a></section></main>`,
+  );
+  assert.equal(result.sections.skills.length, 2);
+  assert.equal(result.sections.skills[0][0], 'CRM');
+  assert.equal(result.sections.skills[1][0], 'Final Accounts');
+});
+
+test('company-specific intro control after contact preserves the two-field layout', () => {
+  const result = extract(
+    '<main><section><div><h2>Fictional Candidate</h2><p>· 3rd</p><p>Accounting Analyst</p><p>Example City</p><a><p>Contact info</p></a></div><div role="button"><figure><svg id="company-accent-4"></svg></figure><p>Example Company</p></div><p>228</p><p>connections</p><button>Follow</button></section><section><h2>Experience</h2><div role="button"><svg id="company-accent-other"></svg><p>Unrelated company</p></div></section></main>',
+  );
+  assert.equal(result.headline, 'Accounting Analyst');
+  assert.equal(result.company, 'Example Company');
+  assert.equal(result.location, 'Example City');
+  assert.ok(!result.warnings.some((warning) => warning.startsWith('intro:')));
+});
 test('section headings need no component keys and support h3 and ARIA headings', () => {
   const result = extract(
     `<main>${header}<section><h3>Experience</h3><ul><li><h3>Developer</h3><p>Example Labs</p></li><li hidden>Hidden job</li></ul></section><section><div role="heading">Education</div><ul><li>Example University</li></ul></section><section><h2>Licenses and certifications</h2><ul><li>Example Certificate</li></ul></section></main><aside><h2>Skills</h2><li>Unrelated skill</li></aside>`,

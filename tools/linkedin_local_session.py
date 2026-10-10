@@ -16,7 +16,7 @@ import uuid
 
 from linkedin_profile_extractor import (
     ExtractionError, check_page, extract_profile, merge_snapshots, profile_url,
-    remaining_timeout, visible_snapshot, wait_for_profile_intro,
+    remaining_timeout, scroll_profile, visible_snapshot, wait_for_profile_intro,
 )
 
 SESSION_TTL = 24 * 60 * 60
@@ -150,7 +150,7 @@ def read_profile(page, url, report):
     for step in range(12):
         remaining_timeout(deadline)
         report(f"Loading visible sections {step + 1}/12...")
-        page.mouse.wheel(0, 800)
+        scroll_profile(page, deadline)
         page.wait_for_timeout(500)
         check_page(page, expected)
         captured = merge_snapshots(captured, visible_snapshot(page))

@@ -169,6 +169,13 @@ def visible_snapshot(page):
     return page.evaluate("(" + dom_script + "\n)()")
 
 
+def scroll_profile(page, deadline=None):
+    # LinkedIn's workspace is a nested scroll container. Wheel events at the
+    # default mouse position (0,0) hit its navigation bar and load no sections.
+    # Focusing the actual main region sends PageDown to that container.
+    page.locator("main").first.press("PageDown", timeout=remaining_timeout(deadline))
+
+
 def wait_for_profile_intro(page, expected):
     """Wait for the same semantic extractor used later, not a separate CSS gate."""
     for _ in range(30):
@@ -312,7 +319,7 @@ def scrape(url, li_at=None, jsessionid=None, headful=False, timeout_ms=30000, *,
                 for step in range(12):
                     remaining_timeout(deadline)
                     report(f"Loading visible sections {step + 1}/12...")
-                    page.mouse.wheel(0, 800)
+                    scroll_profile(page, deadline)
                     page.wait_for_timeout(500)
                     check_page(page, expected)
                     captured = merge_snapshots(captured, visible_snapshot(page))
